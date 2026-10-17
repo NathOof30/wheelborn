@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-game-bg: #0a0e1a;
+    --color-game-surface: rgba(15, 23, 42, 0.9);
+    --color-game-card: #131b2e;
+    --color-game-border: #1e293b;
+
+    --color-rarity-common: #94a3b8;
+    --color-rarity-rare: #38bdf8;
+    --color-rarity-epic: #c084fc;
+    --color-rarity-legendary: #fbbf24;
+
+    --color-stat-hp: #f43f5e;
+    --color-stat-strength: #f59e0b;
+    --color-stat-speed: #06b6d4;
+    --color-stat-defense: #10b981;
+  }
+
+  body {
+    background-color: #0a0e1a;
+    color: #f8fafc;
+  }
+}
+
+/* Animations et effets néon WHEELBORN */
+@keyframes neonPulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6)); }
+  50% { opacity: 0.85; filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.3)); }
+}
+
+.animate-neon-pulse {
+  animation: neonPulse 2s infinite ease-in-out;
+}
+
+@keyframes spinRoll {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-30px); }
+  100% { transform: translateY(0); }
+}
+
+.animate-spin-roll {
+  animation: spinRoll 0.4s ease-in-out;
+}

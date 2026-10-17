@@ -1,0 +1,44 @@
+# --- Dépendances ---
+/node_modules
+/vendor
+
+# --- Fichiers d'environnement et secrets ---
+.env
+.env.backup
+.env.production
+/auth.json
+/storage/*.key
+
+# --- Base de données SQLite ---
+/database/*.sqlite
+/database/*.sqlite-journal
+
+# --- Cache et logs ---
+*.log
+/storage/logs/*.log
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/pail
+.phpunit.result.cache
+/.phpunit.cache
+
+# --- Assets générés ---
+/public/build
+/public/hot
+/public/storage
+/public/fonts-manifest.dev.json
+
+# --- IDEs et OS ---
+.DS_Store
+Thumbs.db
+/.idea
+/.vscode
+/.cursor/
+/.codex
+/.nova
+/.zed
+.phpactor.json
+_ide_helper.php
+Homestead.json
+Homestead.yaml
