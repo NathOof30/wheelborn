@@ -70,10 +70,11 @@ npm run dev
 
 Après avoir exécuté `php artisan migrate --seed`, ces comptes sont immédiatement utilisables :
 
-| Rôle | Email | Mot de passe | Privilèges |
+| Rôle | Email | Mot de passe | Privilèges & État initial |
 |:---|:---|:---|:---|
-| **Administrateur** | `admin@wheelborn.test` | `password` | **Tirages illimités (`⚡ ∞`)**, **Argent infini (`999 999 🪙`)**, panneau d'outils de test dans l'interface |
-| **Joueur test** | `nathanael.leang@gmail.com` | `password` | Également configuré avec privilèges administrateur |
+| **Administrateur** | `admin@wheelborn.test` | `password` | **5 cartes de démo pré-générées** (Paper Doll Épée/Bâton, Synergie Démon, Légendaire, Cadenas), **999 charges**, **999 999 🪙**, barre d'outils admin de test |
+| **Joueur Normal (UX)** | `player@wheelborn.test` | `password` | **Collection vierge (0 carte)**, 3 charges standard, 250 🪙, 5 tickets d'arène (expérience utilisateur débutant) |
+| **Compte Développeur** | `nathanael.leang@gmail.com` | `password` | Privilèges administrateurs activés |
 
 > [!TIP]
 > **Promouvoir un compte en Admin à tout moment :**  

@@ -27,7 +27,7 @@
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ En cours (1/4 - Paper Doll V1 ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
-| **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 2 | ⏳ Partiel (1/2 - God Mode ✅) |
+| **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode & Seeder ✅) |
 | **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 4 | ⏳ Partiel (3/4 - 60 tests ✅) |
 
 ---
@@ -483,6 +483,22 @@
   - [x] Bouton "Reset Pity" (remise à zéro instantanée du compteur de pitié).
   - [x] Boutons de test Paper Doll direct : "🎨 Test Humain + Épée" et "🎨 Test Humain + Bâton" pour valider la superposition des calques en direct.
   - [x] Ressources illimitées automatiques pour l'administrateur (charges de roue et tickets d'arène à 999, or à 999 999 🪙).
+
+### [x] T7.3 — Seeder de Base de Données Bimodal (Admin Démo & Joueur UX Standard)
+- **Priorité :** 🔴 P0 (Soutenance & Prise en main collaborateur)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `database/seeders/DatabaseSeeder.php`, `README.md`
+- **Description :** Seeder bimodal préparant automatiquement la base de données pour deux cas d'usage distincts : démonstration complète (Admin) et test d'onboarding vierge (Joueur UX).
+- **Critères d'acceptation :**
+  - [x] **Compte Admin (`admin@wheelborn.test` / `password`)** : 999 999 🪙, 999 charges, barre d'outils admin.
+  - [x] **5 cartes de démonstration assignées uniquement à l'Admin** :
+    1. `Valérian Brise-Fer` (Humain + Épée + Feu, Rare, calque Paper Doll arme 1).
+    2. `Syrus l'Archiviste` (Humain + Bâton + Foudre, Épique, calque Paper Doll arme 2, verrouillé 🔒).
+    3. `Malakor le Dévoreur` (Démon + Marteau + Feu, Légendaire, synergie démoniaque).
+    4. `Sylvana Vente-Noire` (Elfe + Arc + Poison, Épique, synergie naturelle).
+    5. `Thorgal Poing-de-Roc` (Nain + Hache + Terre, Commune).
+  - [x] **Compte Joueur Normal (`player@wheelborn.test` / `password`)** : Collection vierge (0 carte), 250 pièces, 3 charges standard, 5 tickets d'arène (expérience utilisateur débutant).
+  - [x] Idempotence totale via `updateOrCreate` pour éviter les duplications lors des ré-exécutions de `php artisan db:seed`.
 
 ---
 
