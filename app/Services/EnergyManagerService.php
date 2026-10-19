@@ -23,12 +23,22 @@ class EnergyManagerService
         $config = GameConfig::spinEnergy();
 
         if ($user->spin_charges >= $config['max']) {
+            if ($user->last_spin_regen_at !== null) {
+                $user->update(['last_spin_regen_at' => null]);
+            }
             return;
         }
 
-        $lastRegen = $user->last_spin_regen_at ?? now();
-        $elapsed = now()->diffInSeconds($lastRegen);
-        $regenInterval = $config['regen_interval_seconds']; // 240s
+        // Si le joueur est en déficit de charges mais n'a pas de timestamp de début,
+        // on initialise le compteur de recharge dès maintenant.
+        if (!$user->last_spin_regen_at) {
+            $user->update(['last_spin_regen_at' => now()]);
+            return;
+        }
+
+        $lastRegen = Carbon::parse($user->last_spin_regen_at);
+        $elapsed = max(0, now()->timestamp - $lastRegen->timestamp);
+        $regenInterval = (int) $config['regen_interval_seconds']; // 240 secondes (4 min)
 
         if ($elapsed >= $regenInterval) {
             $recharged = intdiv($elapsed, $regenInterval);
@@ -38,7 +48,7 @@ class EnergyManagerService
                 'spin_charges' => $newCharges,
                 'last_spin_regen_at' => $newCharges >= $config['max']
                     ? null
-                    : Carbon::parse($lastRegen)->addSeconds($recharged * $regenInterval),
+                    : $lastRegen->addSeconds($recharged * $regenInterval),
             ]);
         }
     }
@@ -62,7 +72,8 @@ class EnergyManagerService
 
         $user->decrement('spin_charges');
 
-        if ($wasMax) {
+        // Si on passe sous la capacité maximale ou qu'aucun timestamp n'est posé, on démarre le chrono
+        if ($wasMax || !$user->last_spin_regen_at) {
             $user->update(['last_spin_regen_at' => now()]);
         }
 
@@ -83,9 +94,13 @@ class EnergyManagerService
             return 0;
         }
 
-        $lastRegen = $user->last_spin_regen_at ?? now();
-        $elapsed = now()->diffInSeconds($lastRegen);
-        $interval = $config['regen_interval_seconds'];
+        if (!$user->last_spin_regen_at) {
+            return (int) $config['regen_interval_seconds'];
+        }
+
+        $lastRegen = Carbon::parse($user->last_spin_regen_at);
+        $elapsed = max(0, now()->timestamp - $lastRegen->timestamp);
+        $interval = (int) $config['regen_interval_seconds'];
 
         return max(0, $interval - ($elapsed % $interval));
     }

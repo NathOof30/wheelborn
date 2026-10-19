@@ -76,4 +76,19 @@ class Character extends Model
     {
         return $this->recycled_at !== null;
     }
+
+    public function getRaceDataAttribute(): ?array
+    {
+        return \App\Data\RaceData::find($this->race_id);
+    }
+
+    public function getWeaponDataAttribute(): ?array
+    {
+        return \App\Data\WeaponData::find($this->weapon_id);
+    }
+
+    public function getPowerDataAttribute(): ?array
+    {
+        return \App\Data\PowerData::find($this->power_id);
+    }
 }

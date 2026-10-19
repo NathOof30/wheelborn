@@ -18,28 +18,16 @@
                     <a href="{{ route('dashboard') }}" class="inline-flex items-center px-1 pt-1 border-b-2 font-medium text-sm leading-5 transition duration-150 {{ request()->routeIs('dashboard') ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600' }}">
                         🎡 Tirage
                     </a>
+                    <a href="{{ route('collection') }}" class="inline-flex items-center px-1 pt-1 border-b-2 font-medium text-sm leading-5 transition duration-150 {{ request()->routeIs('collection') ? 'border-indigo-400 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600' }}">
+                        🛡️ Mes Héros
+                    </a>
                 </div>
             </div>
 
             <!-- Stats Bar (Coins, Elo, Charges) & User Profile -->
             <div class="hidden sm:flex sm:items-center sm:gap-4">
-                <!-- HUD Badges -->
-                <div class="flex items-center gap-3 bg-slate-950/60 px-4 py-1.5 rounded-full border border-slate-800 text-sm">
-                    <div class="flex items-center gap-1.5 text-amber-400 font-semibold" title="Pièces d'or">
-                        <span>🪙</span>
-                        <span>{{ Auth::user()->isAdmin() ? '∞' : (Auth::user()->coins ?? 250) }}</span>
-                    </div>
-                    <div class="h-3 w-px bg-slate-800"></div>
-                    <div class="flex items-center gap-1.5 text-cyan-400 font-semibold" title="Points d'Élo">
-                        <span>{{ Auth::user()->getLeague()->icon() }}</span>
-                        <span>{{ Auth::user()->elo ?? 1000 }}</span>
-                    </div>
-                    <div class="h-3 w-px bg-slate-800"></div>
-                    <div class="flex items-center gap-1.5 text-emerald-400 font-semibold" title="Charges de spin">
-                        <span>⚡</span>
-                        <span>{{ Auth::user()->isAdmin() ? '∞' : (Auth::user()->spin_charges ?? 3) . '/3' }}</span>
-                    </div>
-                </div>
+                <!-- HUD Badges Réactif Livewire -->
+                <livewire:player-hud />
 
                 <!-- Settings Dropdown -->
                 <x-dropdown align="right" width="48">
@@ -93,6 +81,9 @@
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" class="text-slate-200">
                 🎡 Tirage
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('collection')" :active="request()->routeIs('collection')" class="text-slate-200">
+                🛡️ Mes Héros
             </x-responsive-nav-link>
         </div>
 

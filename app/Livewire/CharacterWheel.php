@@ -16,6 +16,7 @@ class CharacterWheel extends Component
     public int $pityMax = 10;
     public int $coins = 250;
     public int $elo = 1000;
+    public int $nextRegenSeconds = 0;
     public bool $isAdmin = false;
     public bool $isSpinning = false;
     public ?array $revealedCharacter = null;
@@ -56,6 +57,7 @@ class CharacterWheel extends Component
         $this->pityCounter = $user->pity_counter;
         $this->coins = $user->coins;
         $this->elo = $user->elo;
+        $this->nextRegenSeconds = app(EnergyManagerService::class)->getNextSpinRegenSeconds($user);
     }
 
     public function spin(): void
@@ -80,6 +82,7 @@ class CharacterWheel extends Component
 
         $this->revealedCharacter = $character->toArray();
         $this->refreshState();
+        $this->dispatchStatsUpdated();
     }
 
     public function keepCharacter(): void
@@ -91,6 +94,7 @@ class CharacterWheel extends Component
         }
 
         $this->revealedCharacter = null;
+        $this->dispatchStatsUpdated();
     }
 
     public function recycleCharacter(): void
@@ -107,6 +111,7 @@ class CharacterWheel extends Component
         $this->notify("+{$coins} 🪙 récupérées par recyclage !", 'success');
         $this->revealedCharacter = null;
         $this->refreshState();
+        $this->dispatchStatsUpdated();
     }
 
     // --- OUTILS ADMIN POUR LES TESTS ---
@@ -117,6 +122,7 @@ class CharacterWheel extends Component
 
         auth()->user()->increment('coins', $amount);
         $this->refreshState();
+        $this->dispatchStatsUpdated();
         $this->notify("+{$amount} 🪙 ajoutées pour les tests !", 'success');
     }
 
@@ -126,6 +132,7 @@ class CharacterWheel extends Component
 
         auth()->user()->update(['pity_counter' => 10]);
         $this->refreshState();
+        $this->dispatchStatsUpdated();
         $this->notify('✨ Jauge de chance maximisée à 10/10 ! Le prochain spin est un Super Spin !', 'success');
     }
 
@@ -135,7 +142,17 @@ class CharacterWheel extends Component
 
         auth()->user()->update(['pity_counter' => 0]);
         $this->refreshState();
+        $this->dispatchStatsUpdated();
         $this->notify('Jauge de chance réinitialisée à 0.', 'info');
+    }
+
+    public function dispatchStatsUpdated(): void
+    {
+        $this->dispatch('stats-updated',
+            coins: $this->coins,
+            spinCharges: $this->spinCharges,
+            elo: $this->elo
+        );
     }
 
     public function notify(string $message, string $type = 'info'): void

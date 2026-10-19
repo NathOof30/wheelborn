@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="space-y-6" @if(!$isAdmin && $spinCharges < $maxCharges) wire:poll.10s="refreshState" @endif>
     {{-- Toast Notification --}}
     @if ($notification)
         <div class="fixed top-20 right-6 z-50 max-w-md p-4 rounded-xl shadow-2xl border backdrop-blur-md transition-all duration-300 {{ $notificationType === 'error' ? 'bg-rose-950/90 border-rose-600 text-rose-200' : ($notificationType === 'success' ? 'bg-emerald-950/90 border-emerald-500 text-emerald-200' : 'bg-slate-900/90 border-slate-700 text-slate-200') }}">
@@ -68,7 +68,7 @@
                             </span>
                         @else
                             @for ($i = 1; $i <= $maxCharges; $i++)
-                                <span class="text-2xl transition-all duration-300 {{ $i <= $spinCharges ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110' : 'text-slate-700' }}">
+                                <span class="text-2xl transition-all duration-300 {{ $i <= $spinCharges ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110' : 'grayscale opacity-25 filter' }}">
                                     ⚡
                                 </span>
                             @endfor
@@ -81,6 +81,41 @@
                             {{ $spinCharges }}/{{ $maxCharges }} disponibles
                         @endif
                     </span>
+
+                    {{-- Timer de recharge dynamique --}}
+                    @if (!$isAdmin && $spinCharges < $maxCharges)
+                        <div
+                            x-data="{
+                                remaining: {{ (int) $nextRegenSeconds }},
+                                timer: null,
+                                format() {
+                                    const total = Math.max(0, parseInt(this.remaining, 10) || 0);
+                                    if (total <= 0) return 'Prêt !';
+                                    const m = Math.floor(total / 60);
+                                    const s = total % 60;
+                                    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+                                },
+                                init() {
+                                    if (this.timer) clearInterval(this.timer);
+                                    this.timer = setInterval(() => {
+                                        if (this.remaining > 0) {
+                                            this.remaining--;
+                                        } else {
+                                            clearInterval(this.timer);
+                                            $wire.refreshState();
+                                        }
+                                    }, 1000);
+                                }
+                            }"
+                            x-init="$watch('$wire.nextRegenSeconds', val => { remaining = Math.max(0, parseInt(val, 10) || 0); })"
+                            class="mt-2 text-[11px] font-mono text-cyan-400 bg-cyan-950/50 px-2.5 py-1 rounded-full border border-cyan-800/40 flex items-center gap-1.5"
+                        >
+                            <span>⏳</span>
+                            <span>+1 dans <strong x-text="format()" class="text-cyan-200 font-bold">
+                                {{ sprintf('%02d:%02d', floor($nextRegenSeconds / 60), $nextRegenSeconds % 60) }}
+                            </strong></span>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Jauge de Chance (Pity) --}}

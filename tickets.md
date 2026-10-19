@@ -21,12 +21,12 @@
 | Épic / Jalon | Priorité | Responsable Principal | Tickets | Statut |
 | :--- | :---: | :---: | :---: | :---: |
 | **Épic 0 : Fondations & Roue de Tirage** | 🔴 P0 | 👥 Binôme | 4 | ✅ Terminé (100%) |
-| **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ⏳ À démarrer (0/5) |
+| **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ⏳ En cours (1/5) |
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ À démarrer (0/4) |
-| **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ À démarrer (0/3) |
+| **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ⏳ En cours (3/5) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 2 | ⏳ À démarrer (0/2) |
 | **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 4 | ⏳ Partiel (1/4) |
 
@@ -56,16 +56,16 @@
 ## 🗃️ Épic 1 — Collection & Inventaire (`CollectionGrid`)
 > **Responsable principal :** 🧑‍💻 Nathanaël
 
-### [ ] T1.1 — Création du composant Livewire `CollectionGrid`
+### [x] T1.1 — Création du composant Livewire `CollectionGrid`
 - **Priorité :** 🔴 P0 (MVP)
 - **Attribué à :** 🧑‍💻 Nathanaël
 - **Cible :** `app/Livewire/CollectionGrid.php`, `resources/views/livewire/collection-grid.blade.php`, `routes/web.php`
 - **Description :** Permettre au joueur connecté de consulter l'ensemble de ses cartes de combattants sous forme d'une grille réactive (cartes néon).
 - **Critères d'acceptation :**
-  - [ ] Affichage en grille responsive (1 col mobile, 2 cols tablette, 3-4 cols desktop).
-  - [ ] Pagination propre (ex: 12 cartes par page) pour éviter de saturer le DOM.
-  - [ ] Compteur total de cartes possédées et indicateur de capacité.
-  - [ ] État vide élégant ("Aucun combattant — Fais tourner la Roue !").
+  - [x] Affichage en grille responsive (1 col mobile, 2 cols tablette, 3-4 cols desktop).
+  - [x] Pagination propre (ex: 12 cartes par page) pour éviter de saturer le DOM.
+  - [x] Compteur total de cartes possédées et indicateur de capacité.
+  - [x] État vide élégant ("Aucun combattant — Fais tourner la Roue !").
 
 ### [ ] T1.2 — Filtres multi-critères et Tri dynamique
 - **Priorité :** 🟡 P1
@@ -378,15 +378,39 @@
   - [ ] Utiliser `lockForUpdate()` sur la ligne de l'utilisateur pour bloquer les requêtes concurrentes.
   - [ ] Attributs Blade `wire:loading.attr="disabled"` sur tous les boutons d'action monétaire.
 
-### [ ] T6.3 — Calcul précis du rattrapage temporel (Catch-Up Time)
+### [x] T6.3 — Calcul précis du rattrapage temporel (Catch-Up Time) & Correction Carbon 3
 - **Priorité :** 🔴 P0 (Énergie)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Services/EnergyManagerService.php`
-- **Description :** Assurer que la régénération de charges et de tickets s'effectue sans décalage, même après 1 mois d'inactivité.
+- **Cible :** `app/Services/EnergyManagerService.php`, `tests/Feature/EnergyManagerTest.php`
+- **Description :** Assurer que la régénération de charges s'effectue sans décalage ni blocage même après plusieurs jours (résolution du bug de différence négative Carbon 3).
 - **Critères d'acceptation :**
-  - [ ] Calcul mathématique : $\text{charges\_gagnées} = \lfloor (\text{now} - \text{last\_regen}) / \text{regen\_interval} \rfloor$.
-  - [ ] Plafonnement strict au maximum légal (`max_charges = 3`, `max_tickets = 5`).
-  - [ ] Mise à jour correcte du timestamp pour ne pas perdre les secondes résiduelles.
+  - [x] Calcul mathématique par timestamp : `elapsed = max(0, now()->timestamp - last_regen->timestamp)`.
+  - [x] Plafonnement strict au maximum légal (`max_charges = 3`).
+  - [x] Mise à jour correcte du timestamp pour ne pas perdre les secondes résiduelles (`addSeconds`).
+  - [x] Initialisation propre si le joueur a moins de 3 charges sans timestamp posé.
+
+### [x] T6.4 — Compte à rebours dynamique de recharge & synchronisation Livewire
+- **Priorité :** 🔴 P0 (UX / Feedback)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`
+- **Description :** Affichage d'un timer précis (mm:ss) uniquement dans la carte des charges avec mise à jour automatique en temps réel.
+- **Critères d'acceptation :**
+  - [x] Pré-rendu direct en PHP (`sprintf('%02d:%02d', ...)`) pour garantir zéro texte vide ou `NaN` avant l'exécution JS.
+  - [x] Compte à rebours animé fluide côté client via Alpine.js (`x-data` avec `parseInt` infaillible) dans la carte des charges.
+  - [x] Suppression des doublons d'affichage pour une interface épurée.
+  - [x] Rechargement automatique de l'état sans rechargement de page (`wire:poll.10s` + rafraîchissement à l'expiration du chrono).
+  - [x] Déblocage immédiat du bouton dès qu'une charge devient disponible.
+
+### [x] T6.5 — Composant Livewire réactif `PlayerHud` (Synchronisation temps réel du solde de pièces)
+- **Priorité :** 🔴 P0 (Économie & UI réactive)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `app/Livewire/PlayerHud.php`, `resources/views/livewire/player-hud.blade.php`, `resources/views/layouts/navigation.blade.php`, `tests/Feature/PlayerHudTest.php`
+- **Description :** Rendre la barre HUD de navigation réactive en temps réel via des événements Livewire (`stats-updated`) pour refléter immédiatement les gains de pièces (recyclage), les dépenses et les variations d'Élo sans recharger la page.
+- **Critères d'acceptation :**
+  - [x] Extraction du HUD statique de `navigation.blade.php` vers un composant Livewire `PlayerHud`.
+  - [x] Double réactivité instantanée : événement navigateur `@stats-updated.window` (0ms de latence) + écouteur Livewire `#[On('stats-updated')]`.
+  - [x] Émission automatique avec payload complet (`coins`, `spinCharges`, `elo`) depuis `CharacterWheel` et `CollectionGrid` lors de chaque recyclage ou spin.
+  - [x] Affichage formaté des pièces (`Intl.NumberFormat`) et icône dynamique de ligue.
 
 ---
 
