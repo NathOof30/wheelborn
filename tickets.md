@@ -324,16 +324,18 @@
 ## 🎨 Épic 5 — Game Feel, Rendu Visuel & Paper Doll
 > **Responsables :** 👥 Binôme (Nathanaël & Mathéo)
 
-### [ ] T5.1 — Système de Rendu Composite "Paper Doll" (Avatar Procédural)
+### [ ] T5.1 — Système de Rendu Composite "Paper Doll" (Avatar Procédural) & Châssis Responsive
 - **Priorité :** 🟡 P1 (Immersion & Note Soutenance)
 - **Attribué à :** 👥 Binôme
-- **Cible :** `resources/views/components/character-avatar.blade.php`
-- **Description :** Générer une représentation graphique unique de chaque héros par superposition de calques SVG/CSS.
+- **Cible :** `docs/GUIDE_ASSETS_PAPER_DOLL.md`, `resources/views/components/character-avatar.blade.php`, `resources/views/livewire/collection-grid.blade.php`
+- **Description :** Générer une représentation graphique unique de chaque héros par superposition de calques WebP sur un portrait carré (512x512), enveloppé dans un châssis de carte réactif (CSS/Tailwind + SVG).
 - **Critères d'acceptation :**
-  - [ ] Calque 1 : Silhouette / Corps selon la Race (Elfe, Nain, Démon, Cyborg...).
-  - [ ] Calque 2 : Arme équipée dans la main (Épée, Marteau, Dagues, Arc...).
-  - [ ] Calque 3 : Aura de particules ou lueur de couleur selon le Pouvoir Élémentaire (Feu, Foudre, Glace...).
-  - [ ] Calque 4 : Cadre néon orné selon la Rareté (Gris, Bleu, Violet, Doré animé).
+  - [x] Spécifications techniques & guide d'export rédigés dans [GUIDE_ASSETS_PAPER_DOLL.md](file:///c:/Users/natha/Documents/PROJET/WHEELBORN_PROJECT/WHEELBORN/docs/GUIDE_ASSETS_PAPER_DOLL.md).
+  - [ ] Calque 0 : Fond d'aura / Décor de rareté (`backgrounds/`).
+  - [ ] Calque 1 : Silhouette / Corps selon la Race (`races/`).
+  - [ ] Calque 2 : Effet élémentaire / VFX semi-transparent (`elements/`).
+  - [ ] Calque 3 : Arme tenue selon le gabarit d'alignement (`weapons/`).
+  - [ ] Châssis de carte responsive (bordure, liserés, halo glow de rareté en pur CSS Tailwind + coins SVG) s'adaptant à n'importe quelle taille de carte sans distorsion.
 
 ### [ ] T5.2 — Ambiance Sonore & Haptique (SFX optionnels)
 - **Priorité :** 🟢 P2 (Polish)

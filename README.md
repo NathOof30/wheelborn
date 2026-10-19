@@ -133,6 +133,7 @@ Toute la conception du jeu et les spécifications techniques sont centralisées 
 
 | Document | Description |
 |:---|:---|
+| [**GUIDE_ASSETS_PAPER_DOLL.md**](docs/GUIDE_ASSETS_PAPER_DOLL.md) | **Guide Assets & Paper Doll** : Normes de dessin 512x512, calques (Aura, Race, Élément, Arme), gabarit d'alignement, nomenclature BDD et châssis responsive CSS/SVG. |
 | [**DOCUMENTATION_DU_JEU.md**](docs/DOCUMENTATION_DU_JEU.md) | **Bible du Game Design (GDD)** : Règles du jeu, 8 races, 8 armes, 8 pouvoirs, synergies, formules mathématiques et Paper Doll. |
 | [**NOUVELLE_BOUCLE_GAMEPLAY.md**](docs/NOUVELLE_BOUCLE_GAMEPLAY.md) | **Boucle de gameplay V2** : Sessions Coffee Break (5-10 min), jauge de Pity 10/10, recyclage en pièces et arbre de l'Atelier. |
 | [**PLAN_PORTAGE_LARAVEL.md**](docs/PLAN_PORTAGE_LARAVEL.md) | **Spécifications techniques complètes** : Schémas SQL, mapping JS → Livewire, sécurité anti-triche et architecture détaillée. |
@@ -177,7 +178,7 @@ Le projet est développé en binôme par **Nathanaël** et **Mathéo**.
 Consulte [`tickets.md`](tickets.md) ainsi que [`docs/TUTO_DEMARRAGE_LARAVEL.md`](docs/TUTO_DEMARRAGE_LARAVEL.md) pour suivre l'avancement :
 - [x] Phase 1 : Fondations, BDD, Enums, Modèles, Layout dark et Livewire 3
 - [x] Phase 2.1 : Roue de tirage (`CharacterWheel`), Super Spin 10/10, compte Admin
-- [ ] Phase 2.2 : Grille de collection de cartes (`CollectionGrid`) avec filtres et recyclage *(Nathanaël)*
+- [x] Phase 2.2 : Grille de collection de cartes (`CollectionGrid`), filtres, verrouillage, recyclage massif & transactions atomiques *(Nathanaël)*
 - [ ] Phase 3 : Moteur de combat 1v1 (`BattleEngineService`), Arène et Classement Élo (`Leaderboard`) *(Mathéo)*
 - [ ] Phase 4 : Atelier d'améliorations (`Workshop`) et succès *(Mathéo)*
 - [ ] Phase 5 : Paper doll et polish visuel *(Binôme)*
