@@ -2,6 +2,7 @@
 
 > **Projet Universitaire Full-Stack**  
 > Générateur procédural de combattants, duels en arène, calcul d'Élo mathématique (FIDE) et économie circulaire de recyclage.  
+> **Équipe de développement :** Nathanaël & Mathéo  
 > **Stack :** Laravel 11 • Livewire 3/4 • Tailwind CSS • Alpine.js • SQLite / MySQL
 
 ---
@@ -9,6 +10,9 @@
 ## ⚡ Démarrage Rapide (Pour les collaborateurs)
 
 Si tu viens de cloner le projet, suis ces 5 étapes pour être prêt en moins de 3 minutes :
+
+> [!NOTE]
+> **Développement en binôme (Nathanaël & Mathéo) :** Consulte impérativement [tickets.md](tickets.md) pour voir tes tickets attribués et mettre à jour leur statut d'avancement.
 
 ### 1. Prérequis
 - **PHP 8.2+** (avec extensions `pdo_sqlite`, `curl`, `mbstring`)
@@ -152,11 +156,29 @@ php artisan test --filter=CharacterWheelTest
 
 ---
 
-## 📋 Prochaines Étapes pour l'Équipe
+## 📋 Organisation de l'Équipe & Tickets de Développement
 
-Consulte la checklist dans [`docs/TUTO_DEMARRAGE_LARAVEL.md`](docs/TUTO_DEMARRAGE_LARAVEL.md) pour suivre l'avancement :
+Le projet est développé en binôme par **Nathanaël** et **Mathéo**.
+
+> [!IMPORTANT]
+> **Consulte impérativement le carnet de bord : [tickets.md](tickets.md)**  
+> **Avant de développer une fonctionnalité, vérifie toujours les tickets attribués dans [`tickets.md`](tickets.md).**  
+> Chaque ticket contient la priorité, le développeur attribué, les fichiers cibles, la description et les critères d'acceptation (DoD). Pense à cocher les cases `[x]` au fur et à mesure de tes commits !
+
+### 👥 Répartition des Rôles :
+* 🧑‍💻 **Nathanaël** : Collection de cartes (`CollectionGrid`), verrouillage/favoris, sécurité BDD & concurrence, outils Admin & soutenance.
+* 🧑‍💻 **Mathéo** : Moteur de combat 1v1 (`BattleEngineService`), Arène face-à-face (`BattleArena`), calcul d'Élo FIDE, Matchmaking/Bots, Atelier d'améliorations (`Workshop`).
+* 👥 **Binôme** : Rendu graphique composite (Paper Doll), game feel/effets, compendium/codex, tests et revue de code croisée.
+
+---
+
+## 🚀 Prochaines Étapes Immédiates
+
+Consulte [`tickets.md`](tickets.md) ainsi que [`docs/TUTO_DEMARRAGE_LARAVEL.md`](docs/TUTO_DEMARRAGE_LARAVEL.md) pour suivre l'avancement :
 - [x] Phase 1 : Fondations, BDD, Enums, Modèles, Layout dark et Livewire 3
 - [x] Phase 2.1 : Roue de tirage (`CharacterWheel`), Super Spin 10/10, compte Admin
-- [ ] Phase 2.2 : Grille de collection de cartes (`CollectionGrid`) avec filtres et recyclage
-- [ ] Phase 3 : Moteur de combat 1v1 (`BattleEngineService`), Arène et Classement Élo (`Leaderboard`)
-- [ ] Phase 4 : Atelier d'améliorations (`Workshop`) et succès
+- [ ] Phase 2.2 : Grille de collection de cartes (`CollectionGrid`) avec filtres et recyclage *(Nathanaël)*
+- [ ] Phase 3 : Moteur de combat 1v1 (`BattleEngineService`), Arène et Classement Élo (`Leaderboard`) *(Mathéo)*
+- [ ] Phase 4 : Atelier d'améliorations (`Workshop`) et succès *(Mathéo)*
+- [ ] Phase 5 : Paper doll et polish visuel *(Binôme)*
+
