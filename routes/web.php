@@ -15,6 +15,10 @@ Route::get('/collection', function () {
     return view('collection');
 })->middleware(['auth', 'verified'])->name('collection');
 
+Route::get('/arena', function () {
+    return view('arena');
+})->middleware(['auth', 'verified'])->name('arena');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

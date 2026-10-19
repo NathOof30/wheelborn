@@ -12,6 +12,7 @@ use App\Data\WeaponData;
 use App\Data\PowerData;
 use App\Data\SynergyData;
 use App\Data\NameGenerator;
+use Illuminate\Support\Str;
 
 class CharacterGeneratorService
 {
@@ -53,6 +54,45 @@ class CharacterGeneratorService
         ]);
     }
 
+    /**
+     * Génère un combattant bot d'arène (non persisté), au format attendu par BattleEngineService.
+     * $statBonus ajuste la difficulté en décalant Force, Vitesse, Défense et PV.
+     */
+    public function generateBot(int $statBonus = 0): array
+    {
+        $race   = $this->weightedChoice(RaceData::all());
+        $weapon = $this->weightedChoice(WeaponData::all());
+        $power  = $this->weightedChoice(PowerData::all());
+
+        $synergies = SynergyData::detect($race['id'], $weapon['id'], $power['id']);
+        $stats = $this->rollStats($race, $weapon, $synergies);
+
+        $stats = [
+            'hp'       => max(30, min(140, $stats['hp'] + $statBonus)),
+            'strength' => max(15, min(100, $stats['strength'] + $statBonus)),
+            'speed'    => max(10, min(100, $stats['speed'] + $statBonus)),
+            'defense'  => max(10, min(100, $stats['defense'] + $statBonus)),
+        ];
+
+        $isUnstable = collect($synergies)->contains('is_unstable', true);
+
+        return [
+            'id'          => (string) Str::uuid(),
+            'name'        => NameGenerator::generate($race['id']),
+            'race_id'     => $race['id'],
+            'weapon_id'   => $weapon['id'],
+            'power_id'    => $power['id'],
+            'hp'          => $stats['hp'],
+            'max_hp'      => $stats['hp'],
+            'strength'    => $stats['strength'],
+            'speed'       => $stats['speed'],
+            'defense'     => $stats['defense'],
+            'power_score' => $this->calculatePowerScore($stats, $synergies, $isUnstable),
+            'is_unstable' => $isUnstable,
+            'synergies'   => array_column($synergies, 'name'),
+        ];
+    }
+
     private function weightedChoice(array $items): array
     {
         $totalWeight = array_sum(array_column($items, 'weight'));
@@ -81,7 +121,7 @@ class CharacterGeneratorService
         return $this->weightedChoice($powers);
     }
 
-    private function rollStats(array $race, array $weapon, array $synergies, User $user): array
+    private function rollStats(array $race, array $weapon, array $synergies, ?User $user = null): array
     {
         $cfg = GameConfig::baseStats();
 

@@ -73,3 +73,7 @@
   transition: transform 0.65s cubic-bezier(0.23, 1, 0.32, 1);
   will-change: transform;
 }
+
+[x-cloak] {
+    display: none !important;
+}
