@@ -288,6 +288,48 @@ class CharacterWheel extends Component
         $this->notify('Jauge de chance réinitialisée à 0.', 'info');
     }
 
+    /**
+     * Outil Admin / Test pour injecter directement un tirage de test Paper Doll
+     * (Humain + Épée ou Humain + Bâton).
+     */
+    public function adminForceTestSpin(string $weaponId = 'sword'): void
+    {
+        if (!$this->isAdmin) return;
+
+        $user = auth()->user();
+        if ($this->revealedCharacter) {
+            $this->notify('Veuillez d\'abord finaliser votre tirage en cours.', 'warning');
+            return;
+        }
+
+        $weaponName = $weaponId === 'staff' ? 'Bâton' : 'Épée';
+
+        $character = Character::create([
+            'user_id'           => $user->id,
+            'name'              => \App\Data\NameGenerator::generate('human'),
+            'race_id'           => 'human',
+            'weapon_id'         => $weaponId,
+            'power_id'          => 'fire',
+            'power_tier'        => \App\Enums\PowerTier::Common,
+            'hp'                => 105,
+            'max_hp'            => 105,
+            'strength'          => 55,
+            'speed'             => 48,
+            'defense'           => 42,
+            'power_score'       => 250,
+            'rarity'            => \App\Enums\Rarity::Rare,
+            'is_lucky_spin'     => false,
+            'is_unstable'       => false,
+            'synergies_data'    => \App\Data\SynergyData::detect('human', $weaponId, 'fire'),
+            'recycle_value'     => 150,
+            'is_active_fighter' => false,
+            'pending_reveal'    => true,
+        ]);
+
+        $this->revealedCharacter = $character->toArray();
+        $this->notify("🎯 Tirage de test Paper Doll généré : Humain + {$weaponName} !", 'success');
+    }
+
     public function dispatchStatsUpdated(): void
     {
         $this->dispatch('stats-updated',

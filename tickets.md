@@ -25,10 +25,10 @@
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
-| **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ À démarrer (0/4) |
+| **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ En cours (1/4 - Paper Doll V1 ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
-| **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 2 | ⏳ À démarrer (0/2) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 4 | ⏳ Partiel (1/4) |
+| **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 2 | ⏳ Partiel (1/2 - God Mode ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 4 | ⏳ Partiel (3/4 - 60 tests ✅) |
 
 ---
 
@@ -109,21 +109,32 @@
   - [x] Protection absolue : exclusion inviolable des héros verrouillés (`is_locked`) et des combattants déployés en arène.
   - [x] Transaction SQL atomique (`DB::transaction` avec `lockForUpdate`) et mise à jour dynamique du solde dans le HUD (`stats-updated`).
 
-### [x] T1.5 — Cartes Recto/Verso (Flip Hover) & Modale Inspecteur « Fiche Détaillée »
+### [x] T1.5 — Cartes Recto/Verso (3D Card Flip) & Modale Inspecteur « Fiche Détaillée Épurée »
 - **Priorité :** 🟢 P2 (Game Feel & Immersion Collection)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Livewire/CollectionGrid.php`, `resources/views/livewire/collection-grid.blade.php`, `app/Models/Character.php`, `tests/Feature/CollectionGridTest.php`
-- **Description :** Cartes double-face immersives (Recto visuel collector par défaut, Verso au survol/hover avec stats et actions) et modale d'inspection grand format détaillant les passifs et synergies de combat.
+- **Cible :** `app/Livewire/CollectionGrid.php`, `resources/views/livewire/collection-grid.blade.php`, `resources/css/app.css`, `app/Models/Character.php`, `tests/Feature/CollectionGridTest.php`
+- **Description :** Cartes double-face immersives dotées d'une véritable animation de retournement 3D (`preserve-3d` / card flip physique) déclenchée **au clic sur la grille** (pour un confort visuel optimal sans tempête d'animations au passage de souris) et **au survol sur la modale d'inspection**, avec bouton "Fiche détaillée & Passifs" dédié ouvrant la modale technique grand format.
 - **Critères d'acceptation :**
-  - [x] **Parité Dimensionnelle Recto/Verso :** Hauteur et largeur strictement identiques (`height: 490px; min-height: 490px; w-full`) éliminant tout écrasement ou décalage vertical entre les deux faces.
-  - [x] **Face Recto (Par défaut) épurée avec Artwork Placeholder :** Carte collector graphique et aérée (sans texte tutoriel superflu) avec vitrine centrale encadrée en pointillé ("🖼️ Artwork Placeholder"), avatar de race géant, badges d'arme et pouvoir, étoiles de rareté, score de puissance et rareté.
-  - [x] **Face Verso (Au survol / Hover) :** Transition fluide dévoilant la composition tri-slot, les barres de statistiques colorées, les badges de synergies actives (ou mention d'absence), le palmarès d'arène et les actions rapides (cadenas, recyclage, bouton inspecter).
-  - [x] **Modale Inspecteur Grand Format :**
-    - [x] Panneau de prestige gauche : avatar XXL, étoiles, rareté, historique d'arène (duels, victoires, défaites, winrate %), actions cadenas et recyclage.
-    - [x] Fiche technique droite : statistiques de combat complètes (PV, Force, Vitesse, Défense).
-    - [x] Explication textuelle complète des 3 passifs : passif inné de race, passif d'arme, et effet élémentaire du pouvoir.
-    - [x] Section synergies détaillée : liste des bonus de combat actifs avec mention explicite des synergies instables.
-  - [x] Suite de tests automatisés validant l'ouverture/fermeture de l'inspecteur et les actions associées (51 tests passants).
+  - [x] **Animation de Retournement 3D (Physical Card Flip) :**
+    - Conteneur avec perspective 3D (`perspective: 1000px;` `.perspective-1000`) et flipper interne (`transform-style: preserve-3d;` `.preserve-3d`).
+    - Rotation fluide sur l'axe Y (`transform: rotateY(180deg);`) avec courbe d'accélération naturelle `cubic-bezier(0.23, 1, 0.32, 1)` pour un rendu physique et tactile.
+    - Occultation naturelle des faces opposées (`backface-visibility: hidden;` `.backface-hidden`).
+    - **Ergonomie Grille vs Modale :**
+      - Sur la **grille de collection**, le flip se déclenche **au clic sur la carte** (mention "🔄 Cliquer pour les stats"), avec retour au recto par clic sur le fond du verso ou bouton `🔄`.
+      - Sur la **modale d'inspection**, le flip reste fluide **au survol (hover)**.
+    - Isolation stricte des événements pointeur (`pointer-events-none` sur la face cachée, `pointer-events-auto` sur la face active) pour garantir l'interactivité 100% fiable des boutons du verso (cadenas, recyclage, inspection) sans fausse sélection.
+  - [x] **Parité Dimensionnelle Recto/Verso :** Hauteur et largeur strictement identiques (`height: 490px; min-height: 490px; w-full`) éliminant tout décalage vertical ou écrasement.
+  - [x] **Face Recto (Par défaut) :** Carte collector graphique avec portrait Paper Doll composite dynamique `<x-character-avatar>`, étoiles de rareté, score de puissance, rareté et titre.
+  - [x] **Face Verso (Révélée au Flip) :** Tri-slot des composants avec icônes, 4 barres de stats colorées, badges de synergies actives (ou mention d'absence), palmarès d'arène et boutons d'action rapide.
+  - [x] **Modale d'Inspection Grand Format Épurée & Compacte :**
+    - [x] Résolution de l'asymétrie de hauteur : recalibrage de la colonne technique (~450px) pour correspondre parfaitement à la carte de gauche, supprimant le grand vide noir et les débordements d'écran.
+    - [x] En-tête dédié intégrant le titre du héros, son badge de rareté, son archétype, son Power Score et un bouton de fermeture `✕` sans collision graphique avec les titres de section.
+    - [x] Barre de statistiques de combat compacte en 4 colonnes (`sm:grid-cols-4` : PV, Force, Vitesse, Défense) avec micro-jauges.
+    - [x] Grille 3 colonnes responsive (`sm:grid-cols-3`) pour les 3 composants (Race, Arme, Pouvoir) affichant leurs passifs innés et effets élémentaires de façon équilibrée et lisible.
+    - [x] Bandeau de synergies actives compact avec alerte visuelle pour les synergies instables.
+    - [x] Barre inférieure unifiée regroupant l'historique d'arène (V/D, winrate) et les boutons d'actions (Verrouiller, Recycler, Fermer la fiche).
+  - [x] Suite de tests automatisés validant l'ouverture/fermeture de l'inspecteur, le recyclage et les actions associées.
+
 
 ---
 
@@ -324,18 +335,26 @@
 ## 🎨 Épic 5 — Game Feel, Rendu Visuel & Paper Doll
 > **Responsables :** 👥 Binôme (Nathanaël & Mathéo)
 
-### [ ] T5.1 — Système de Rendu Composite "Paper Doll" (Avatar Procédural) & Châssis Responsive
+### [x] T5.1 — Système de Rendu Composite "Paper Doll" (Avatar Procédural V1) & Châssis Responsive
 - **Priorité :** 🟡 P1 (Immersion & Note Soutenance)
 - **Attribué à :** 👥 Binôme
-- **Cible :** `docs/GUIDE_ASSETS_PAPER_DOLL.md`, `resources/views/components/character-avatar.blade.php`, `resources/views/livewire/collection-grid.blade.php`
+- **Cible :** `docs/GUIDE_ASSETS_PAPER_DOLL.md`, `app/Services/PaperDollService.php`, `resources/views/components/character-avatar.blade.php`, `resources/views/livewire/collection-grid.blade.php`, `resources/views/livewire/character-wheel.blade.php`, `tests/Feature/PaperDollTest.php`
 - **Description :** Générer une représentation graphique unique de chaque héros par superposition de calques WebP sur un portrait carré (512x512), enveloppé dans un châssis de carte réactif (CSS/Tailwind + SVG).
 - **Critères d'acceptation :**
   - [x] Spécifications techniques & guide d'export rédigés dans [GUIDE_ASSETS_PAPER_DOLL.md](file:///c:/Users/natha/Documents/PROJET/WHEELBORN_PROJECT/WHEELBORN/docs/GUIDE_ASSETS_PAPER_DOLL.md).
-  - [ ] Calque 0 : Fond d'aura / Décor de rareté (`backgrounds/`).
-  - [ ] Calque 1 : Silhouette / Corps selon la Race (`races/`).
-  - [ ] Calque 2 : Effet élémentaire / VFX semi-transparent (`elements/`).
-  - [ ] Calque 3 : Arme tenue selon le gabarit d'alignement (`weapons/`).
-  - [ ] Châssis de carte responsive (bordure, liserés, halo glow de rareté en pur CSS Tailwind + coins SVG) s'adaptant à n'importe quelle taille de carte sans distorsion.
+  - [x] Moteur de superposition dynamique `PaperDollService` et composant réutilisable `<x-character-avatar>` avec fallback résilient (affiche uniquement les calques disponibles sans casser le rendu).
+  - [x] **Superposition & Ordre des Calques :** Hiérarchie z-index stricte plaçant l'arme (`z-index: 30`) devant le corps humanoïde (`z-index: 10`) pour une tenue d'équipement réaliste.
+  - [x] **Respect Strict du Ratio & Élimination des Distorsions :** Gabarit carré 1:1 (`max-w-[270px] aspect-square w-full`) interdisant tout écrasement ou étirement d'image.
+  - [x] **Détourage & Transparence :** Suppression des encadrements debug et badges temporaires pour une intégration directe sur le fond néon de la carte.
+  - [x] Intégration sur la face recto des cartes de la Collection et dans la modale de révélation de la Roue.
+  - [x] Boutons de test direct dans la barre Admin pour forcer un tirage Humain + Épée ou Humain + Bâton en 1 clic.
+  - [x] Calque 1 : Silhouette / Corps selon la Race (intégré pour `human.webp`).
+  - [x] Calque 3 : Arme tenue selon le gabarit d'alignement (intégré pour `epee.webp` et `baton.webp`).
+  - [ ] Calque 0 : Fond d'aura / Décor de rareté (`backgrounds/` - futur).
+  - [ ] Calque 2 : Effet élémentaire / VFX semi-transparent (`elements/` - futur).
+  - [x] Châssis de carte responsive (bordure, liserés, halo glow de rareté en pur CSS Tailwind) s'adaptant à n'importe quelle taille de carte sans distorsion.
+  - [x] Tests automatisés unitaires & fonctionnels (`tests/Feature/PaperDollTest.php` - 7 tests validés).
+
 
 ### [ ] T5.2 — Ambiance Sonore & Haptique (SFX optionnels)
 - **Priorité :** 🟢 P2 (Polish)
@@ -452,17 +471,18 @@
     - `admin@wheelborn.test` (Compte Maître, 2300 Élo, atelier maxé, ressources illimitées).
   - [ ] Génère 40 cartes dans l'arène pour avoir un classement complet et des adversaires immédiats.
 
-### [ ] T7.2 — Panneau de Débogage / God Mode dans l'Interface
+### [x] T7.2 — Panneau de Débogage / God Mode dans l'Interface (Barre Admin)
 - **Priorité :** 🟡 P1 (Soutenance)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `resources/views/livewire/partials/admin-cheat-bar.blade.php`, `app/Livewire/CharacterWheel.php`
-- **Description :** Barre flottante réservée à l'administrateur pour forcer n'importe quel cas de figure en direct.
+- **Cible :** `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`
+- **Description :** Barre flottante réservée à l'administrateur pour forcer n'importe quel cas de figure en direct pendant le développement et le passage devant le jury.
 - **Critères d'acceptation :**
-  - [ ] Visible uniquement si `$isAdmin === true`.
-  - [ ] Bouton "Forcer Super Spin 10/10" (pour montrer l'animation dorée au jury).
-  - [ ] Bouton "+50 000 🪙" (pour tester les achats dans l'Atelier).
-  - [ ] Bouton "Recharger instantanément Tickets & Énergie".
-  - [ ] Bouton "Générer une Synergie Instable garantie" (démonstration du game design).
+  - [x] Visible uniquement si `$isAdmin === true`.
+  - [x] Bouton "🌟 Forcer Super Spin (10/10)" (démonstration garantie de l'animation dorée au jury).
+  - [x] Bouton "+50 000 🪙" (pour tester immédiatement le recyclage et les transactions).
+  - [x] Bouton "Reset Pity" (remise à zéro instantanée du compteur de pitié).
+  - [x] Boutons de test Paper Doll direct : "🎨 Test Humain + Épée" et "🎨 Test Humain + Bâton" pour valider la superposition des calques en direct.
+  - [x] Ressources illimitées automatiques pour l'administrateur (charges de roue et tickets d'arène à 999, or à 999 999 🪙).
 
 ---
 
@@ -473,7 +493,7 @@
 - **Priorité :** 🔴 P0
 - **Attribué à :** 🧑‍💻 Nathanaël
 - **Cible :** `tests/Feature/Livewire/CharacterWheelTest.php`
-- **Statut :** ✅ Déjà implémenté.
+- **Statut :** ✅ Validé (15 tests passants).
 
 ### [ ] T8.2 — Tests Unitaires du Moteur de Génération & Raretés
 - **Priorité :** 🟡 P1
@@ -493,14 +513,17 @@
   - [ ] Victoire outsider (1000 vs 1300) : gain élevé (> +24).
   - [ ] L'Élo ne descend jamais en dessous de zéro.
 
-### [ ] T8.4 — Tests de Robustesse des Transactions de Recyclage
+### [x] T8.4 — Tests de Robustesse des Transactions de Recyclage & Collection
 - **Priorité :** 🟡 P1
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `tests/Feature/RecycleServiceTest.php`
+- **Cible :** `tests/Feature/CollectionGridTest.php`, `tests/Feature/PaperDollTest.php`
 - **Critères d'acceptation :**
-  - [ ] Recycler une carte supprime bien l'enregistrement ou le marque recyclé et crédite le montant exact d'or.
-  - [ ] Impossible de recycler la carte d'un autre joueur (sécurité d'appartenance `user_id`).
-  - [ ] Impossible de recycler une carte verrouillée (`is_locked = true`).
+  - [x] Recycler une carte supprime bien l'enregistrement ou le marque recyclé et crédite le montant exact d'or (+ pièces).
+  - [x] Impossible de recycler la carte d'un autre joueur (sécurité d'appartenance `user_id`).
+  - [x] Impossible de recycler une carte verrouillée (`is_locked = true` - exception levée et bouton protégé).
+  - [x] Recyclage en masse multi-critères avec transaction atomique et protection des héros verrouillés.
+  - [x] Suite complète validée (60/60 tests passants).
+
 
 ---
 

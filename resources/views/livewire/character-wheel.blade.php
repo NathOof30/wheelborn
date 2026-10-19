@@ -32,6 +32,14 @@
                 <button wire:click="adminResetPity" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition">
                     Reset Pity
                 </button>
+                <button wire:click="adminForceTestSpin('sword')" class="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Épée">
+                    <span>🎨</span>
+                    <span>Test Humain + Épée</span>
+                </button>
+                <button wire:click="adminForceTestSpin('staff')" class="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Bâton">
+                    <span>🎨</span>
+                    <span>Test Humain + Bâton</span>
+                </button>
             </div>
         </div>
     @endif
@@ -190,6 +198,11 @@
                         {{ $revealedCharacter['power_score'] }}
                     </span>
                 </div>
+            </div>
+
+            {{-- Portrait Visuel Paper Doll --}}
+            <div class="max-w-[280px] sm:max-w-[320px] mx-auto mb-6">
+                <x-character-avatar :character="$revealedCharacter" />
             </div>
 
             {{-- 3 Slots (Race, Arme, Pouvoir) --}}
