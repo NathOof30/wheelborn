@@ -19,7 +19,7 @@ class PlayerHud extends Component
     }
 
     #[On('stats-updated')]
-    public function refreshStats(?int $coins = null, ?int $spinCharges = null, ?int $elo = null): void
+    public function refreshStats($coins = null, $spinCharges = null, $elo = null): void
     {
         $user = auth()->user();
         if (!$user) {
@@ -29,9 +29,9 @@ class PlayerHud extends Component
         $user->refresh();
 
         $this->isAdmin = $user->isAdmin();
-        $this->coins = $coins ?? $user->coins;
-        $this->elo = $elo ?? $user->elo;
-        $this->spinCharges = $spinCharges ?? $user->spin_charges;
+        $this->coins = $coins !== null ? (int) $coins : (int) $user->coins;
+        $this->elo = $elo !== null ? (int) $elo : (int) $user->elo;
+        $this->spinCharges = $spinCharges !== null ? (int) $spinCharges : (int) $user->spin_charges;
         $this->leagueIcon = $user->getLeague()->icon();
     }
 

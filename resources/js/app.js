@@ -1,7 +1,2 @@
-
-
-import Alpine from 'alpinejs';
-
-window.Alpine = Alpine;
-
-Alpine.start();
+// Livewire 3 gère et démarre automatiquement Alpine.js.
+// Ne pas appeler Alpine.start() ici pour éviter les instances en double.

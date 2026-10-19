@@ -85,33 +85,30 @@
                     {{-- Timer de recharge dynamique --}}
                     @if (!$isAdmin && $spinCharges < $maxCharges)
                         <div
+                            wire:key="spin-timer-{{ $spinCharges }}-{{ $nextRegenSeconds }}"
                             x-data="{
                                 remaining: {{ (int) $nextRegenSeconds }},
-                                timer: null,
-                                format() {
-                                    const total = Math.max(0, parseInt(this.remaining, 10) || 0);
-                                    if (total <= 0) return 'Prêt !';
-                                    const m = Math.floor(total / 60);
-                                    const s = total % 60;
-                                    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+                                formatTime() {
+                                    let s = Math.max(0, parseInt(this.remaining, 10) || 0);
+                                    let m = Math.floor(s / 60);
+                                    let sec = s % 60;
+                                    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
                                 },
                                 init() {
-                                    if (this.timer) clearInterval(this.timer);
-                                    this.timer = setInterval(() => {
+                                    let interval = setInterval(() => {
                                         if (this.remaining > 0) {
                                             this.remaining--;
                                         } else {
-                                            clearInterval(this.timer);
-                                            $wire.refreshState();
+                                            clearInterval(interval);
+                                            $wire.call('refreshState');
                                         }
                                     }, 1000);
                                 }
                             }"
-                            x-init="$watch('$wire.nextRegenSeconds', val => { remaining = Math.max(0, parseInt(val, 10) || 0); })"
                             class="mt-2 text-[11px] font-mono text-cyan-400 bg-cyan-950/50 px-2.5 py-1 rounded-full border border-cyan-800/40 flex items-center gap-1.5"
                         >
                             <span>⏳</span>
-                            <span>+1 dans <strong x-text="format()" class="text-cyan-200 font-bold">
+                            <span>+1 dans <strong x-text="formatTime()" class="text-cyan-200 font-bold">
                                 {{ sprintf('%02d:%02d', floor($nextRegenSeconds / 60), $nextRegenSeconds % 60) }}
                             </strong></span>
                         </div>

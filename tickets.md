@@ -21,7 +21,7 @@
 | Épic / Jalon | Priorité | Responsable Principal | Tickets | Statut |
 | :--- | :---: | :---: | :---: | :---: |
 | **Épic 0 : Fondations & Roue de Tirage** | 🔴 P0 | 👥 Binôme | 4 | ✅ Terminé (100%) |
-| **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ⏳ En cours (1/5) |
+| **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ⏳ En cours (2/5) |
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
@@ -67,17 +67,19 @@
   - [x] Compteur total de cartes possédées et indicateur de capacité.
   - [x] État vide élégant ("Aucun combattant — Fais tourner la Roue !").
 
-### [ ] T1.2 — Filtres multi-critères et Tri dynamique
+### [x] T1.2 — Filtres multi-critères et Tri dynamique
 - **Priorité :** 🟡 P1
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Livewire/CollectionGrid.php`
+- **Cible :** `app/Livewire/CollectionGrid.php`, `resources/views/livewire/collection-grid.blade.php`, `tests/Feature/CollectionGridTest.php`
 - **Description :** Ajouter une barre d'outils réactive permettant de filtrer et trier rapidement les cartes de sa collection.
 - **Critères d'acceptation :**
-  - [ ] Filtre par rareté (Commune, Rare, Épique, Légendaire).
-  - [ ] Filtre par race ou arme principale.
-  - [ ] Filtre rapide "Avec Synergie active uniquement".
-  - [ ] Tri par : Score Power (croissant/décroissant), Rareté, Date d'obtention, Élo individuel.
-  - [ ] Mise à jour instantanée sans rechargement de page (Livewire `wire:model.live`).
+  - [x] Recherche textuelle en direct (`wire:model.live.debounce`) par nom de héros avec bouton d'effacement rapide.
+  - [x] Filtre rapide par rareté (badges cliquables du HUD & boutons de filtrage pour Commune, Rare, Épique, Légendaire).
+  - [x] Filtre déroulant par race (8 races) et par arme principale (8 armes).
+  - [x] Filtre rapide "Avec Synergie active uniquement" avec indicateur visuel pulsé.
+  - [x] Tri dynamique par : Score Power (décroissant/croissant), Rareté (Légendaire -> Commun), Date d'obtention, Victoires en Arène.
+  - [x] Mise à jour instantanée sans rechargement de page (Livewire `wire:model.live` + réinitialisation automatique de la pagination).
+  - [x] Bouton d'action "Effacer les filtres" et état vide informatif en cas de recherche sans résultat.
 
 ### [ ] T1.3 — Système de Verrouillage de Carte (Favori / Lock)
 - **Priorité :** 🔴 P0 (Sécurité Joueur)
@@ -392,13 +394,13 @@
 ### [x] T6.4 — Compte à rebours dynamique de recharge & synchronisation Livewire
 - **Priorité :** 🔴 P0 (UX / Feedback)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`
+- **Cible :** `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`, `resources/js/app.js`
 - **Description :** Affichage d'un timer précis (mm:ss) uniquement dans la carte des charges avec mise à jour automatique en temps réel.
 - **Critères d'acceptation :**
   - [x] Pré-rendu direct en PHP (`sprintf('%02d:%02d', ...)`) pour garantir zéro texte vide ou `NaN` avant l'exécution JS.
-  - [x] Compte à rebours animé fluide côté client via Alpine.js (`x-data` avec `parseInt` infaillible) dans la carte des charges.
+  - [x] Compte à rebours animé fluide côté client via Alpine.js (`wire:key` isolé, sans `$watch` défaillant) dans la carte des charges.
+  - [x] Suppression de l'instance manuelle `Alpine.start()` dans `resources/js/app.js` pour éliminer le conflit de double instance avec Livewire 3.
   - [x] Suppression des doublons d'affichage pour une interface épurée.
-  - [x] Rechargement automatique de l'état sans rechargement de page (`wire:poll.10s` + rafraîchissement à l'expiration du chrono).
   - [x] Déblocage immédiat du bouton dès qu'une charge devient disponible.
 
 ### [x] T6.5 — Composant Livewire réactif `PlayerHud` (Synchronisation temps réel du solde de pièces)
@@ -408,7 +410,8 @@
 - **Description :** Rendre la barre HUD de navigation réactive en temps réel via des événements Livewire (`stats-updated`) pour refléter immédiatement les gains de pièces (recyclage), les dépenses et les variations d'Élo sans recharger la page.
 - **Critères d'acceptation :**
   - [x] Extraction du HUD statique de `navigation.blade.php` vers un composant Livewire `PlayerHud`.
-  - [x] Double réactivité instantanée : événement navigateur `@stats-updated.window` (0ms de latence) + écouteur Livewire `#[On('stats-updated')]`.
+  - [x] Double réactivité instantanée : gestion polyvalente du payload d'événement (`array` ou `object`) + écouteur Livewire `#[On('stats-updated')]`.
+  - [x] Animation visuelle (bump / scale doré) lors de la mise à jour des pièces pour un feedback clair et immédiat au joueur.
   - [x] Émission automatique avec payload complet (`coins`, `spinCharges`, `elo`) depuis `CharacterWheel` et `CollectionGrid` lors de chaque recyclage ou spin.
   - [x] Affichage formaté des pièces (`Intl.NumberFormat`) et icône dynamique de ligue.
 
