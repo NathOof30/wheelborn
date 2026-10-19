@@ -4,9 +4,11 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Character;
+use App\Models\User;
 use App\Services\CharacterGeneratorService;
 use App\Services\EnergyManagerService;
 use App\Services\RecycleService;
+use Illuminate\Support\Facades\DB;
 
 class CharacterWheel extends Component
 {
@@ -26,6 +28,62 @@ class CharacterWheel extends Component
     public function mount(): void
     {
         $this->refreshState();
+        $this->checkPendingReveal();
+    }
+
+    /**
+     * T6.1 : Reprise automatique d'un tirage non finalisé (pending_reveal = true).
+     * Si l'utilisateur a quitté la page avant de choisir "Garder" ou "Recycler",
+     * le tirage est restauré immédiatement à l'écran.
+     */
+    public function checkPendingReveal(): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return;
+        }
+
+        // Si déjà affiché, vérifier qu'il est toujours valide
+        if ($this->revealedCharacter) {
+            $stillValid = Character::where('id', $this->revealedCharacter['id'])
+                ->where('user_id', $user->id)
+                ->where('pending_reveal', true)
+                ->whereNull('recycled_at')
+                ->exists();
+
+            if (!$stillValid) {
+                $this->revealedCharacter = null;
+            }
+            return;
+        }
+
+        $pendings = Character::where('user_id', $user->id)
+            ->where('pending_reveal', true)
+            ->whereNull('recycled_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        if ($pendings->isEmpty()) {
+            return;
+        }
+
+        // S'il existe plusieurs tirages orphelins (ex: sessions antérieures au patch),
+        // on conserve le plus récent à afficher, et on valide automatiquement les anciens
+        // dans la collection pour éviter de bloquer le joueur dans une boucle de tirages en attente.
+        if ($pendings->count() > 1) {
+            $latest = $pendings->first();
+            Character::where('user_id', $user->id)
+                ->where('pending_reveal', true)
+                ->where('id', '!=', $latest->id)
+                ->whereNull('recycled_at')
+                ->update(['pending_reveal' => false]);
+
+            $this->revealedCharacter = $latest->toArray();
+            $this->notify('Tirage en attente récupéré ! (Vos tirages orphelins antérieurs ont rejoint votre collection).', 'info');
+        } else {
+            $this->revealedCharacter = $pendings->first()->toArray();
+            $this->notify('Tirage en attente récupéré ! Veuillez choisir de le garder ou de le recycler.', 'info');
+        }
     }
 
     public function refreshState(): void
@@ -60,55 +118,139 @@ class CharacterWheel extends Component
         $this->nextRegenSeconds = app(EnergyManagerService::class)->getNextSpinRegenSeconds($user);
     }
 
+    /**
+     * T6.2 : Tirage atomique avec lock pessimiste de l'utilisateur (lockForUpdate)
+     * et protection contre les tirages simultanés ou non résolus (T6.1).
+     */
     public function spin(): void
     {
-        $user = auth()->user();
-        $energy = app(EnergyManagerService::class);
-
-        if (!$this->isAdmin && !$energy->consumeSpin($user)) {
-            $this->notify('Aucune charge de tirage disponible ! Attends la recharge.', 'error');
+        $userId = auth()->id();
+        if (!$userId) {
             return;
         }
 
-        $isLucky = $user->pity_counter >= $this->pityMax;
-        $character = app(CharacterGeneratorService::class)->generate($user, $isLucky);
-
-        if ($isLucky) {
-            $user->update(['pity_counter' => 0]);
-            $this->notify('🌟 SUPER SPIN DÉCLENCHÉ ! Tirage exceptionnel garanti !', 'success');
-        } else {
-            $user->increment('pity_counter');
+        if ($this->isSpinning) {
+            return;
         }
 
-        $this->revealedCharacter = $character->toArray();
+        // Si un tirage est déjà ouvert dans le composant, bloquer immédiatement
+        if ($this->revealedCharacter) {
+            $this->notify('Veuillez d\'abord finaliser votre tirage en cours.', 'warning');
+            return;
+        }
+
+        $this->isSpinning = true;
+
+        try {
+            DB::transaction(function () use ($userId) {
+                // 1. Verrouillage pessimiste de l'utilisateur pour bloquer toute concurrence
+                $user = User::where('id', $userId)->lockForUpdate()->firstOrFail();
+
+                // 2. Sécurité T6.1 : Vérifier s'il existe déjà un tirage en attente en base
+                $pendings = Character::where('user_id', $user->id)
+                    ->where('pending_reveal', true)
+                    ->whereNull('recycled_at')
+                    ->orderByDesc('created_at')
+                    ->get();
+
+                if ($pendings->isNotEmpty()) {
+                    $latest = $pendings->first();
+                    if ($pendings->count() > 1) {
+                        Character::where('user_id', $user->id)
+                            ->where('pending_reveal', true)
+                            ->where('id', '!=', $latest->id)
+                            ->whereNull('recycled_at')
+                            ->update(['pending_reveal' => false]);
+                    }
+                    $this->revealedCharacter = $latest->toArray();
+                    $this->notify('Vous avez un tirage non finalisé en attente ! Choisissez de le garder ou de le recycler.', 'warning');
+                    return;
+                }
+
+                // 3. Consommation sécurisée de l'énergie de tirage
+                $energy = app(EnergyManagerService::class);
+                if (!$user->isAdmin()) {
+                    if (!$energy->consumeSpin($user)) {
+                        $this->notify('Aucune charge de tirage disponible ! Attends la recharge.', 'error');
+                        return;
+                    }
+                }
+
+                // 4. Génération du combattant
+                $isLucky = $user->pity_counter >= $this->pityMax;
+                $character = app(CharacterGeneratorService::class)->generate($user, $isLucky);
+
+                // 5. Gestion atomique de la jauge de pitié
+                if ($isLucky) {
+                    $user->update(['pity_counter' => 0]);
+                    $this->notify('🌟 SUPER SPIN DÉCLENCHÉ ! Tirage exceptionnel garanti !', 'success');
+                } else {
+                    $user->increment('pity_counter');
+                }
+
+                $this->revealedCharacter = $character->fresh()->toArray();
+            });
+        } catch (\Throwable $e) {
+            report($e);
+            $this->notify('Une erreur est survenue lors du tirage. Vos charges ont été préservées.', 'error');
+        } finally {
+            $this->isSpinning = false;
+        }
+
         $this->refreshState();
         $this->dispatchStatsUpdated();
     }
 
+    /**
+     * T6.1 / T6.2 : Validation atomique de conservation du personnage dans la collection.
+     */
     public function keepCharacter(): void
     {
-        if ($this->revealedCharacter) {
-            Character::where('id', $this->revealedCharacter['id'])
-                ->update(['pending_reveal' => false]);
-            $this->notify("{$this->revealedCharacter['name']} a rejoint votre collection !", 'success');
-        }
-
-        $this->revealedCharacter = null;
-        $this->dispatchStatsUpdated();
-    }
-
-    public function recycleCharacter(): void
-    {
-        if (!$this->revealedCharacter) {
+        $userId = auth()->id();
+        if (!$userId || !$this->revealedCharacter) {
             return;
         }
 
-        $coins = app(RecycleService::class)->recycle(
-            auth()->user(),
-            $this->revealedCharacter['id']
-        );
+        $charId = $this->revealedCharacter['id'];
+        $charName = $this->revealedCharacter['name'];
 
-        $this->notify("+{$coins} 🪙 récupérées par recyclage !", 'success');
+        DB::transaction(function () use ($userId, $charId) {
+            $character = Character::where('id', $charId)
+                ->where('user_id', $userId)
+                ->whereNull('recycled_at')
+                ->lockForUpdate()
+                ->first();
+
+            if ($character) {
+                $character->update(['pending_reveal' => false]);
+            }
+        });
+
+        $this->revealedCharacter = null;
+        $this->notify("{$charName} a rejoint votre collection !", 'success');
+        $this->refreshState();
+        $this->dispatchStatsUpdated();
+    }
+
+    /**
+     * T6.1 / T6.2 : Recyclage immédiat du personnage tiré avec transaction et lock.
+     */
+    public function recycleCharacter(): void
+    {
+        $user = auth()->user();
+        if (!$user || !$this->revealedCharacter) {
+            return;
+        }
+
+        $charId = $this->revealedCharacter['id'];
+
+        try {
+            $coins = app(RecycleService::class)->recycle($user, $charId);
+            $this->notify("+{$coins} 🪙 récupérées par recyclage !", 'success');
+        } catch (\Throwable $e) {
+            $this->notify("Impossible de recycler ce combattant : {$e->getMessage()}", 'error');
+        }
+
         $this->revealedCharacter = null;
         $this->refreshState();
         $this->dispatchStatsUpdated();

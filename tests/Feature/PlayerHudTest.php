@@ -50,4 +50,22 @@ class PlayerHudTest extends TestCase
         $component->dispatch('stats-updated')
             ->assertSee('400');
     }
+
+    public function test_player_hud_regenerates_spins_on_mount(): void
+    {
+        $user = User::factory()->create([
+            'spin_charges' => 1,
+            'last_spin_regen_at' => now()->subMinutes(10), // Assez pour régénérer 2 charges
+            'is_admin' => false,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(PlayerHud::class)
+            ->assertSet('spinCharges', 3)
+            ->assertSee('3/3');
+
+        $user->refresh();
+        $this->assertEquals(3, $user->spin_charges);
+    }
 }

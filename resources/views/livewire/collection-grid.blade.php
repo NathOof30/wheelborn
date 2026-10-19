@@ -418,11 +418,12 @@
                                         {{ $character->name }}
                                     </h4>
                                 </div>
-                                {{-- Bouton Cadenas (T1.3) --}}
+                                {{-- Bouton Cadenas (T1.3 / T6.2) --}}
                                 <button
                                     type="button"
                                     wire:click.stop="toggleLock('{{ $character->id }}')"
-                                    class="p-1 rounded-lg text-xs transition-all duration-150 shrink-0 {{ $character->is_locked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50 shadow-[0_0_8px_rgba(251,191,36,0.4)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-slate-300' }}"
+                                    wire:loading.attr="disabled"
+                                    class="p-1 rounded-lg text-xs transition-all duration-150 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed {{ $character->is_locked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50 shadow-[0_0_8px_rgba(251,191,36,0.4)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-slate-300' }}"
                                     title="{{ $character->is_locked ? 'Verrouillé (cliquer pour déverrouiller)' : 'Déverrouillé (cliquer pour verrouiller)' }}"
                                 >
                                     {{ $character->is_locked ? '🔒' : '🔓' }}
@@ -529,8 +530,9 @@
                                     <button
                                         type="button"
                                         wire:click.stop="recycleCharacter('{{ $character->id }}')"
+                                        wire:loading.attr="disabled"
                                         wire:confirm="Voulez-vous vraiment recycler {{ $character->name }} pour +{{ $character->recycle_value }} 🪙 ?"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1 cursor-pointer"
+                                        class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Recycler"
                                     >
                                         <span>🪙</span>
@@ -666,7 +668,8 @@
                             <button
                                 type="button"
                                 wire:click="toggleLock('{{ $inspectedCharacter->id }}')"
-                                class="flex-1 py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 {{ $inspectedCharacter->is_locked ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white' }}"
+                                wire:loading.attr="disabled"
+                                class="flex-1 py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed {{ $inspectedCharacter->is_locked ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white' }}"
                             >
                                 <span>{{ $inspectedCharacter->is_locked ? '🔒' : '🔓' }}</span>
                                 <span>{{ $inspectedCharacter->is_locked ? 'Verrouillé' : 'Verrouiller' }}</span>
@@ -676,8 +679,9 @@
                                 <button
                                     type="button"
                                     wire:click="recycleCharacter('{{ $inspectedCharacter->id }}')"
+                                    wire:loading.attr="disabled"
                                     wire:confirm="Recycler définitivement {{ $inspectedCharacter->name }} pour +{{ $inspectedCharacter->recycle_value }} 🪙 ?"
-                                    class="flex-1 py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center justify-center gap-1"
+                                    class="flex-1 py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <span>🪙</span>
                                     <span>+{{ $inspectedCharacter->recycle_value }}</span>

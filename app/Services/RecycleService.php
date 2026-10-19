@@ -18,8 +18,12 @@ class RecycleService
     public function recycle(User $user, string $characterId): int
     {
         return DB::transaction(function () use ($user, $characterId) {
+            $lockedUser = User::where('id', $user->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $character = Character::where('id', $characterId)
-                ->where('user_id', $user->id)
+                ->where('user_id', $lockedUser->id)
                 ->whereNull('recycled_at')
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -28,19 +32,24 @@ class RecycleService
                 throw new DomainException("Ce combattant est verrouillé ! Déverrouillez-le avant de pouvoir le recycler.");
             }
 
+            if ($character->is_active_fighter) {
+                throw new DomainException("Ce combattant est actuellement déployé dans l'arène et ne peut pas être recyclé.");
+            }
+
             $coins = $character->recycle_value;
 
             $character->update([
-                'recycled_at' => now(),
+                'recycled_at'       => now(),
                 'is_active_fighter' => false,
+                'pending_reveal'    => false,
             ]);
 
-            $user->increment('coins', $coins);
+            $lockedUser->increment('coins', $coins);
 
             // Mettre à jour les stats du joueur si elles existent
-            if ($user->playerStats) {
-                $user->playerStats->increment('total_recycled');
-                $user->playerStats->increment('coins_earned_total', $coins);
+            if ($lockedUser->playerStats) {
+                $lockedUser->playerStats->increment('total_recycled');
+                $lockedUser->playerStats->increment('coins_earned_total', $coins);
             }
 
             return $coins;
@@ -151,7 +160,11 @@ class RecycleService
         }
 
         return DB::transaction(function () use ($user, $criteria) {
-            $characters = $this->buildBatchQuery($user, $criteria)
+            $lockedUser = User::where('id', $user->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $characters = $this->buildBatchQuery($lockedUser, $criteria)
                 ->lockForUpdate()
                 ->get();
 
@@ -164,15 +177,16 @@ class RecycleService
 
             Character::whereIn('id', $characters->pluck('id'))
                 ->update([
-                    'recycled_at' => now(),
+                    'recycled_at'       => now(),
                     'is_active_fighter' => false,
+                    'pending_reveal'    => false,
                 ]);
 
-            $user->increment('coins', $totalCoins);
+            $lockedUser->increment('coins', $totalCoins);
 
-            if ($user->playerStats) {
-                $user->playerStats->increment('total_recycled', $count);
-                $user->playerStats->increment('coins_earned_total', $totalCoins);
+            if ($lockedUser->playerStats) {
+                $lockedUser->playerStats->increment('total_recycled', $count);
+                $lockedUser->playerStats->increment('coins_earned_total', $totalCoins);
             }
 
             return [

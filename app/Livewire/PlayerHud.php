@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\Attributes\On;
+use App\Services\EnergyManagerService;
 
 class PlayerHud extends Component
 {
@@ -24,6 +25,11 @@ class PlayerHud extends Component
         $user = auth()->user();
         if (!$user) {
             return;
+        }
+
+        // Régénérer les charges d'énergie de façon globale sur n'importe quelle page du site
+        if (!$user->isAdmin()) {
+            app(EnergyManagerService::class)->regenSpins($user);
         }
 
         $user->refresh();

@@ -26,7 +26,7 @@
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ À démarrer (0/4) |
-| **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ⏳ En cours (3/5) |
+| **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 2 | ⏳ À démarrer (0/2) |
 | **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 4 | ⏳ Partiel (1/4) |
 
@@ -372,25 +372,29 @@
 ## 🛡️ Épic 6 — Robustesse, Concurrence & Edge Cases
 > **Responsable principal :** 🧑‍💻 Nathanaël
 
-### [ ] T6.1 — Reprise automatique d'un tirage non finalisé (`pending_reveal`)
+### [x] T6.1 — Reprise automatique d'un tirage non finalisé (`pending_reveal`)
 - **Priorité :** 🔴 P0 (Bug Critique / Expérience Utilisateur)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Livewire/CharacterWheel.php`
+- **Cible :** `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`, `tests/Feature/CharacterWheelTest.php`
 - **Description :** Si l'utilisateur quitte la page après avoir cliqué sur "Spin" mais avant d'avoir choisi "Garder" ou "Recycler", le tirage ne doit pas être perdu.
 - **Critères d'acceptation :**
-  - [ ] Lors du `mount()`, vérification en BDD si un personnage de l'utilisateur a `pending_reveal = true`.
-  - [ ] Si oui, chargement immédiat de ce personnage dans `$revealedCharacter` et réouverture automatique de la modale.
-  - [ ] Empêchement de relancer un nouveau spin tant que le précédent n'a pas été validé ou recyclé.
+  - [x] Lors du `mount()`, vérification en BDD si un personnage de l'utilisateur a `pending_reveal = true` et non recyclé via `checkPendingReveal()`.
+  - [x] Si oui, chargement immédiat de ce personnage dans `$revealedCharacter`, notification de reprise et réouverture automatique de la modale.
+  - [x] Empêchement strict de relancer un nouveau spin tant que le précédent n'a pas été validé ou recyclé (bouton spin désactivé avec message "⚠️ Finalisez le tirage ci-dessous" et blocage backend).
+  - [x] Suite de tests automatisés validant la restauration automatique et le blocage d'un nouveau tirage.
 
-### [ ] T6.2 — Transactions Atomiques et Protection Multi-clic
+### [x] T6.2 — Transactions Atomiques et Protection Multi-clic
 - **Priorité :** 🔴 P0 (Sécurité & Intégrité des données)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Services/RecycleService.php`, `app/Livewire/CharacterWheel.php`, `app/Services/WorkshopService.php`
-- **Description :** Éviter les failles de duplication d'or ou de cartes en cas de clics frénétiques.
+- **Cible :** `app/Services/RecycleService.php`, `app/Livewire/CharacterWheel.php`, `app/Livewire/CollectionGrid.php`, `resources/views/livewire/character-wheel.blade.php`, `resources/views/livewire/collection-grid.blade.php`, `tests/Feature/CharacterWheelTest.php`
+- **Description :** Éviter les failles de duplication d'or, de cartes ou de tirages en cas de clics frénétiques ou requêtes concurrentes.
 - **Critères d'acceptation :**
-  - [ ] Encapsuler le spin, le recyclage et les achats dans `DB::transaction(...)`.
-  - [ ] Utiliser `lockForUpdate()` sur la ligne de l'utilisateur pour bloquer les requêtes concurrentes.
-  - [ ] Attributs Blade `wire:loading.attr="disabled"` sur tous les boutons d'action monétaire.
+  - [x] Encapsuler le spin, le recyclage (unitaire et masse) et le verrouillage dans des transactions `DB::transaction(...)`.
+  - [x] Verrouillage pessimiste strict `lockForUpdate()` sur la ligne de l'utilisateur (`User`) pour interdire toute concurrence sur le solde de pièces ou les charges d'énergie.
+  - [x] Verrouillage pessimiste `lockForUpdate()` sur les cartes (`Character`) pour interdire tout double recyclage simultané.
+  - [x] Contrôle d'appartenance strict (`where('user_id', $user->id)`) et interdiction formelle de recycler un héros déployé dans l'arène (`is_active_fighter`).
+  - [x] Attributs Blade `wire:loading.attr="disabled"` et indicateurs visuels animés sur tous les boutons d'action monétaire et de mutation (Spin, Garder, Recycler, Verrouiller, Recyclage en masse).
+  - [x] Tests unitaires et d'intégration validant les transactions, la protection contre l'usurpation et les cas limites.
 
 ### [x] T6.3 — Calcul précis du rattrapage temporel (Catch-Up Time) & Correction Carbon 3
 - **Priorité :** 🔴 P0 (Énergie)
@@ -425,6 +429,7 @@
   - [x] Double réactivité instantanée : gestion polyvalente du payload d'événement (`array` ou `object`) + écouteur Livewire `#[On('stats-updated')]`.
   - [x] Animation visuelle (bump / scale doré) lors de la mise à jour des pièces pour un feedback clair et immédiat au joueur.
   - [x] Émission automatique avec payload complet (`coins`, `spinCharges`, `elo`) depuis `CharacterWheel` et `CollectionGrid` lors de chaque recyclage ou spin.
+  - [x] Régénération automatique de l'énergie de spin dès le chargement du HUD sur n'importe quelle page du site (catalogue, profil, etc.) sans dépendre de la visite préalable sur la roue.
   - [x] Affichage formaté des pièces (`Intl.NumberFormat`) et icône dynamique de ligue.
 
 ---

@@ -9,6 +9,7 @@ use App\Services\RecycleService;
 use App\Data\RaceData;
 use App\Data\WeaponData;
 use App\Enums\Rarity;
+use Illuminate\Support\Facades\DB;
 use DomainException;
 
 class CollectionGrid extends Component
@@ -109,6 +110,7 @@ class CollectionGrid extends Component
 
     /**
      * Verrouille / Déverrouille une carte contre le recyclage accidentel (T1.3).
+     * Transaction atomique avec lockForUpdate pour éviter tout conflit concurrent.
      */
     public function toggleLock(string $characterId): void
     {
@@ -117,25 +119,28 @@ class CollectionGrid extends Component
             return;
         }
 
-        $character = Character::where('id', $characterId)
-            ->where('user_id', $user->id)
-            ->whereNull('recycled_at')
-            ->first();
+        DB::transaction(function () use ($user, $characterId) {
+            $character = Character::where('id', $characterId)
+                ->where('user_id', $user->id)
+                ->whereNull('recycled_at')
+                ->lockForUpdate()
+                ->first();
 
-        if (!$character) {
-            $this->notify("Combattant introuvable.", 'error');
-            return;
-        }
+            if (!$character) {
+                $this->notify("Combattant introuvable.", 'error');
+                return;
+            }
 
-        $character->update([
-            'is_locked' => !$character->is_locked,
-        ]);
+            $character->update([
+                'is_locked' => !$character->is_locked,
+            ]);
 
-        if ($character->is_locked) {
-            $this->notify("🔒 {$character->name} est désormais verrouillé et protégé du recyclage.", 'info');
-        } else {
-            $this->notify("🔓 {$character->name} a été déverrouillé.", 'info');
-        }
+            if ($character->is_locked) {
+                $this->notify("🔒 {$character->name} est désormais verrouillé et protégé du recyclage.", 'info');
+            } else {
+                $this->notify("🔓 {$character->name} a été déverrouillé.", 'info');
+            }
+        });
     }
 
     /**

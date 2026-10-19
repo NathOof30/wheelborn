@@ -141,11 +141,13 @@
                 <button
                     wire:click="spin"
                     wire:loading.attr="disabled"
-                    @disabled(!$isAdmin && $spinCharges <= 0)
-                    class="w-full sm:w-auto px-10 py-5 rounded-xl font-extrabold text-lg uppercase tracking-wider transition-all duration-300 shadow-xl disabled:opacity-40 disabled:cursor-not-allowed {{ $pityCounter >= $pityMax ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 hover:shadow-amber-500/30 hover:scale-105 animate-neon-pulse' : 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white hover:from-indigo-600 hover:to-cyan-600 hover:shadow-cyan-500/25 hover:scale-105' }}"
+                    @disabled((!$isAdmin && $spinCharges <= 0) || !empty($revealedCharacter) || $isSpinning)
+                    class="w-full sm:w-auto px-10 py-5 rounded-xl font-extrabold text-lg uppercase tracking-wider transition-all duration-300 shadow-xl disabled:opacity-40 disabled:cursor-not-allowed {{ !empty($revealedCharacter) ? 'bg-slate-800 border border-slate-700 text-slate-400' : ($pityCounter >= $pityMax ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 hover:shadow-amber-500/30 hover:scale-105 animate-neon-pulse' : 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white hover:from-indigo-600 hover:to-cyan-600 hover:shadow-cyan-500/25 hover:scale-105') }}"
                 >
-                    <span wire:loading.remove>
-                        @if ($pityCounter >= $pityMax)
+                    <span wire:loading.remove wire:target="spin">
+                        @if (!empty($revealedCharacter))
+                            ⚠️ Finalisez le tirage ci-dessous
+                        @elseif ($pityCounter >= $pityMax)
                             🌟 Déclencher le Super Spin !
                         @elseif ($isAdmin)
                             🎡 Lancer la Roue (Admin ∞)
@@ -155,7 +157,7 @@
                             ⏳ Rechargement en cours...
                         @endif
                     </span>
-                    <span wire:loading class="flex items-center justify-center gap-2">
+                    <span wire:loading wire:target="spin" class="flex items-center justify-center gap-2">
                         <svg class="animate-spin h-5 w-5 text-current inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
@@ -268,15 +270,25 @@
             <div class="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                     wire:click="keepCharacter"
-                    class="flex-1 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition-all duration-200 text-center"
+                    wire:loading.attr="disabled"
+                    class="flex-1 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition-all duration-200 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
-                    ✅ Garder dans la collection
+                    <span wire:loading.remove wire:target="keepCharacter">✅ Garder dans la collection</span>
+                    <span wire:loading wire:target="keepCharacter" class="inline-flex items-center gap-2">
+                        <svg class="animate-spin h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                        Enregistrement...
+                    </span>
                 </button>
                 <button
                     wire:click="recycleCharacter"
-                    class="flex-1 px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold rounded-xl shadow-lg transition-all duration-200 text-center"
+                    wire:loading.attr="disabled"
+                    class="flex-1 px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold rounded-xl shadow-lg transition-all duration-200 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
-                    ♻️ Recycler (+{{ $revealedCharacter['recycle_value'] }} 🪙)
+                    <span wire:loading.remove wire:target="recycleCharacter">♻️ Recycler (+{{ $revealedCharacter['recycle_value'] }} 🪙)</span>
+                    <span wire:loading wire:target="recycleCharacter" class="inline-flex items-center gap-2">
+                        <svg class="animate-spin h-4 w-4 text-amber-300 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                        Recyclage en cours...
+                    </span>
                 </button>
             </div>
         </div>
