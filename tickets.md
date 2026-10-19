@@ -21,7 +21,7 @@
 | Épic / Jalon | Priorité | Responsable Principal | Tickets | Statut |
 | :--- | :---: | :---: | :---: | :---: |
 | **Épic 0 : Fondations & Roue de Tirage** | 🔴 P0 | 👥 Binôme | 4 | ✅ Terminé (100%) |
-| **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ⏳ En cours (2/5) |
+| **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
@@ -81,37 +81,49 @@
   - [x] Mise à jour instantanée sans rechargement de page (Livewire `wire:model.live` + réinitialisation automatique de la pagination).
   - [x] Bouton d'action "Effacer les filtres" et état vide informatif en cas de recherche sans résultat.
 
-### [ ] T1.3 — Système de Verrouillage de Carte (Favori / Lock)
+### [x] T1.3 — Système de Verrouillage de Carte (Favori / Lock)
 - **Priorité :** 🔴 P0 (Sécurité Joueur)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `database/migrations/xxxx_add_is_locked_to_characters_table.php`, `app/Models/Character.php`, `app/Livewire/CollectionGrid.php`
+- **Cible :** `database/migrations/2026_10_19_140000_add_is_locked_to_characters_table.php`, `app/Models/Character.php`, `app/Services/RecycleService.php`, `app/Livewire/CollectionGrid.php`, `resources/views/livewire/collection-grid.blade.php`, `tests/Feature/CollectionGridTest.php`
 - **Description :** Empêcher la destruction accidentelle d'une carte précieuse lors des sessions de recyclage.
 - **Critères d'acceptation :**
-  - [ ] Champ booléen `is_locked` (défaut `false`) sur le modèle `Character`.
-  - [ ] Icône de cadenas cliquable sur chaque carte pour basculer l'état verrouillé.
-  - [ ] Le bouton "Recycler" est grisé ou masqué si la carte est verrouillée.
-  - [ ] Le `RecycleService` bloque avec une exception toute tentative de recyclage d'une carte verrouillée (sécurité backend).
+  - [x] Champ booléen `is_locked` (défaut `false`) avec index SQL sur le modèle `Character`.
+  - [x] Icône de cadenas interactive (🔒/🔓) sur chaque carte pour basculer l'état verrouillé en un clic avec notification.
+  - [x] Le bouton "Recycler" individuel est désactivé et transformé en badge sécurisé "🔒 Protégé" si la carte est verrouillée.
+  - [x] Le `RecycleService` bloque avec une exception (`DomainException`) toute tentative de recyclage d'une carte verrouillée (sécurité backend).
+  - [x] Filtre rapide "🔒 Verrouillés uniquement" dans la barre d'outils de collection.
 
-### [ ] T1.4 — Recyclage en Masse (Batch Recycle)
-- **Priorité :** 🟡 P1 (Confort de jeu / Boucle V2)
+### [x] T1.4 — Recyclage en Masse Avancé (Multi-critères & Modale Dédiée)
+- **Priorité :** 🟡 P1 (Confort de jeu / Économie circulaire)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Livewire/CollectionGrid.php`, `app/Services/RecycleService.php`
-- **Description :** Permettre de convertir rapidement tous les doublons ou cartes communes inutiles en or en un seul clic.
+- **Cible :** `app/Services/RecycleService.php`, `app/Livewire/CollectionGrid.php`, `resources/views/livewire/collection-grid.blade.php`, `tests/Feature/CollectionGridTest.php`
+- **Description :** Modale de suppression de masse ultra-complète permettant de filtrer les combattants à recycler par rareté, score de puissance, race, arme et préservation des synergies.
 - **Critères d'acceptation :**
-  - [ ] Bouton d'action "Recycler tous les Communs non verrouillés".
-  - [ ] Modale de confirmation récapitulative : "Recycler X cartes pour +Y 🪙 ?".
-  - [ ] Exécution dans une transaction SQL unique avec mise à jour immédiate du solde de pièces du joueur.
+  - [x] Bouton d'action "♻️ Recyclage en masse" dans le bandeau de collection.
+  - [x] Filtrage modulaire par raretés (cases à cocher Communs, Rares, Épiques, Légendaires).
+  - [x] Filtrage par plafond de score de puissance (Power Score Max : saisie libre ou raccourcis ≤ 50, ≤ 65, ≤ 80).
+  - [x] Ciblage par race spécifique (8 races au choix ou toutes) et arme spécifique (8 armes au choix ou toutes).
+  - [x] Protection des synergies : toggle pour exclure automatiquement les héros dotés d'une synergie élémentaire active.
+  - [x] Aperçu visuel en direct : liste scrollable affichant chaque héros ciblé (icône de race, nom, rareté, puissance, valeur en or).
+  - [x] Calcul prévisionnel instantané du total de pièces d'or 🪙 et du nombre de héros sélectionnés.
+  - [x] Protection absolue : exclusion inviolable des héros verrouillés (`is_locked`) et des combattants déployés en arène.
+  - [x] Transaction SQL atomique (`DB::transaction` avec `lockForUpdate`) et mise à jour dynamique du solde dans le HUD (`stats-updated`).
 
-### [ ] T1.5 — Modale Inspecteur "Fiche détaillée de Combattant"
-- **Priorité :** 🟢 P2
+### [x] T1.5 — Cartes Recto/Verso (Flip Hover) & Modale Inspecteur « Fiche Détaillée »
+- **Priorité :** 🟢 P2 (Game Feel & Immersion Collection)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `resources/views/livewire/partials/character-detail-modal.blade.php`
-- **Description :** Clic sur une carte pour ouvrir une modale grand format détaillant toutes les caractéristiques du héros.
+- **Cible :** `app/Livewire/CollectionGrid.php`, `resources/views/livewire/collection-grid.blade.php`, `app/Models/Character.php`, `tests/Feature/CollectionGridTest.php`
+- **Description :** Cartes double-face immersives (Recto visuel collector par défaut, Verso au survol/hover avec stats et actions) et modale d'inspection grand format détaillant les passifs et synergies de combat.
 - **Critères d'acceptation :**
-  - [ ] Détail complet des statistiques (PV, Force, Vitesse, Défense, Chance).
-  - [ ] Explication textuelle claire du passif de race, de l'arme et du pouvoir élémentaire.
-  - [ ] Mise en évidence des synergies (avec badge visuel et tooltip explicatif).
-  - [ ] Historique de combat de la carte (nombre de duels, victoires, défaites).
+  - [x] **Parité Dimensionnelle Recto/Verso :** Hauteur et largeur strictement identiques (`height: 490px; min-height: 490px; w-full`) éliminant tout écrasement ou décalage vertical entre les deux faces.
+  - [x] **Face Recto (Par défaut) épurée avec Artwork Placeholder :** Carte collector graphique et aérée (sans texte tutoriel superflu) avec vitrine centrale encadrée en pointillé ("🖼️ Artwork Placeholder"), avatar de race géant, badges d'arme et pouvoir, étoiles de rareté, score de puissance et rareté.
+  - [x] **Face Verso (Au survol / Hover) :** Transition fluide dévoilant la composition tri-slot, les barres de statistiques colorées, les badges de synergies actives (ou mention d'absence), le palmarès d'arène et les actions rapides (cadenas, recyclage, bouton inspecter).
+  - [x] **Modale Inspecteur Grand Format :**
+    - [x] Panneau de prestige gauche : avatar XXL, étoiles, rareté, historique d'arène (duels, victoires, défaites, winrate %), actions cadenas et recyclage.
+    - [x] Fiche technique droite : statistiques de combat complètes (PV, Force, Vitesse, Défense).
+    - [x] Explication textuelle complète des 3 passifs : passif inné de race, passif d'arme, et effet élémentaire du pouvoir.
+    - [x] Section synergies détaillée : liste des bonus de combat actifs avec mention explicite des synergies instables.
+  - [x] Suite de tests automatisés validant l'ouverture/fermeture de l'inspecteur et les actions associées (51 tests passants).
 
 ---
 

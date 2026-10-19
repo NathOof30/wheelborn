@@ -9,6 +9,7 @@ use App\Services\RecycleService;
 use App\Data\RaceData;
 use App\Data\WeaponData;
 use App\Enums\Rarity;
+use DomainException;
 
 class CollectionGrid extends Component
 {
@@ -18,27 +19,40 @@ class CollectionGrid extends Component
 
     public int $perPage = 12;
 
-    // --- Filtres & Tri (Ticket T1.2) ---
+    // --- Filtres & Tri Principaux (Ticket T1.2) ---
     public string $search = '';
     public string $rarity = '';
     public string $race = '';
     public string $weapon = '';
     public bool $onlySynergies = false;
+    public bool $onlyLocked = false;
     public string $sortBy = 'power_desc';
+
+    // --- Modale de Recyclage en Masse Avancé (Ticket T1.4) ---
+    public bool $showBatchModal = false;
+    public array $batchRarities = ['common'];
+    public string $batchMaxPower = '';
+    public string $batchRace = '';
+    public string $batchWeapon = '';
+    public bool $batchExcludeSynergies = true;
+
+    // --- Modale d'Inspection Détaillée (Ticket T1.5) ---
+    public ?string $inspectedCharacterId = null;
 
     public ?string $notification = null;
     public ?string $notificationType = null;
 
-    // Réinitialisation de la pagination lors du changement de filtre
+    // Réinitialisation de la pagination lors du changement de filtre principal
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedRarity(): void { $this->resetPage(); }
     public function updatedRace(): void { $this->resetPage(); }
     public function updatedWeapon(): void { $this->resetPage(); }
     public function updatedOnlySynergies(): void { $this->resetPage(); }
+    public function updatedOnlyLocked(): void { $this->resetPage(); }
     public function updatedSortBy(): void { $this->resetPage(); }
 
     /**
-     * Réinitialise tous les filtres de recherche et de tri.
+     * Réinitialise tous les filtres de recherche et de tri de la grille principale.
      */
     public function resetFilters(): void
     {
@@ -47,12 +61,13 @@ class CollectionGrid extends Component
         $this->race = '';
         $this->weapon = '';
         $this->onlySynergies = false;
+        $this->onlyLocked = false;
         $this->sortBy = 'power_desc';
         $this->resetPage();
     }
 
     /**
-     * Vérifie si au moins un filtre de recherche est actif.
+     * Vérifie si au moins un filtre de recherche est actif sur la grille.
      */
     public function hasActiveFilters(): bool
     {
@@ -61,6 +76,7 @@ class CollectionGrid extends Component
             || !empty($this->race)
             || !empty($this->weapon)
             || $this->onlySynergies
+            || $this->onlyLocked
             || $this->sortBy !== 'power_desc';
     }
 
@@ -83,6 +99,46 @@ class CollectionGrid extends Component
     }
 
     /**
+     * Bascule le filtre des héros verrouillés.
+     */
+    public function toggleOnlyLocked(): void
+    {
+        $this->onlyLocked = !$this->onlyLocked;
+        $this->resetPage();
+    }
+
+    /**
+     * Verrouille / Déverrouille une carte contre le recyclage accidentel (T1.3).
+     */
+    public function toggleLock(string $characterId): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return;
+        }
+
+        $character = Character::where('id', $characterId)
+            ->where('user_id', $user->id)
+            ->whereNull('recycled_at')
+            ->first();
+
+        if (!$character) {
+            $this->notify("Combattant introuvable.", 'error');
+            return;
+        }
+
+        $character->update([
+            'is_locked' => !$character->is_locked,
+        ]);
+
+        if ($character->is_locked) {
+            $this->notify("🔒 {$character->name} est désormais verrouillé et protégé du recyclage.", 'info');
+        } else {
+            $this->notify("🔓 {$character->name} a été déverrouillé.", 'info');
+        }
+    }
+
+    /**
      * Recycle un combattant directement depuis la grille d'inventaire.
      */
     public function recycleCharacter(string $characterId): void
@@ -95,14 +151,105 @@ class CollectionGrid extends Component
         try {
             $coins = app(RecycleService::class)->recycle($user, $characterId);
             $user->refresh();
+
+            if ($this->inspectedCharacterId === $characterId) {
+                $this->inspectedCharacterId = null;
+            }
+
             $this->notify("+{$coins} 🪙 ajoutées à votre solde suite au recyclage !", 'success');
             $this->dispatch('stats-updated',
                 coins: $user->coins,
                 spinCharges: $user->spin_charges,
                 elo: $user->elo
             );
+        } catch (DomainException $e) {
+            $this->notify($e->getMessage(), 'error');
         } catch (\Exception $e) {
             $this->notify("Impossible de recycler ce personnage : {$e->getMessage()}", 'error');
+        }
+    }
+
+    // --- MODALE D'INSPECTION DÉTAILLÉE DE COMBATTANT (T1.5) ---
+
+    public function inspectCharacter(string $characterId): void
+    {
+        $this->inspectedCharacterId = $characterId;
+    }
+
+    public function closeInspector(): void
+    {
+        $this->inspectedCharacterId = null;
+    }
+
+    // --- MODALE DE RECYCLAGE EN MASSE AVANCÉ (T1.4) ---
+
+    public function openBatchModal(): void
+    {
+        $this->showBatchModal = true;
+    }
+
+    public function closeBatchModal(): void
+    {
+        $this->showBatchModal = false;
+    }
+
+    public function resetBatchFilters(): void
+    {
+        $this->batchRarities = ['common'];
+        $this->batchMaxPower = '';
+        $this->batchRace = '';
+        $this->batchWeapon = '';
+        $this->batchExcludeSynergies = true;
+    }
+
+    public function toggleBatchRarity(string $rarity): void
+    {
+        if (in_array($rarity, $this->batchRarities, true)) {
+            $this->batchRarities = array_values(array_diff($this->batchRarities, [$rarity]));
+        } else {
+            $this->batchRarities[] = $rarity;
+        }
+    }
+
+    public function getBatchCriteria(): array
+    {
+        return [
+            'rarities'          => $this->batchRarities,
+            'max_power'         => (!empty($this->batchMaxPower) && is_numeric($this->batchMaxPower)) ? (int) $this->batchMaxPower : null,
+            'race_id'           => !empty($this->batchRace) ? $this->batchRace : null,
+            'weapon_id'         => !empty($this->batchWeapon) ? $this->batchWeapon : null,
+            'exclude_synergies' => $this->batchExcludeSynergies,
+        ];
+    }
+
+    public function confirmBatchRecycle(): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return;
+        }
+
+        $criteria = $this->getBatchCriteria();
+
+        try {
+            $result = app(RecycleService::class)->recycleBatch($user, $criteria);
+            $user->refresh();
+
+            if ($result['count'] === 0) {
+                $this->notify("Aucun combattant éligible à recycler avec ces critères (les cartes verrouillées sont protégées).", 'info');
+            } else {
+                $this->notify("♻️ Recyclage de masse réussi : {$result['count']} combattants recyclés pour +{$result['coins']} 🪙 !", 'success');
+                $this->dispatch('stats-updated',
+                    coins: $user->coins,
+                    spinCharges: $user->spin_charges,
+                    elo: $user->elo
+                );
+            }
+
+            $this->showBatchModal = false;
+            $this->resetPage();
+        } catch (\Exception $e) {
+            $this->notify("Erreur lors du recyclage en masse : {$e->getMessage()}", 'error');
         }
     }
 
@@ -127,11 +274,13 @@ class CollectionGrid extends Component
                 'characters'    => collect(),
                 'totalCount'    => 0,
                 'filteredCount' => 0,
+                'lockedCount'   => 0,
                 'rarityCounts'  => [],
                 'maxPowerScore' => 0,
                 'races'         => RaceData::all(),
                 'weapons'       => WeaponData::all(),
                 'rarities'      => Rarity::cases(),
+                'batchPreview'  => ['count' => 0, 'coins' => 0, 'characters' => collect()],
             ]);
         }
 
@@ -139,8 +288,9 @@ class CollectionGrid extends Component
             ->where('pending_reveal', false)
             ->whereNull('recycled_at');
 
-        // Statistiques globales de collection (non impactées par les filtres pour les badges du HUD)
+        // Statistiques globales de collection pour les badges du HUD
         $totalCount = (clone $baseQuery)->count();
+        $lockedCount = (clone $baseQuery)->where('is_locked', true)->count();
         $maxPowerScore = (clone $baseQuery)->max('power_score') ?? 0;
         
         $rarityCounts = [
@@ -150,7 +300,7 @@ class CollectionGrid extends Component
             'common'    => (clone $baseQuery)->where('rarity', 'common')->count(),
         ];
 
-        // Construction de la requête filtrée
+        // Construction de la requête filtrée de la grille
         $filteredQuery = (clone $baseQuery);
 
         if (!empty(trim($this->search))) {
@@ -175,6 +325,10 @@ class CollectionGrid extends Component
                   ->where('synergies_data', '!=', '[]')
                   ->where('synergies_data', '!=', '');
             });
+        }
+
+        if ($this->onlyLocked) {
+            $filteredQuery->where('is_locked', true);
         }
 
         $filteredCount = (clone $filteredQuery)->count();
@@ -209,15 +363,29 @@ class CollectionGrid extends Component
 
         $characters = $filteredQuery->paginate($this->perPage);
 
+        // Aperçu du recyclage en masse en temps réel selon les critères de la modale
+        $batchPreview = app(RecycleService::class)->getBatchRecyclePreview($user, $this->getBatchCriteria());
+
+        // Héros inspecté dans la modale grand format (T1.5)
+        $inspectedCharacter = $this->inspectedCharacterId
+            ? Character::where('id', $this->inspectedCharacterId)
+                ->where('user_id', $user->id)
+                ->whereNull('recycled_at')
+                ->first()
+            : null;
+
         return view('livewire.collection-grid', [
-            'characters'    => $characters,
-            'totalCount'    => $totalCount,
-            'filteredCount' => $filteredCount,
-            'rarityCounts'  => $rarityCounts,
-            'maxPowerScore' => $maxPowerScore,
-            'races'         => RaceData::all(),
-            'weapons'       => WeaponData::all(),
-            'rarities'      => Rarity::cases(),
+            'characters'         => $characters,
+            'totalCount'         => $totalCount,
+            'filteredCount'      => $filteredCount,
+            'lockedCount'        => $lockedCount,
+            'rarityCounts'       => $rarityCounts,
+            'maxPowerScore'      => $maxPowerScore,
+            'races'              => RaceData::all(),
+            'weapons'            => WeaponData::all(),
+            'rarities'           => Rarity::cases(),
+            'batchPreview'       => $batchPreview,
+            'inspectedCharacter' => $inspectedCharacter,
         ]);
     }
 }

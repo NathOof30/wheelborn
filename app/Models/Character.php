@@ -37,6 +37,7 @@ class Character extends Model
         'wins',
         'losses',
         'is_active_fighter',
+        'is_locked',
         'pending_reveal',
         'recycled_at',
     ];
@@ -48,6 +49,7 @@ class Character extends Model
         'is_lucky_spin'     => 'boolean',
         'is_unstable'       => 'boolean',
         'is_active_fighter' => 'boolean',
+        'is_locked'         => 'boolean',
         'pending_reveal'    => 'boolean',
         'recycled_at'       => 'datetime',
         'hp'                => 'integer',
@@ -90,5 +92,11 @@ class Character extends Model
     public function getPowerDataAttribute(): ?array
     {
         return \App\Data\PowerData::find($this->power_id);
+    }
+
+    public function getWinrateAttribute(): int
+    {
+        $total = $this->wins + $this->losses;
+        return $total > 0 ? (int) round(($this->wins / $total) * 100) : 0;
     }
 }
