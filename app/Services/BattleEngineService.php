@@ -12,10 +12,12 @@ use App\Models\Character;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Random\Engine\Mt19937;
 use Random\Randomizer;
 
 /**
  * Moteur de combat tour par tour entre deux combattants, en PHP pur.
+ * Déterministe : deux combattants + une même seed produisent toujours exactement le même combat.
  */
 class BattleEngineService
 {
@@ -44,6 +46,9 @@ class BattleEngineService
     private const BOT_ELO_PER_STAT_POINT = 40;
     private const BOT_STAT_BONUS_MIN = -10;
     private const BOT_STAT_BONUS_MAX = 15;
+
+    // Seules ces données influencent le combat : elles suffisent à le recalculer
+    private const SNAPSHOT_FIELDS = ['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'luck'];
 
     private Randomizer $rng;
     private array $fighters = [];
@@ -96,13 +101,18 @@ class BattleEngineService
                 'opponent_name'  => $bot['name'],
                 'opponent_elo'   => $bot['elo'],
                 'winner_id'      => $outcome['winner_id'],
-                'seed'           => 0, // Colonne obligatoire, gérée par le ticket T2.2
+                'seed'           => $outcome['seed'],
                 'turns_count'    => $outcome['turns'],
                 'player_old_elo' => $oldElo,
                 'player_new_elo' => $newElo,
                 'elo_delta'      => $newElo - $oldElo,
                 'coins_awarded'  => $coins,
                 'xp_awarded'     => $xp,
+                'turns_log'      => $outcome['log'],
+                'fighters_snapshot' => [
+                    'challenger' => $this->snapshot($fighter),
+                    'opponent'   => $this->snapshot($bot),
+                ],
             ]);
 
             $fighter->increment('battles_count');
@@ -121,6 +131,28 @@ class BattleEngineService
             'max_hp'    => ['challenger' => $fighter->max_hp, 'opponent' => $bot['max_hp']],
             'log'       => $outcome['log'],
         ];
+    }
+
+    /** Recalcule un combat enregistré à partir de sa seed et des stats figées des combattants. */
+    public function replay(Battle $battle): array
+    {
+        return $this->simulate(
+            $battle->fighters_snapshot['challenger'],
+            $battle->fighters_snapshot['opponent'],
+            $battle->seed,
+        );
+    }
+
+    /** Anti-triche : vrai si le recalcul redonne exactement le journal et le vainqueur enregistrés. */
+    public function isAuthentic(Battle $battle): bool
+    {
+        if (empty($battle->fighters_snapshot) || empty($battle->turns_log)) {
+            return false;
+        }
+
+        $replay = $this->replay($battle);
+
+        return $replay['winner_id'] === $battle->winner_id && $replay['log'] === $battle->turns_log;
     }
 
     /** Élo FIDE : K × (S − E). */
@@ -157,11 +189,15 @@ class BattleEngineService
     /**
      * Simule un duel complet.
      *
-     * @return array{winner:string, winner_id:mixed, turns:int, reason:string, fighters:array, log:array}
+     * Sans seed, une seed est tirée puis renvoyée pour pouvoir rejouer le combat.
+     *
+     * @return array{seed:int, winner:string, winner_id:mixed, turns:int, reason:string, fighters:array, log:array}
      */
-    public function simulate(Character|array $challenger, Character|array $opponent): array
+    public function simulate(Character|array $challenger, Character|array $opponent, ?int $seed = null): array
     {
-        $this->rng = new Randomizer();
+        $seed ??= random_int(0, 2_147_483_647);
+        // Mersenne Twister seedé (même algorithme que mt_srand), mais local : n'altère pas mt_rand() ailleurs
+        $this->rng = new Randomizer(new Mt19937($seed));
         $this->log = [];
         $this->turn = 0;
         $this->fighters = [
@@ -192,6 +228,7 @@ class BattleEngineService
             : 'Limite de ' . self::MAX_TURNS . " tours atteinte : {$winnerName} l'emporte aux points.");
 
         return [
+            'seed'      => $seed,
             'winner'    => $winner,
             'winner_id' => $this->fighters[$winner]['id'],
             'turns'     => $this->turn,
@@ -628,7 +665,7 @@ class BattleEngineService
         };
     }
 
-    /** Tirage aléatoire : vrai avec la probabilité donnée. */
+    /** Tirage seedé : vrai avec la probabilité donnée. */
     private function chance(float $probability): bool
     {
         return $probability > 0 && $this->rng->getFloat(0, 1) < $probability;
@@ -647,6 +684,12 @@ class BattleEngineService
     private function clamp(int $value, int $min, int $max): int
     {
         return max($min, min($max, $value));
+    }
+
+    /** Stats figées d'un combattant au moment du duel. */
+    private function snapshot(Character|array $source): array
+    {
+        return array_intersect_key($this->attributes($source), array_flip(self::SNAPSHOT_FIELDS));
     }
 
     private function attributes(Character|array $source): array
