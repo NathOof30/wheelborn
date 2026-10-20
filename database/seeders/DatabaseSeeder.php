@@ -133,13 +133,13 @@ class DatabaseSeeder extends Seeder
                 'losses'         => 3,
                 'recycle_value'  => 160,
             ],
-            // 5. Nain + Hache + Terre (Carte Commune de départ)
+            // 5. Golem + Marteau + Foudre (Carte Commune de départ)
             [
                 'name'           => 'Thorgal Poing-de-Roc',
-                'race_id'        => 'dwarf',
-                'weapon_id'      => 'axe',
-                'power_id'       => 'earth',
-                'power_tier'     => PowerTier::Common,
+                'race_id'        => 'golem',
+                'weapon_id'      => 'hammer',
+                'power_id'       => 'lightning',
+                'power_tier'     => PowerTier::Rare,
                 'hp'             => 120,
                 'max_hp'         => 120,
                 'strength'       => 46,
