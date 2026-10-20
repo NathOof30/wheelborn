@@ -75,21 +75,25 @@ class CharacterGeneratorService
         ];
 
         $isUnstable = collect($synergies)->contains('is_unstable', true);
+        $powerScore = $this->calculatePowerScore($stats, $synergies, $isUnstable);
+        $rarity = $this->determineRarity(false, $powerScore, count($synergies));
 
         return [
-            'id'          => (string) Str::uuid(),
-            'name'        => NameGenerator::generate($race['id']),
-            'race_id'     => $race['id'],
-            'weapon_id'   => $weapon['id'],
-            'power_id'    => $power['id'],
-            'hp'          => $stats['hp'],
-            'max_hp'      => $stats['hp'],
-            'strength'    => $stats['strength'],
-            'speed'       => $stats['speed'],
-            'defense'     => $stats['defense'],
-            'power_score' => $this->calculatePowerScore($stats, $synergies, $isUnstable),
-            'is_unstable' => $isUnstable,
-            'synergies'   => array_column($synergies, 'name'),
+            'id'             => (string) Str::uuid(),
+            'name'           => NameGenerator::generate($race['id']),
+            'race_id'        => $race['id'],
+            'weapon_id'      => $weapon['id'],
+            'power_id'       => $power['id'],
+            'hp'             => $stats['hp'],
+            'max_hp'         => $stats['hp'],
+            'strength'       => $stats['strength'],
+            'speed'          => $stats['speed'],
+            'defense'        => $stats['defense'],
+            'power_score'    => $powerScore,
+            'rarity'         => $rarity->value,
+            'is_unstable'    => $isUnstable,
+            'synergies'      => array_column($synergies, 'name'),
+            'synergies_data' => $synergies,
         ];
     }
 

@@ -22,13 +22,13 @@
 | :--- | :---: | :---: | :---: | :---: |
 | **Épic 0 : Fondations, Roue & Équilibrage** | 🔴 P0 | 👥 Binôme | 5 | ⏳ En cours (4/5) |
 | **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
-| **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
+| **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ En cours (1/4 - Paper Doll V1 ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode & Seeder ✅) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 4 | ⏳ Partiel (3/4 - 60 tests ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ⏳ Partiel (4/5 - 78 tests ✅) |
 
 ---
 
@@ -151,70 +151,86 @@
 ## ⚔️ Épic 2 — Moteur de Combat & Arène 1v1 (`BattleArena`)
 > **Responsable principal :** 🧑‍💻 Mathéo
 
-### [ ] T2.1 — Implémentation du moteur de combat `BattleEngineService`
+### [x] T2.1 — Implémentation du moteur de combat `BattleEngineService`
 - **Priorité :** 🔴 P0 (Cœur de jeu)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/BattleEngineService.php`
+- **Cible :** `app/Services/BattleEngineService.php`, `tests/Unit/BattleEngineServiceTest.php`
 - **Description :** Développer le service PHP pur simulant l'affrontement tour par tour entre deux combattants de manière déterministe.
 - **Critères d'acceptation :**
-  - [ ] Phase 1 (Initiative) : Le combattant avec la plus haute Vitesse frappe en premier (avec tirage au sort si égalité).
-  - [ ] Phase 2 (Échange de coups) : Calcul des dégâts bruts atténués par la défense ennemie.
-  - [ ] Prise en compte des effets d'armes (saignement, coup contondant) et des pouvoirs (brûlure DoT, gel, régénération).
-  - [ ] Application des synergies (ex: Pyro-Lame, Tempête Électrique, Instabilités).
-  - [ ] Calcul des coups critiques et esquives basés sur la stat Chance.
-  - [ ] Sécurité anti-boucle infinie (limite fixée à 25 tours max).
+  - [x] Phase 1 (Initiative) : Le combattant avec la plus haute Vitesse frappe en premier (avec tirage au sort si égalité).
+  - [x] Phase 2 (Échange de coups) : Calcul des dégâts bruts atténués par la défense ennemie.
+  - [x] Prise en compte des effets d'armes (saignement, coup contondant) et des pouvoirs (brûlure DoT, gel, régénération).
+  - [x] Application des synergies (ex: Pyro-Lame, Tempête Électrique, Instabilités).
+  - [x] Calcul des coups critiques et esquives basés sur la stat Chance.
+  - [x] Sécurité anti-boucle infinie (limite fixée à 25 tours max avec décision aux points).
 
-### [ ] T2.2 — Déterminisme, Seed aléatoire et Audit Log (`turns_log`)
+### [x] T2.2 — Déterminisme, Seed aléatoire et Audit Log (`turns_log`)
 - **Priorité :** 🔴 P0 (Anti-triche & Replay)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Models/Battle.php`, `database/migrations/xxxx_create_battles_table.php`
+- **Cible :** `app/Models/Battle.php`, `database/migrations/2026_10_20_104207_rename_combat_log_to_turns_log_in_battles_table.php`, `app/Services/ArenaService.php`
 - **Description :** Assurer la reproductibilité absolue de chaque combat pour permettre le replay et éliminer toute triche côté client.
 - **Critères d'acceptation :**
-  - [ ] Utilisation d'un générateur pseudo-aléatoire seedé (`mt_srand($seed)`).
-  - [ ] Enregistrement du déroulement complet dans un champ JSON `turns_log` (qui a frappé, dégâts, PV restants, effet déclenché).
-  - [ ] Possibilité de recalculer le combat à partir de la seed et d'obtenir un résultat 100% identique.
+  - [x] Utilisation d'un générateur pseudo-aléatoire seedé (`Mt19937` isolé).
+  - [x] Enregistrement du déroulement complet dans un champ JSON `turns_log` (qui a frappé, dégâts, PV restants, effet déclenché) et figé dans `fighters_snapshot`.
+  - [x] Possibilité de recalculer le combat à partir de la seed et d'obtenir un résultat 100% identique (`ArenaService::replay()` & `ArenaService::isAuthentic()`).
 
-### [ ] T2.3 — Gestion des Tickets d'Arène & Régénération
+### [x] T2.3 — Gestion des Tickets d'Arène & Régénération
 - **Priorité :** 🔴 P0 (Économie & Cadence de session)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/EnergyManagerService.php`, `app/Models/User.php`
+- **Cible :** `app/Services/EnergyManagerService.php`, `app/Models/User.php`, `app/Data/GameConfig.php`
 - **Description :** Réguler les combats via un stock limité de tickets (anti-farm compulsif).
 - **Critères d'acceptation :**
-  - [ ] Stock maximum : 5 tickets d'arène.
-  - [ ] Vitesse de recharge : 1 ticket toutes les 5 minutes (avec calcul de rattrapage hors-ligne).
-  - [ ] Déduction atomique d'un ticket au lancement d'un duel.
-  - [ ] Message explicite si tentative de combat avec 0 ticket.
+  - [x] Stock maximum : 5 tickets d'arène.
+  - [x] Vitesse de recharge : 1 ticket toutes les 5 minutes (avec calcul de rattrapage hors-ligne).
+  - [x] Déduction atomique d'un ticket au lancement d'un duel (`decrement` conditionnel dans transaction SQL).
+  - [x] Message explicite si tentative de combat avec 0 ticket et désactivation propre du bouton côté front.
+  - [x] Timer de rechargement en temps réel seconde par seconde via composant Alpine.js (`+1 dans mm:ss`) synchronisé avec actualisation automatique Livewire à `00:00`.
 
-### [ ] T2.4 — Interface de Combat Face-à-Face Livewire (`BattleArena`)
+### [x] T2.4 — Interface de Combat Face-à-Face Livewire (`BattleArena`)
 - **Priorité :** 🔴 P0 (Expérience Utilisateur)
 - **Attribué à :** 🧑‍💻 Mathéo
 - **Cible :** `app/Livewire/BattleArena.php`, `resources/views/livewire/battle-arena.blade.php`
 - **Description :** Interface interactive de préparation et de visualisation du combat.
 - **Critères d'acceptation :**
-  - [ ] Écran 1 (Sélection) : Le joueur choisit sa carte combattante parmi sa collection.
-  - [ ] Écran 2 (Face-à-face) : Affichage des deux cartes côte à côte avec badges de stats.
-  - [ ] Écran 3 (Affrontement animé) : Défilement des tours avec barres de vie qui diminuent via Alpine.js.
-  - [ ] Écran 4 (Bilan) : Affichage Victoire/Défaite, gain/perte d'Élo et butin de pièces récoltées.
+  - [x] **Architecture Cockpit Zero-Scroll :**
+    - Répartition ergonomique 65% (Arène de duel face-à-face) / 35% (Poste de commande & logs) sans scroll vertical nécessaire.
+    - Hauteur synchronisée via `items-stretch` et `h-full` pour un alignement bas net.
+  - [x] **Modale de Sélection de Combattant Flottante :**
+    - Recherche instantanée par nom, race, arme ou pouvoir (`wire:model.live.debounce`).
+    - Filtres par rareté (Tous, Commune, Rare, Épique, Légendaire) et tri dynamique (Puissance, Victoires, Récents).
+    - Grille compacte avec avatar Paper Doll et badge de déploiement en arène.
+  - [x] **Cartes Officielles WheelBorn & 3D Flip :**
+    - Ratio physique collector 270px fixe sans déformation ni étirement.
+    - Animation de retournement 3D physique au clic vers le verso (stats détaillées, tri-slot éléments, synergies et palmarès).
+    - Épuration visuelle : suppression de la mention superflue "Cliquer pour les stats" dans l'arène et la collection.
+  - [x] **Comparatif Dynamique des Forces Pré-combat :**
+    - 4 jauges de confrontation horizontales bicolores (Vert 🟢 à gauche ➔ 🔴 Rouge à droite) pour PV, Force, Vitesse et Défense calculant le ratio de force exact entre les deux cartes.
+    - Badge d'avantage de puissance globale et indicateur d'initiative explicite (`Tu frappes en 1er` / `Bot frappe en 1er`).
+    - Comparatif des synergies élémentaires actives joueur vs bot.
+  - [x] **Déroulement du Duel & Bilan :**
+    - Défilement tour par tour des échanges avec barres de PV réactives animées via Alpine.js.
+    - Bilan final avec delta d'Élo, pièces et XP gagnés.
+    - Actions post-combat enrichies : bouton « Revanche » (rejouer contre le même bot) et bouton « Autre adversaire » (générer un nouveau bot).
 
-### [ ] T2.5 — Bouton Fast-Forward ("Passer le combat / Résultat direct")
+### [x] T2.5 — Bouton Fast-Forward ("Passer le combat / Résultat direct")
 - **Priorité :** 🟡 P1 (QoL)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `resources/views/livewire/battle-arena.blade.php`
+- **Cible :** `resources/views/livewire/battle-arena.blade.php`, `resources/js/battle-animation.js`
 - **Description :** Permettre aux joueurs réguliers de passer l'animation pour aller directement à l'écran de résultat.
 - **Critères d'acceptation :**
-  - [ ] Bouton bien visible "Passer l'animation ⏭️".
-  - [ ] Interrompt le timing Alpine.js et affiche instantanément les barres de PV finales et le bilan.
-  - [ ] Le calcul serveur restant identique, l'issue ne dépend pas de l'animation front.
+  - [x] Bouton bien visible "Passer le combat ⏭".
+  - [x] Interrompt le timing Alpine.js et affiche instantanément les barres de PV finales et le bilan.
+  - [x] Le calcul serveur restant identique, l'issue ne dépend pas de l'animation front.
 
-### [ ] T2.6 — Gestion des Cas Limites : Égalités & Double K.O.
+### [x] T2.6 — Gestion des Cas Limites : Égalités & Double K.O.
 - **Priorité :** 🟡 P1 (Edge case)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/BattleEngineService.php`
+- **Cible :** `app/Services/BattleEngineService.php`, `app/Services/ArenaService.php`, `resources/views/livewire/battle-arena.blade.php`
 - **Description :** Traiter proprement les scénarios où les deux combattants tombent à 0 PV au même tour (ex: dégâts de poison mutuels).
 - **Critères d'acceptation :**
-  - [ ] Règle définie : Si double K.O., le joueur ayant porté le coup initial conserve l'avantage ou match déclaré "Match Nul".
-  - [ ] En cas de Match Nul : aucun gain/perte d'Élo ($\Delta \text{Élo} = 0$), mais remboursement partiel du ticket ou petit lot de consolation (ex: 20 pièces).
-  - [ ] Feedback visuel adapté ("Égalité sanglante !").
+  - [x] Règle définie : Si double K.O., match déclaré "Match Nul" (`DRAW`, `winner_id = null`).
+  - [x] En cas de Match Nul : aucun gain/perte d'Élo ($\Delta \text{Élo} = 0$), et petit lot de consolation (20 pièces + 20 XP).
+  - [x] Feedback visuel adapté ("🩸 ÉGALITÉ SANGLANTE !").
 
 ---
 
@@ -549,6 +565,18 @@
   - [x] Impossible de recycler une carte verrouillée (`is_locked = true` - exception levée et bouton protégé).
   - [x] Recyclage en masse multi-critères avec transaction atomique et protection des héros verrouillés.
   - [x] Suite complète validée (60/60 tests passants).
+
+### [x] T8.5 — Tests Unitaires & Feature du Moteur de Combat & BattleArena
+- **Priorité :** 🔴 P0 (Intégrité du jeu & Anti-triche)
+- **Attribué à :** 🧑‍💻 Mathéo
+- **Cible :** `tests/Unit/BattleEngineServiceTest.php`, `tests/Feature/BattleArenaTest.php`
+- **Critères d'acceptation :**
+  - [x] Déterminisme absolu de la seed aléatoire (`Mt19937`).
+  - [x] Tests unitaires complets des passifs et mécaniques : saignement/brûlure DoT, étourdissement marteau, régénération/vol de vie vampire, atténuation bouclier arcanique, initiative avec tirage si égalité.
+  - [x] Sécurité limite 25 tours max et gestion du double K.O. (égalité).
+  - [x] Test de conformité anti-triche : `isAuthentic()` valide un replay et rejette toute falsification.
+  - [x] Tests d'intégration Livewire : chargement de l'arène, régénération et blocage à 0 ticket, renouvellement d'adversaire bot (`newOpponent`), calcul des jauges de confrontation dynamiques et réinitialisation par revanche (`rematch`).
+  - [x] Suite validée (18/18 tests arène & moteur passants, 78 tests globaux).
 
 
 ---
