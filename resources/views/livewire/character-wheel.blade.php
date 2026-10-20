@@ -33,12 +33,24 @@
                     Reset Pity
                 </button>
                 <button wire:click="adminForceTestSpin('sword')" class="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Épée">
-                    <span>🎨</span>
-                    <span>Test Humain + Épée</span>
+                    <span>⚔️</span>
+                    <span>Test Épée</span>
                 </button>
                 <button wire:click="adminForceTestSpin('staff')" class="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Bâton">
-                    <span>🎨</span>
-                    <span>Test Humain + Bâton</span>
+                    <span>🪄</span>
+                    <span>Test Bâton</span>
+                </button>
+                <button wire:click="adminForceTestSpin('bow')" class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Arc">
+                    <span>🏹</span>
+                    <span>Test Arc</span>
+                </button>
+                <button wire:click="adminForceTestSpin('dagger')" class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Dague">
+                    <span>🗡️</span>
+                    <span>Test Dague</span>
+                </button>
+                <button wire:click="adminForceTestSpin('hammer')" class="px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Marteau">
+                    <span>🔨</span>
+                    <span>Test Marteau</span>
                 </button>
             </div>
         </div>

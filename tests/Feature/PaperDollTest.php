@@ -20,17 +20,21 @@ class PaperDollTest extends TestCase
         // 1. Race Humain existe
         $this->assertEquals('images/characters/races/human.webp', PaperDollService::getRaceAsset('human'));
 
-        // 2. Armes Épée et Bâton existent
+        // 2. Armes existantes (Épée, Bâton, Arc, Dague)
         $this->assertEquals('images/characters/weapons/epee.webp', PaperDollService::getWeaponAsset('sword'));
         $this->assertEquals('images/characters/weapons/baton.webp', PaperDollService::getWeaponAsset('staff'));
+        $this->assertEquals('images/characters/weapons/arc.webp', PaperDollService::getWeaponAsset('bow'));
+        $this->assertEquals('images/characters/weapons/dague.webp', PaperDollService::getWeaponAsset('dagger'));
 
-        // 3. Arme non dessinée (ex: arc) renvoie null
-        $this->assertNull(PaperDollService::getWeaponAsset('bow'));
+        // 3. Armes non dessinées (marteau, lance, pistolet, grimoire) renvoient null
+        $this->assertNull(PaperDollService::getWeaponAsset('hammer'));
+        $this->assertNull(PaperDollService::getWeaponAsset('spear'));
+        $this->assertNull(PaperDollService::getWeaponAsset('gun'));
 
         // 4. Détection des calques visuels disponibles
         $this->assertTrue(PaperDollService::hasVisualLayers('human', 'sword'));
-        $this->assertTrue(PaperDollService::hasVisualLayers('human', 'bow')); // la race existe
-        $this->assertFalse(PaperDollService::hasVisualLayers('elf', 'bow')); // ni la race ni l'arme n'existent
+        $this->assertTrue(PaperDollService::hasVisualLayers('human', 'spear')); // la race existe
+        $this->assertFalse(PaperDollService::hasVisualLayers('elf', 'spear')); // ni la race ni l'arme n'existent
     }
 
     public function test_avatar_component_renders_layered_images_for_human_with_sword_or_staff(): void
@@ -72,12 +76,12 @@ class PaperDollTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Créer un Elfe avec Arc (aucun des deux n'a d'asset pour l'instant)
-        $elfBow = Character::create([
+        // Créer un Elfe avec Lance (aucun des deux n'a d'asset pour l'instant)
+        $elfSpear = Character::create([
             'user_id' => $user->id,
             'name' => 'Legolas',
             'race_id' => 'elf',
-            'weapon_id' => 'bow',
+            'weapon_id' => 'spear',
             'power_id' => 'wind',
             'power_tier' => \App\Enums\PowerTier::Common,
             'hp' => 90,

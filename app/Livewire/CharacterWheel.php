@@ -302,7 +302,8 @@ class CharacterWheel extends Component
             return;
         }
 
-        $weaponName = $weaponId === 'staff' ? 'Bâton' : 'Épée';
+        $weaponData = \App\Data\WeaponData::find($weaponId);
+        $weaponName = $weaponData['name'] ?? ucfirst($weaponId);
 
         $character = Character::create([
             'user_id'           => $user->id,

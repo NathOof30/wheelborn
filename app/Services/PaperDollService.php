@@ -14,6 +14,9 @@ class PaperDollService
         'robot'       => ['robot', 'cyborg'],
         'mutant'      => ['mutant'],
         'golem'       => ['golem'],
+        'vampire'     => ['vampire'],
+        'alien'       => ['alien'],
+        // Fallbacks au cas où
         'orc'         => ['orc'],
         'undead'      => ['undead', 'mort_vivant'],
     ];
@@ -30,13 +33,20 @@ class PaperDollService
     ];
 
     protected static array $powerAliases = [
-        'fire'      => ['feu', 'fire'],
-        'water'     => ['eau', 'water'],
-        'lightning' => ['foudre', 'lightning'],
-        'earth'     => ['terre', 'earth'],
-        'wind'      => ['vent', 'wind'],
-        'dark'      => ['ombre', 'dark', 'shadow'],
-        'light'     => ['lumiere', 'light'],
+        'fire'          => ['feu', 'fire'],
+        'poison'        => ['poison'],
+        'ice'           => ['glace', 'ice'],
+        'lightning'     => ['foudre', 'lightning'],
+        'regeneration'  => ['regeneration', 'regen'],
+        'gravity'       => ['gravite', 'gravity'],
+        'teleportation' => ['teleportation', 'teleport'],
+        'invisibility'  => ['invisibilite', 'invisibility'],
+        // Fallbacks rétrocompatibles
+        'water'         => ['eau', 'water'],
+        'earth'         => ['terre', 'earth'],
+        'wind'          => ['vent', 'wind'],
+        'dark'          => ['ombre', 'dark', 'shadow'],
+        'light'         => ['lumiere', 'light'],
     ];
 
     /**

@@ -36,7 +36,7 @@ Une carte WheelBorn est découpée en **deux sous-systèmes indépendants** :
 | |  [Layer 3] Arme Équipée                     | |
 | +---------------------------------------------+ |
 | ATK: 120  |  DEF: 85  |  VIT: 105             |
-| Synergies : [Elfe] [Foudre]                   |
+| Synergies : [Elfe] [Arc]                      |
 +-------------------------------------------------+
 ```
 
@@ -104,65 +104,101 @@ L'image finale du personnage est composée de **4 calques superposés** dans le 
 ```
 
 ### Layer 0 : Fond d'Aura & Rareté (`backgrounds/`)
-- **Contenu** : Vortex magique, nébuleuse, étincelles ou runes liées à la rareté ou à l'élément.
+- **Contenu** : Vortex magique, nébuleuse, étincelles ou runes liées à la rareté du combattant (Commun à Mythique).
 - **Règle** : Doit être subtil et contrasté pour ne pas noyer le personnage (zones sombres au centre, lumière sur les bords).
 
 ### Layer 1 : Corps / Silhouette de la Race (`races/`)
-- **Contenu** : Le personnage complet (tête, buste, membres, vêtements de base).
+- **Contenu** : Le personnage complet (tête, buste, membres, vêtements ou traits de base).
+- **Les 8 Races du jeu** : Humain (`human`), Elfe (`elf`), Démon (`demon`), Robot (`robot`), Mutant (`mutant`), Golem (`golem`), Vampire (`vampire`), Alien (`alien`).
 - **Règle vitale** : Le personnage doit avoir une **pose neutre standardisée** (ex: torse de 3/4 face, main droite légèrement avancée/ouverte pour recevoir l'arme du Layer 3).
 
-### Layer 2 : Effet Élémentaire (`elements/`)
-- **Contenu** : Tourbillons de feu, orbes d'eau, éclairs crépitants, brume d'ombre, rayons de lumière.
-- **Règle** : Les effets peuvent envelopper le corps (ex: étincelles sur les épaules, aura autour des poings). Privilégier des zones semi-transparentes pour laisser transparaître le corps.
+### Layer 2 : Effet Élémentaire & Pouvoirs (`elements/`)
+- **Contenu** : Flammes vives, éclairs crépitants, brume empoisonnée, cristaux de glace, particules de soin, distorsion gravitationnelle ou spatiale.
+- **Les 8 Pouvoirs du jeu** : Feu (`fire`), Poison (`poison`), Glace (`ice`), Foudre (`lightning`), Régénération (`regeneration`), Gravité (`gravity`), Téléportation (`teleportation`), Invisibilité (`invisibility`).
+- **Règle** : Les effets enveloppent le corps (ex: étincelles sur les épaules, aura autour des poings). Privilégier des zones semi-transparentes ou mix-blend pour laisser transparaître le corps.
 
 ### Layer 3 : Arme Équipée (`weapons/`)
-- **Contenu** : Épée, dague, bâton magique, hache, arc, etc.
-- **Règle vitale** : La poignée de l'arme doit s'aligner **exactement** avec la main droite du gabarit universel du Layer 1.
+- **Contenu** : Épée, arc, marteau, lance, dague, bâton, pistolet, grimoire.
+- **Les 8 Armes du jeu** : Épée (`sword`), Arc (`bow`), Marteau (`hammer`), Lance (`spear`), Dague (`dagger`), Bâton (`staff`), Pistolet (`gun`), Grimoire (`grimoire`).
+- **Règle vitale** : La poignée de l'arme doit s'aligner **exactement** avec la main droite du gabarit universel du Layer 1 (X: 180 px, Y: 320 px).
 
 ---
 
 ## 5. Nomenclature Exacte des Fichiers (Mapping BDD)
 
-Pour que le code Laravel / Livewire charge automatiquement les images sans condition compliquée, les noms de fichiers doivent correspondre **strictement** aux `slugs` ou identifiants utilisés dans la base de données.
+> [!WARNING]
+> ### ⚠️ Les 8 Armes Officielles de Combat
+> - **Les 8 Armes officielles** du projet sont strictement : **Épée (`sword`), Arc (`bow`), Marteau (`hammer`), Lance (`spear`), Dague (`dagger`), Bâton (`staff`), Pistolet (`gun`), Grimoire (`grimoire`)**.
+> - **Hache & Bouclier** : Ne font pas partie des 8 armes officielles de la roue. Les fichiers `hache.webp` et `bouclier.webp` créés précédemment ne sont pas pris en compte pour les armes de combat. L'arme lourde officielle est le **Marteau** (`marteau.webp`).
+> - **Races** : Les 8 races sont **Humain, Elfe, Démon, Robot, Mutant, Golem, Vampire, Alien** (pas de Nain, Orc, Ange ni Mort-vivant).
+> - **Pouvoirs** : Les 8 pouvoirs sont **Feu, Poison, Glace, Foudre, Régénération, Gravité, Téléportation, Invisibilité** (pas d'Eau, Terre, Vent, Ombre, Lumière génériques).
 
 Emplacement des dossiers dans le projet : `public/images/characters/`
 
-### 1. Races (`public/images/characters/races/`)
-- `humain.webp`
-- `elfe.webp`
-- `nain.webp`
-- `orc.webp`
-- `mort_vivant.webp`
-- `demon.webp`
-- `ange.webp`
-- `hybride.webp`
+### 1. Armes (`public/images/characters/weapons/`)
+Le système supporte le nom français ou anglais (WebP). Voici la liste officielle des 8 armes du jeu :
 
-### 2. Éléments / Pouvoirs (`public/images/characters/elements/`)
-- `feu.webp`
-- `eau.webp`
-- `foudre.webp`
-- `terre.webp`
-- `vent.webp`
-- `ombre.webp`
-- `lumiere.webp`
+| Arme | Emoji | ID BDD (`weapon_id`) | Type | Fichier Recommandé | Alias Acceptés par le Jeu | Statut Actuel |
+| :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| **Épée** | ⚔️ | `sword` | Mêlée équilibrée | `epee.webp` | `sword.webp` | ✅ Présent |
+| **Bâton** | 🪄 | `staff` | Magique | `baton.webp` | `staff.webp` | ✅ Présent |
+| **Arc** | 🏹 | `bow` | Distance | `arc.webp` | `bow.webp` | ✅ Présent |
+| **Dague** | 🗡️ | `dagger` | Assassinat rapide | `dague.webp` | `dagger.webp` | ✅ Présent |
+| **Marteau** | 🔨 | `hammer` | Mêlée lourde / Étourdissement | `marteau.webp` | `hammer.webp` | ⏳ À créer |
+| **Lance** | 🔱 | `spear` | Allonge / Perforant | `lance.webp` | `spear.webp` | ⏳ À créer |
+| **Pistolet** | 🔫 | `gun` | Distance / Balistique | `pistolet.webp` | `gun.webp` | ⏳ À créer |
+| **Grimoire** | 📖 | `grimoire` | Sorts élémentaires | `grimoire.webp` | `book.webp` | ⏳ À créer |
 
-### 3. Armes (`public/images/characters/weapons/`)
-- `epee.webp`
-- `dague.webp`
-- `arc.webp`
-- `baton.webp`
-- `hache.webp`
-- `bouclier.webp`
-- `lance.webp`
-- `grimoire.webp`
+> **Synthèse d'avancement des armes :**
+> - `epee.webp`, `baton.webp`, `arc.webp`, `dague.webp` : 4/8 armes déjà créées et parfaitement fonctionnelles.
+> - Reste à créer : `marteau.webp`, `lance.webp`, `pistolet.webp`, `grimoire.webp`.
+> - `hache.webp` et `bouclier.webp` ne sont pas rattachés aux armes de duel du jeu.
+
+---
+
+### 2. Races (`public/images/characters/races/`)
+Les 8 races déterminent la silhouette de base du héros :
+
+| Race | Emoji | ID BDD (`race_id`) | Archétype & Rôle | Fichier Recommandé | Alias Acceptés | Statut Actuel |
+| :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| **Humain** | 👤 | `human` | Polyvalent / Équilibré | `human.webp` | `humain.webp` | ✅ Présent |
+| **Elfe** | 🧝 | `elf` | Agile / Archerie rapide | `elf.webp` | `elfe.webp` | ⏳ À créer |
+| **Démon** | 😈 | `demon` | Force brute / Dégâts de feu | `demon.webp` | `demon.webp` | ⏳ À créer |
+| **Robot** | 🤖 | `robot` | Blindé / Armure lourde | `robot.webp` | `cyborg.webp` | ⏳ À créer |
+| **Mutant** | ☣️ | `mutant` | Chaotique / Statistiques aléatoires | `mutant.webp` | `mutant.webp` | ⏳ À créer |
+| **Golem** | 🗿 | `golem` | Colosse de pierre / PV colossaux | `golem.webp` | `golem.webp` | ⏳ À créer |
+| **Vampire** | 🧛 | `vampire` | Voleur de vie / Saignement | `vampire.webp` | `vampire.webp` | ⏳ À créer |
+| **Alien** | 👽 | `alien` | Spatiale / Esquive cosmique | `alien.webp` | `alien.webp` | ⏳ À créer |
+
+---
+
+### 3. Pouvoirs & Effets Élémentaires (`public/images/characters/elements/`)
+Les 8 pouvoirs ajoutent une aura magique ou un effet visuel (Layer 2) au personnage :
+
+| Pouvoir | Emoji | ID BDD (`power_id`) | Tier / Rareté | Fichier Recommandé | Alias Acceptés | Effet Visuel Suggéré |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| **Feu** | 🔥 | `fire` | Commun | `feu.webp` | `fire.webp` | Flammes orangées autour des poings ou de la lame |
+| **Poison** | 🧪 | `poison` | Commun | `poison.webp` | `poison.webp` | Volutes toxiques verdâtres, gouttes acides |
+| **Glace** | ❄️ | `ice` | Rare | `glace.webp` | `ice.webp` | Cristaux de givre translucides bleutés |
+| **Foudre** | ⚡ | `lightning` | Rare | `foudre.webp` | `lightning.webp` | Arcs électriques crépitants cyan/jaunes |
+| **Régénération** | 💖 | `regeneration` | Rare | `regeneration.webp` | `regen.webp` | Halo guérisseur doux, particules de vie rosées |
+| **Gravité** | 🌌 | `gravity` | Mythique | `gravite.webp` | `gravity.webp` | Anneaux gravitationnels sombres, effet de lentille |
+| **Téléportation** | 🌀 | `teleportation` | Mythique | `teleportation.webp` | `teleport.webp` | Faille dimensionnelle en spirale pourpre/violette |
+| **Invisibilité** | 👁️‍🗨️ | `invisibility` | Mythique | `invisibilite.webp` | `invisibility.webp` | Silhouette fantomatique semi-transparente, fumée d'ombre |
+
+---
 
 ### 4. Fonds de Rareté (`public/images/characters/backgrounds/`)
-- `common.webp`
-- `uncommon.webp`
-- `rare.webp`
-- `epic.webp`
-- `legendary.webp`
-- `mythic.webp`
+Les 6 fonds correspondent au palier de rareté de la carte (Layer 0) :
+
+| Rareté | ID BDD (`rarity`) | Fichier Recommandé | Ambiance & Teinte |
+| :--- | :--- | :--- | :--- |
+| **Commun** | `common` | `common.webp` | Ardoise / Acier sobre avec runes discrètes |
+| **Peu Commun** | `uncommon` | `uncommon.webp` | Reflets émeraude / Vert forêt mystique |
+| **Rare** | `rare` | `rare.webp` | Nébuleuse cyan / Saphir énergétique |
+| **Épique** | `epic` | `epic.webp` | Tempête améthyste / Pourpre arcanique |
+| **Légendaire** | `legendary` | `legendary.webp` | Rayonnement doré flamboyant & dorures royales |
+| **Mythique** | `mythic` | `mythic.webp` | Cosmos cramoisi, distorsion stellaire |
 
 ---
 
@@ -175,10 +211,11 @@ Pour que n'importe quelle arme aille à n'importe quelle race, un **gabarit de r
 3. **Repère Main de Préhension (Arme)** :
    - Coordonnées du creux de la main droite : **X: 180 px, Y: 320 px**.
    - Angle standard de tenue de l'arme : **~45°** vers le haut/gauche.
-4. **Variations morphologiques** :
-   - *Nain* : Plus trapu et large, mais la main de préhension doit impérativement rester dans la zone de tolérance (cercle de 20px de rayon autour de X:180, Y:320).
-   - *Orc* : Plus massif, muscles plus volumineux, mais main calée sur le même point.
-   - *Elfe / Ange* : Silhouettes plus élancées, ailes déployées vers l'arrière pour ne pas masquer l'arme au Layer 3.
+4. **Variations morphologiques selon la Race** :
+   - *Golem* : Silhouette plus massive et large d'épaules, mais la main de préhension doit impérativement rester dans la zone de tolérance (cercle de 20px de rayon autour de X:180, Y:320).
+   - *Robot* : Structure mécanique anguleuse, jointures bien délimitées pour que l'arme semble fixée ou empoignée fermement.
+   - *Démon / Vampire / Alien / Mutant* : Éléments distinctifs (cornes, capes sombres, tentacules, ailes) orientés vers l'arrière ou les côtés pour ne jamais masquer l'arme au Layer 3.
+   - *Elfe / Humain* : Silhouettes classiques élancées, posture droite de 3/4 face.
 
 ---
 
@@ -202,47 +239,68 @@ cwebp -q 85 input.png -o output.webp
 
 ## 8. Intégration Blade / CSS (Exemple Pratique)
 
-Voici comment le composant Blade assemble les calques Paper Doll dans le châssis responsive :
+Dans le projet, le rendu du Paper Doll est entièrement encapsulé dans le composant réutilisable `<x-character-avatar>` qui utilise `PaperDollService` pour résoudre dynamiquement chaque calque avec fallback résilient :
 
 ```html
-<!-- Châssis Responsive de la Carte (Bordure, Dégradé et Halo gérés en CSS) -->
-<div class="relative w-full max-w-[320px] rounded-2xl p-3 bg-slate-900/90 border-2 border-amber-500/60 shadow-[0_0_25px_rgba(245,158,11,0.25)] transition-transform hover:scale-[1.02]">
+{{-- Utilisation directe dans n'importe quelle vue Blade ou Livewire (Collection, Roue, Arène) --}}
+<x-character-avatar :character="$character" class="w-full max-w-[270px]" />
+```
 
-    <!-- Fenêtre Carrée du Portrait Paper Doll -->
-    <div class="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+### Fonctionnement interne du composant (`resources/views/components/character-avatar.blade.php`) :
+
+```php
+@php
+    // Résolution multi-calques par PaperDollService (détecte la présence sur disque dans public/images/characters/)
+    $layers = \App\Services\PaperDollService::resolveLayers(
+        $character->race_id,
+        $character->weapon_id,
+        $character->power_id,
+        $character->rarity instanceof \App\Enums\Rarity ? $character->rarity->value : $character->rarity
+    );
+    $hasVisualLayer = !empty($layers['race']) || !empty($layers['weapon']);
+@endphp
+
+@if ($hasVisualLayer)
+    <div class="relative w-full max-w-[270px] aspect-square flex items-center justify-center select-none">
         
-        <!-- Layer 0 : Fond d'Aura de Rareté -->
-        <img src="{{ asset('images/characters/backgrounds/' . $character->rarity . '.webp') }}" 
-             alt="Background" 
-             class="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" 
-             loading="lazy">
+        {{-- Layer 0 : Fond d'aura / Décor de rareté --}}
+        @if ($layers['background'])
+            <img src="{{ asset($layers['background']) }}" 
+                 alt="Fond" 
+                 class="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" 
+                 loading="lazy">
+        @endif
 
-        <!-- Layer 1 : Race / Silhouette -->
-        <img src="{{ asset('images/characters/races/' . $character->race_slug . '.webp') }}" 
-             alt="{{ $character->race }}" 
-             class="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none" 
-             loading="lazy">
+        {{-- Layer 1 : Race / Silhouette --}}
+        @if ($layers['race'])
+            <img src="{{ asset($layers['race']) }}" 
+                 alt="Race" 
+                 class="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none filter drop-shadow-[0_8px_20px_rgba(0,0,0,0.6)]" 
+                 loading="lazy">
+        @endif
 
-        <!-- Layer 2 : Effet Élémentaire (VFX) -->
-        <img src="{{ asset('images/characters/elements/' . $character->element_slug . '.webp') }}" 
-             alt="{{ $character->element }}" 
-             class="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none mix-blend-screen opacity-90" 
-             loading="lazy">
+        {{-- Layer 2 : Effet Élémentaire / Pouvoir (VFX) --}}
+        @if ($layers['power'])
+            <img src="{{ asset($layers['power']) }}" 
+                 alt="Pouvoir" 
+                 class="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none mix-blend-screen opacity-90" 
+                 loading="lazy">
+        @endif
 
-        <!-- Layer 3 : Arme Équipée -->
-        <img src="{{ asset('images/characters/weapons/' . $character->weapon_slug . '.webp') }}" 
-             alt="{{ $character->weapon }}" 
-             class="absolute inset-0 w-full h-full object-contain z-30 pointer-events-none" 
-             loading="lazy">
-             
+        {{-- Layer 3 : Arme tenue (Toujours au premier plan) --}}
+        @if ($layers['weapon'])
+            <img src="{{ asset($layers['weapon']) }}" 
+                 alt="Arme" 
+                 class="absolute inset-0 w-full h-full object-contain z-30 pointer-events-none filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
+                 loading="lazy">
+        @endif
     </div>
-
-    <!-- Informations & Statistiques de la Carte (S'étirent sans contrainte) -->
-    <div class="mt-3 text-center">
-        <h3 class="font-bold text-white text-base truncate">{{ $character->name }}</h3>
-        <p class="text-xs text-amber-400 font-semibold uppercase tracking-wider">{{ $character->rarity }}</p>
+@else
+    {{-- Fallback élégant avec piédestal d'emojis quand aucun calque n'est encore dessiné --}}
+    <div class="border-2 border-dashed border-slate-700/80 rounded-2xl p-4 text-center">
+        <span>Artwork en attente</span>
     </div>
-</div>
+@endif
 ```
 
 ---
@@ -252,3 +310,46 @@ Voici comment le composant Blade assemble les calques Paper Doll dans le châssi
 1. **Aucune distorsion visuelle** : Le portrait reste toujours un carré parfait (ratio 1:1), tandis que le châssis s'adapte en hauteur et largeur selon le support.
 2. **Économie de bande passante** : Au lieu de stocker des milliers de cartes générées (plusieurs Go), vous n'avez que ~30 fichiers WebP légers (< 1 Mo pour tout le jeu).
 3. **Plaisir de création** : Vous pouvez enrichir le jeu en ajoutant simplement 1 nouvelle arme ou 1 nouvelle race sans jamais toucher aux autres calques.
+
+---
+
+## 10. Checklist Récapitulative des Assets (30 Fichiers Cibles)
+
+### Armes (8 fichiers dans `public/images/characters/weapons/`)
+- [x] `epee.webp` (Épée ⚔️)
+- [x] `baton.webp` (Bâton 🪄)
+- [x] `arc.webp` (Arc 🏹)
+- [x] `dague.webp` (Dague 🗡️)
+- [ ] `marteau.webp` (Marteau 🔨)
+- [ ] `lance.webp` (Lance 🔱)
+- [ ] `pistolet.webp` (Pistolet 🔫)
+- [ ] `grimoire.webp` (Grimoire 📖)
+- *(Note : `hache.webp` et `bouclier.webp` créés précédemment ne sont pas utilisés dans les 8 armes officielles de combat)*
+
+### Races (8 fichiers dans `public/images/characters/races/`)
+- [x] `human.webp` (Humain 👤)
+- [ ] `elf.webp` (Elfe 🧝)
+- [ ] `demon.webp` (Démon 😈)
+- [ ] `robot.webp` (Robot 🤖)
+- [ ] `mutant.webp` (Mutant ☣️)
+- [ ] `golem.webp` (Golem 🗿)
+- [ ] `vampire.webp` (Vampire 🧛)
+- [ ] `alien.webp` (Alien 👽)
+
+### Pouvoirs / VFX Élémentaires (8 fichiers dans `public/images/characters/elements/`)
+- [ ] `feu.webp` (Feu 🔥)
+- [ ] `poison.webp` (Poison 🧪)
+- [ ] `glace.webp` (Glace ❄️)
+- [ ] `foudre.webp` (Foudre ⚡)
+- [ ] `regeneration.webp` (Régénération 💖)
+- [ ] `gravite.webp` (Gravité 🌌)
+- [ ] `teleportation.webp` (Téléportation 🌀)
+- [ ] `invisibilite.webp` (Invisibilité 👁️‍🗨️)
+
+### Fonds de Rareté (6 fichiers dans `public/images/characters/backgrounds/`)
+- [ ] `common.webp` (Commun)
+- [ ] `uncommon.webp` (Peu Commun)
+- [ ] `rare.webp` (Rare)
+- [ ] `epic.webp` (Épique)
+- [ ] `legendary.webp` (Légendaire)
+- [ ] `mythic.webp` (Mythique)

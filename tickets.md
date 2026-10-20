@@ -20,7 +20,7 @@
 
 | Épic / Jalon | Priorité | Responsable Principal | Tickets | Statut |
 | :--- | :---: | :---: | :---: | :---: |
-| **Épic 0 : Fondations & Roue de Tirage** | 🔴 P0 | 👥 Binôme | 4 | ✅ Terminé (100%) |
+| **Épic 0 : Fondations, Roue & Équilibrage** | 🔴 P0 | 👥 Binôme | 5 | ⏳ En cours (4/5) |
 | **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
@@ -50,6 +50,16 @@
   - *Responsable :* 👥 Binôme
   - *Fichiers :* `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`
   - *Détails :* Animation de spin, modale de révélation avec boutons Garder/Recycler, outils Admin de test.
+- [ ] **T0.5 [Équilibrage & Game Design] Élimination du Paradoxe "Commun > Légendaire" & Scaling Réel de la Rareté**
+  - *Priorité :* 🟡 P1 (Cohérence Gameplay & Rétention)
+  - *Responsable :* 👥 Binôme
+  - *Fichiers :* `docs/COMPENDIUM_GAME_DESIGN_ARMES_ET_SYNERGIES.md`, `app/Services/CharacterGeneratorService.php`, `app/Data/GameConfig.php`, `tests/Feature/CharacterGenerationTest.php`
+  - *Problématique constatée :* Les statistiques brutes sont actuellement tirées avant la rareté. Un tirage chanceux sur un héros Commun peut ainsi générer un Power Score supérieur à une carte Légendaire (1% de drop ou Super Spin 10/10), créant une incompréhension et une déception chez le joueur.
+  - *Critères d'acceptation :*
+    - [ ] Déplacement de la décision de rareté en amont ou application d'un coefficient multiplicateur martial de stats par rareté (ex: Commun ×1.0, Rare ×1.10, Épique ×1.22, Légendaire ×1.35).
+    - [ ] Définition de planchers minimaux garantis (Stat Floors) selon la rareté (ex: carte Légendaire = toutes stats $\ge 65$ et au moins une stat $\ge 85$).
+    - [ ] Garantie mathématique qu'une carte Légendaire dépasse systématiquement la moyenne d'une carte Commune.
+    - [ ] Mise à jour du calcul du Power Score et des tests automatisés pour valider les fourchettes cibles.
 
 ---
 
@@ -347,9 +357,9 @@
   - [x] **Respect Strict du Ratio & Élimination des Distorsions :** Gabarit carré 1:1 (`max-w-[270px] aspect-square w-full`) interdisant tout écrasement ou étirement d'image.
   - [x] **Détourage & Transparence :** Suppression des encadrements debug et badges temporaires pour une intégration directe sur le fond néon de la carte.
   - [x] Intégration sur la face recto des cartes de la Collection et dans la modale de révélation de la Roue.
-  - [x] Boutons de test direct dans la barre Admin pour forcer un tirage Humain + Épée ou Humain + Bâton en 1 clic.
+  - [x] Boutons de test direct dans la barre Admin pour forcer un tirage avec n'importe quelle arme disponible (Épée, Bâton, Arc, Dague, Marteau).
   - [x] Calque 1 : Silhouette / Corps selon la Race (intégré pour `human.webp`).
-  - [x] Calque 3 : Arme tenue selon le gabarit d'alignement (intégré pour `epee.webp` et `baton.webp`).
+  - [x] Calque 3 : Arme tenue selon le gabarit d'alignement (actifs : `epee.webp`, `baton.webp`, `arc.webp`, `dague.webp`).
   - [ ] Calque 0 : Fond d'aura / Décor de rareté (`backgrounds/` - futur).
   - [ ] Calque 2 : Effet élémentaire / VFX semi-transparent (`elements/` - futur).
   - [x] Châssis de carte responsive (bordure, liserés, halo glow de rareté en pur CSS Tailwind) s'adaptant à n'importe quelle taille de carte sans distorsion.
