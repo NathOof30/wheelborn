@@ -364,10 +364,6 @@
                                     {{ $character->race_data['name'] ?? ucfirst($character->race_id) }} • {{ $character->weapon_data['name'] ?? ucfirst($character->weapon_id) }}
                                     <span class="text-indigo-400 font-semibold">({{ $character->power_data['name'] ?? ucfirst($character->power_id) }})</span>
                                 </p>
-                                <span class="text-[10px] text-slate-500 font-mono mt-1 flex items-center justify-center gap-1">
-                                    <span>🔄</span>
-                                    <span>Cliquer pour les stats</span>
-                                </span>
                             </div>
                         </div>
 

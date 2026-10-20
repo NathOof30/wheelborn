@@ -151,20 +151,41 @@ class ArenaService
     public function describeFighter(Character|array $source): array
     {
         $data = $this->attributes($source);
+        $synergies = SynergyData::detect($data['race_id'], $data['weapon_id'], $data['power_id']);
+
+        $rarityVal = $data['rarity'] ?? 'common';
+        if ($rarityVal instanceof \App\Enums\Rarity) {
+            $rarityKey = $rarityVal->value;
+            $rarityLabel = $rarityVal->label();
+        } else {
+            $rarityKey = (string) $rarityVal;
+            $rarityLabel = match($rarityKey) {
+                'legendary' => 'Légendaire',
+                'epic'      => 'Épique',
+                'rare'      => 'Rare',
+                default     => 'Commune',
+            };
+        }
 
         return [
-            'character'   => $source,
-            'name'        => $data['name'],
-            'elo'         => $data['elo'] ?? null,
-            'race'        => RaceData::find($data['race_id']),
-            'weapon'      => WeaponData::find($data['weapon_id']),
-            'power'       => PowerData::find($data['power_id']),
-            'hp'          => (int) ($data['max_hp'] ?? $data['hp']),
-            'strength'    => (int) $data['strength'],
-            'speed'       => (int) $data['speed'],
-            'defense'     => (int) $data['defense'],
-            'power_score' => (int) $data['power_score'],
-            'synergies'   => array_column(SynergyData::detect($data['race_id'], $data['weapon_id'], $data['power_id']), 'name'),
+            'character'      => $source,
+            'name'           => $data['name'],
+            'elo'            => $data['elo'] ?? null,
+            'race'           => RaceData::find($data['race_id']),
+            'weapon'         => WeaponData::find($data['weapon_id']),
+            'power'          => PowerData::find($data['power_id']),
+            'hp'             => (int) ($data['max_hp'] ?? $data['hp']),
+            'strength'       => (int) $data['strength'],
+            'speed'          => (int) $data['speed'],
+            'defense'        => (int) $data['defense'],
+            'power_score'    => (int) $data['power_score'],
+            'rarity_key'     => $rarityKey,
+            'rarity_label'   => $rarityLabel,
+            'synergies'      => array_column($synergies, 'name'),
+            'synergies_data' => $synergies,
+            'wins'           => $data['wins'] ?? 0,
+            'losses'         => $data['losses'] ?? 0,
+            'is_locked'      => (bool) ($data['is_locked'] ?? false),
         ];
     }
 
