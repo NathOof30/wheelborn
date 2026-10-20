@@ -27,6 +27,7 @@ export default () => ({
     step: 0,
     done: false,
     timer: null,
+    pendingStats: null, // Élo / pièces après le combat, retenus jusqu'à la fin de l'animation
 
     init() {
         this.$watch('step', () => this.$nextTick(() => {
@@ -40,9 +41,10 @@ export default () => ({
         clearInterval(this.timer);
     },
 
-    play({ log }) {
+    play({ log, stats }) {
         this.reset();
         this.log = log;
+        this.pendingStats = stats;
         this.timer = setInterval(() => (this.step < this.log.length ? this.step++ : this.finish()), STEP_DELAY_MS);
     },
 
@@ -50,13 +52,23 @@ export default () => ({
         clearInterval(this.timer);
         this.step = this.log.length;
         this.done = true;
+        this.revealStats();
     },
 
     reset() {
         clearInterval(this.timer);
+        this.revealStats(); // Sécurité : si l'animation est interrompue, le HUD est quand même mis à jour
         this.log = [];
         this.step = 0;
         this.done = false;
+    },
+
+    // Met à jour le HUD (Élo, pièces) une seule fois, quand le résultat est dévoilé
+    revealStats() {
+        if (this.pendingStats) {
+            this.$dispatch('stats-updated', this.pendingStats);
+            this.pendingStats = null;
+        }
     },
 
     get entries() {

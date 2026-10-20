@@ -82,6 +82,8 @@ class GameConfig
             'loss_coins_base'       => 20,
             'win_xp'                => 60,
             'loss_xp'               => 20,
+            'draw_coins'            => 20, // Match nul (double K.O.) : lot de consolation
+            'draw_xp'               => 20,
             'generate_xp'           => 10,
             'lucky_spin_xp'         => 100,
             'synergy_discover_xp'   => 80,

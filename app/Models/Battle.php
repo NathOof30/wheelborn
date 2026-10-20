@@ -23,11 +23,13 @@ class Battle extends Model
         'elo_delta',
         'coins_awarded',
         'xp_awarded',
-        'combat_log',
+        'turns_log',
+        'fighters_snapshot',
     ];
 
     protected $casts = [
-        'combat_log'     => 'array',
+        'turns_log'         => 'array',
+        'fighters_snapshot' => 'array',
         'seed'           => 'integer',
         'turns_count'    => 'integer',
         'player_old_elo' => 'integer',
@@ -56,5 +58,11 @@ class Battle extends Model
     public function isPlayerVictory(): bool
     {
         return $this->winner_id === $this->challenger_id;
+    }
+
+    /** Match nul (double K.O.) : aucun vainqueur. */
+    public function isDraw(): bool
+    {
+        return $this->winner_id === null;
     }
 }

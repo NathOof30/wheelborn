@@ -563,11 +563,18 @@ Pour conserver la propreté du code, la logique ne résidera pas dans les contr�
    - Détection de la condition `isLuckySpin` ($10^{\text{ème}}$ tirage ou flag).
    - Application des passifs d'atelier (`rare_magnet`, `hero_forge`).
    - Calcul de la valeur de recyclage (`calculateRecycleValue`).
-2. `App\Services\BattleEngineService` :
-   - `simulate(Character $c1, Character $c2, ?int $seed = null): BattleResult`
-   - Formule officielle FIDE : `calculateEloDelta(int $pElo, int $oElo, bool $isWin): int`.
-   - Application de la prime d'arène sur les gains en pièces.
-3. `App\Services\EnergyManagerService` :
+2. `App\Services\BattleEngineService` (moteur de combat pur, aucun accès BDD) :
+   - `simulate(Character|array $challenger, Character|array $opponent, ?int $seed = null): array`
+   - Résout le duel tour par tour (initiative, dégâts, critiques, esquives, effets, synergies, double K.O. = match nul) et renvoie le vainqueur, la seed et le journal complet.
+   - Déterministe : mêmes combattants + même seed = combat strictement identique.
+3. `App\Services\ArenaService` (arène contre les bots) :
+   - `availableFighters(User $user)` : combattants du joueur pouvant combattre.
+   - `generateBotOpponent(User $user)` : bot adverse dont la difficulté et l'Élo suivent ceux du joueur.
+   - `fightBot(User $user, Character $fighter, array $bot)` : lance le duel via `BattleEngineService`, puis enregistre le combat (`seed`, `turns_log`, `fighters_snapshot`) et met à jour l'Élo, les pièces, l'XP et le palmarès.
+   - Formule officielle FIDE : `eloDelta(int $playerElo, int $opponentElo, bool $won): int`.
+   - Anti-triche : `replay(Battle $battle)` recalcule un combat enregistré, `isAuthentic(Battle $battle)` vérifie qu'il n'a pas été modifié.
+   - `describeFighter(...)` : données d'affichage d'un combattant (fiche du face-à-face).
+4. `App\Services\EnergyManagerService` :
    - `checkAndRegenSpins(User $user): void` (3 max, 1 / 4 min).
    - `checkAndRegenTickets(User $user): void` (5 max, 1 / 5 min).
 

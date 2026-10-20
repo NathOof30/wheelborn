@@ -2,24 +2,23 @@
 
 namespace App\Services;
 
-use App\Data\GameConfig;
 use App\Data\PowerData;
-use App\Data\RaceData;
 use App\Data\SynergyData;
 use App\Data\WeaponData;
-use App\Models\Battle;
 use App\Models\Character;
-use App\Models\User;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use Random\Engine\Mt19937;
 use Random\Randomizer;
 
 /**
  * Moteur de combat tour par tour entre deux combattants, en PHP pur.
+ * Déterministe : deux combattants + une même seed produisent toujours exactement le même combat.
  */
 class BattleEngineService
 {
     public const MAX_TURNS = 25;
+
+    // Résultat d'un double K.O. : les deux combattants tombent au même moment
+    public const DRAW = 'draw';
 
     private const MIN_DAMAGE = 5;
     private const BASE_CRIT_MULTIPLIER = 1.5;
@@ -38,130 +37,27 @@ class BattleEngineService
     private const CHAOS_SHIFT_MIN = -10;
     private const CHAOS_SHIFT_MAX = 20;
 
-    // Arène contre les bots
-    private const ELO_K_FACTOR = 32;
-    private const BOT_ELO_SPREAD = 100;
-    private const BOT_ELO_PER_STAT_POINT = 40;
-    private const BOT_STAT_BONUS_MIN = -10;
-    private const BOT_STAT_BONUS_MAX = 15;
-
     private Randomizer $rng;
     private array $fighters = [];
     private array $log = [];
     private int $turn = 0;
-
-    public function __construct(private CharacterGeneratorService $generator = new CharacterGeneratorService())
-    {
-    }
-
-    // ─── Arène : combats contre les bots ─────────────────────────────────
-
-    /** Combattants du joueur pouvant entrer dans l'arène. */
-    public function availableFighters(User $user): Collection
-    {
-        return Character::where('user_id', $user->id)
-            ->where('pending_reveal', false)
-            ->whereNull('recycled_at')
-            ->orderByDesc('is_active_fighter')
-            ->orderByDesc('power_score')
-            ->get();
-    }
-
-    /** Génère un bot dont la difficulté et l'Élo sont indexés sur ceux du joueur. */
-    public function generateBotOpponent(User $user): array
-    {
-        $statBonus = $this->clamp(intdiv($user->elo - 1000, self::BOT_ELO_PER_STAT_POINT), self::BOT_STAT_BONUS_MIN, self::BOT_STAT_BONUS_MAX);
-
-        return $this->generator->generateBot($statBonus)
-            + ['elo' => max(0, $user->elo + random_int(-self::BOT_ELO_SPREAD, self::BOT_ELO_SPREAD))];
-    }
-
-    /** Lance un duel contre un bot, puis enregistre le combat et la progression (Élo, pièces, XP, palmarès). */
-    public function fightBot(User $user, Character $fighter, array $bot): array
-    {
-        $outcome = $this->simulate($fighter, $bot);
-        $won = $outcome['winner'] === 'challenger';
-
-        $oldElo = $user->elo;
-        $newElo = max(0, $oldElo + $this->eloDelta($oldElo, $bot['elo'], $won));
-
-        $rewards = GameConfig::rewards();
-        $coins = $rewards[$won ? 'win_coins_base' : 'loss_coins_base'];
-        $xp = $rewards[$won ? 'win_xp' : 'loss_xp'];
-
-        DB::transaction(function () use ($user, $fighter, $bot, $outcome, $won, $oldElo, $newElo, $coins, $xp) {
-            Battle::create([
-                'player_id'      => $user->id,
-                'challenger_id'  => $fighter->id,
-                'opponent_name'  => $bot['name'],
-                'opponent_elo'   => $bot['elo'],
-                'winner_id'      => $outcome['winner_id'],
-                'seed'           => 0, // Colonne obligatoire, gérée par le ticket T2.2
-                'turns_count'    => $outcome['turns'],
-                'player_old_elo' => $oldElo,
-                'player_new_elo' => $newElo,
-                'elo_delta'      => $newElo - $oldElo,
-                'coins_awarded'  => $coins,
-                'xp_awarded'     => $xp,
-            ]);
-
-            $fighter->increment('battles_count');
-            $fighter->increment($won ? 'wins' : 'losses');
-
-            $user->update(['elo' => $newElo, 'coins' => $user->coins + $coins, 'xp' => $user->xp + $xp]);
-        });
-
-        return [
-            'won'       => $won,
-            'turns'     => $outcome['turns'],
-            'reason'    => $outcome['reason'],
-            'elo_delta' => $newElo - $oldElo,
-            'coins'     => $coins,
-            'xp'        => $xp,
-            'max_hp'    => ['challenger' => $fighter->max_hp, 'opponent' => $bot['max_hp']],
-            'log'       => $outcome['log'],
-        ];
-    }
-
-    /** Élo FIDE : K × (S − E). */
-    public function eloDelta(int $playerElo, int $opponentElo, bool $won): int
-    {
-        $expected = 1 / (1 + 10 ** (($opponentElo - $playerElo) / 400));
-
-        return (int) round(self::ELO_K_FACTOR * ((int) $won - $expected));
-    }
-
-    /** Fiche d'affichage d'un combattant (personnage du joueur ou bot). */
-    public function describeFighter(Character|array $source): array
-    {
-        $data = $this->attributes($source);
-
-        return [
-            'character'   => $source,
-            'name'        => $data['name'],
-            'elo'         => $data['elo'] ?? null,
-            'race'        => RaceData::find($data['race_id']),
-            'weapon'      => WeaponData::find($data['weapon_id']),
-            'power'       => PowerData::find($data['power_id']),
-            'hp'          => (int) ($data['max_hp'] ?? $data['hp']),
-            'strength'    => (int) $data['strength'],
-            'speed'       => (int) $data['speed'],
-            'defense'     => (int) $data['defense'],
-            'power_score' => (int) $data['power_score'],
-            'synergies'   => array_column(SynergyData::detect($data['race_id'], $data['weapon_id'], $data['power_id']), 'name'),
-        ];
-    }
 
     // ─── Simulation ──────────────────────────────────────────────────────
 
     /**
      * Simule un duel complet.
      *
-     * @return array{winner:string, winner_id:mixed, turns:int, reason:string, fighters:array, log:array}
+     * Sans seed, une seed est tirée puis renvoyée pour pouvoir rejouer le combat.
+     *
+     * winner vaut 'challenger', 'opponent' ou self::DRAW (double K.O., winner_id null).
+     *
+     * @return array{seed:int, winner:string, winner_id:mixed, turns:int, reason:string, fighters:array, log:array}
      */
-    public function simulate(Character|array $challenger, Character|array $opponent): array
+    public function simulate(Character|array $challenger, Character|array $opponent, ?int $seed = null): array
     {
-        $this->rng = new Randomizer();
+        $seed ??= random_int(0, 2_147_483_647);
+        // Mersenne Twister seedé (même algorithme que mt_srand), mais local : n'altère pas mt_rand() ailleurs
+        $this->rng = new Randomizer(new Mt19937($seed));
         $this->log = [];
         $this->turn = 0;
         $this->fighters = [
@@ -181,19 +77,21 @@ class BattleEngineService
             $winner = $this->playTurn();
         }
 
+        $reason = match ($winner) {
+            self::DRAW => 'double_ko',
+            null       => 'turn_limit',
+            default    => 'ko',
+        };
+
         // Sécurité anti-boucle infinie : décision aux PV restants
-        $reason = $winner ? 'ko' : 'turn_limit';
         $winner ??= $this->decideOnPoints();
 
-        $winnerName = $this->fighters[$winner]['name'];
-        $loser = $this->other($winner);
-        $this->log('end', $winner, $loser, null, $reason === 'ko'
-            ? "{$this->fighters[$loser]['name']} est vaincu ! {$winnerName} remporte le duel."
-            : 'Limite de ' . self::MAX_TURNS . " tours atteinte : {$winnerName} l'emporte aux points.");
+        $this->logEnd($winner, $reason);
 
         return [
+            'seed'      => $seed,
             'winner'    => $winner,
-            'winner_id' => $this->fighters[$winner]['id'],
+            'winner_id' => $winner === self::DRAW ? null : $this->fighters[$winner]['id'],
             'turns'     => $this->turn,
             'reason'    => $reason,
             'fighters'  => array_map(fn (array $f) => array_intersect_key($f, array_flip(['id', 'name', 'hp', 'max_hp', 'luck'])), $this->fighters),
@@ -608,12 +506,29 @@ class BattleEngineService
         $challengerDown = $this->fighters['challenger']['hp'] <= 0;
         $opponentDown = $this->fighters['opponent']['hp'] <= 0;
 
+        // Double K.O. (ex : poisons mutuels en début de tour) : match nul
         return match (true) {
-            $challengerDown && $opponentDown => $this->coinFlip(),
+            $challengerDown && $opponentDown => self::DRAW,
             $challengerDown                  => 'opponent',
             $opponentDown                    => 'challenger',
             default                          => null,
         };
+    }
+
+    /** Dernière ligne du journal : annonce du vainqueur ou du match nul. */
+    private function logEnd(string $winner, string $reason): void
+    {
+        if ($winner === self::DRAW) {
+            $this->log('end', null, null, null, 'Égalité sanglante ! Les deux combattants s\'effondrent en même temps.');
+            return;
+        }
+
+        $winnerName = $this->fighters[$winner]['name'];
+        $loser = $this->other($winner);
+
+        $this->log('end', $winner, $loser, null, $reason === 'ko'
+            ? "{$this->fighters[$loser]['name']} est vaincu ! {$winnerName} remporte le duel."
+            : 'Limite de ' . self::MAX_TURNS . " tours atteinte : {$winnerName} l'emporte aux points.");
     }
 
     private function decideOnPoints(): string
@@ -628,7 +543,7 @@ class BattleEngineService
         };
     }
 
-    /** Tirage aléatoire : vrai avec la probabilité donnée. */
+    /** Tirage seedé : vrai avec la probabilité donnée. */
     private function chance(float $probability): bool
     {
         return $probability > 0 && $this->rng->getFloat(0, 1) < $probability;

@@ -2,8 +2,11 @@
 
 namespace App\Livewire;
 
+use App\Data\GameConfig;
 use App\Models\Character;
-use App\Services\BattleEngineService;
+use App\Services\ArenaService;
+use App\Services\EnergyManagerService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -19,8 +22,16 @@ class BattleArena extends Component
     #[Locked]
     public ?array $result = null;
 
+    // Tickets d'arène (affichage uniquement, la vérification se fait côté serveur au lancement du duel)
+    public int $arenaTickets = 0;
+    public int $maxTickets = 0;
+    public int $nextTicketSeconds = 0;
+    public bool $isAdmin = false;
+    public ?string $error = null;
+
     public function mount(): void
     {
+        $this->refreshTickets();
         $this->fighterId = $this->fighters->first()?->id;
 
         if ($this->fighterId) {
@@ -31,7 +42,7 @@ class BattleArena extends Component
     #[Computed]
     public function fighters()
     {
-        return app(BattleEngineService::class)->availableFighters(auth()->user());
+        return app(ArenaService::class)->availableFighters(auth()->user());
     }
 
     #[Computed]
@@ -43,12 +54,33 @@ class BattleArena extends Component
     #[Computed]
     public function cards(): array
     {
-        $engine = app(BattleEngineService::class);
+        $arena = app(ArenaService::class);
 
         return array_filter([
-            'challenger' => $this->fighter ? ['label' => 'Ton combattant'] + $engine->describeFighter($this->fighter) : null,
-            'opponent'   => $this->bot ? ['label' => '🤖 Bot d\'arène'] + $engine->describeFighter($this->bot) : null,
+            'challenger' => $this->fighter ? ['label' => 'Ton combattant'] + $arena->describeFighter($this->fighter) : null,
+            'opponent'   => $this->bot ? ['label' => '🤖 Bot d\'arène'] + $arena->describeFighter($this->bot) : null,
         ]);
+    }
+
+    /** Temps avant le prochain ticket, au format "mm:ss". */
+    #[Computed]
+    public function nextTicketIn(): string
+    {
+        return gmdate('i:s', $this->nextTicketSeconds);
+    }
+
+    /** Recharge les tickets (rattrapage hors-ligne compris) et met à jour le compteur affiché. */
+    public function refreshTickets(): void
+    {
+        $user = auth()->user();
+        $energy = app(EnergyManagerService::class);
+
+        $energy->regenArenaTickets($user);
+
+        $this->isAdmin = $user->isAdmin();
+        $this->arenaTickets = $user->arena_tickets;
+        $this->maxTickets = GameConfig::arenaEnergy()['max'];
+        $this->nextTicketSeconds = $energy->getNextArenaRegenSeconds($user);
     }
 
     public function selectFighter(string $characterId): void
@@ -63,7 +95,7 @@ class BattleArena extends Component
 
     public function newOpponent(): void
     {
-        $this->bot = app(BattleEngineService::class)->generateBotOpponent(auth()->user());
+        $this->bot = app(ArenaService::class)->generateBotOpponent(auth()->user());
         $this->resetBattle();
     }
 
@@ -74,19 +106,36 @@ class BattleArena extends Component
         }
 
         $user = auth()->user();
-        $outcome = app(BattleEngineService::class)->fightBot($user, $this->fighter, $this->bot);
+
+        // Ticket et combat dans la même transaction : si le combat échoue, le ticket est rendu
+        $outcome = DB::transaction(fn () => app(EnergyManagerService::class)->consumeArenaTicket($user)
+            ? app(ArenaService::class)->fightBot($user, $this->fighter, $this->bot)
+            : null);
+
+        $this->refreshTickets();
+
+        if ($outcome === null) {
+            $this->error = "Plus de ticket d'arène ! Un nouveau ticket arrive dans {$this->nextTicketIn}.";
+            return;
+        }
 
         // Le journal part directement à l'animation Alpine, inutile de le garder dans l'état du composant
         $this->result = collect($outcome)->except('log')->all();
         unset($this->fighters);
 
-        $this->dispatch('battle-started', log: $outcome['log'], maxHp: $outcome['max_hp']);
-        $this->dispatch('stats-updated', coins: $user->coins, spinCharges: $user->spin_charges, elo: $user->elo);
+        // Les nouvelles stats (Élo, pièces) partent avec l'animation : elle ne les affichera dans le HUD
+        // qu'à la fin du combat, pour ne pas dévoiler le résultat avant
+        $this->dispatch('battle-started',
+            log: $outcome['log'],
+            maxHp: $outcome['max_hp'],
+            stats: ['coins' => $user->coins, 'spinCharges' => $user->spin_charges, 'elo' => $user->elo],
+        );
     }
 
     private function resetBattle(): void
     {
         $this->result = null;
+        $this->error = null;
         $this->dispatch('battle-reset');
     }
 

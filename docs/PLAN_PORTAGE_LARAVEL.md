@@ -83,7 +83,8 @@ app/
 │   └── WorkshopUpgrade.php
 ├── Services/                  # Logique métier pure (AUCUNE dépendance UI)
 │   ├── CharacterGeneratorService.php
-│   ├── BattleEngineService.php
+│   ├── BattleEngineService.php    # Moteur de combat pur (simulation déterministe)
+│   ├── ArenaService.php           # Arène : bots, enregistrement des duels, Élo, récompenses, anti-triche
 │   ├── EnergyManagerService.php
 │   ├── EloService.php
 │   ├── RecycleService.php
