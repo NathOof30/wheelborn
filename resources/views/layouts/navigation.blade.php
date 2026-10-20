@@ -21,6 +21,9 @@
                     <a href="{{ route('collection') }}" class="inline-flex items-center px-1 pt-1 border-b-2 font-medium text-sm leading-5 transition duration-150 {{ request()->routeIs('collection') ? 'border-indigo-400 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600' }}">
                         🛡️ Mes Héros
                     </a>
+                    <a href="{{ route('arena') }}" class="inline-flex items-center px-1 pt-1 border-b-2 font-medium text-sm leading-5 transition duration-150 {{ request()->routeIs('arena') ? 'border-rose-400 text-rose-400' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600' }}">
+                        ⚔️ Arène
+                    </a>
                 </div>
             </div>
 
@@ -84,6 +87,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('collection')" :active="request()->routeIs('collection')" class="text-slate-200">
                 🛡️ Mes Héros
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('arena')" :active="request()->routeIs('arena')" class="text-slate-200">
+                ⚔️ Arène
             </x-responsive-nav-link>
         </div>
 
