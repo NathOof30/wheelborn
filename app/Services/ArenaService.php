@@ -7,6 +7,7 @@ use App\Data\PowerData;
 use App\Data\RaceData;
 use App\Data\SynergyData;
 use App\Data\WeaponData;
+use App\Enums\League;
 use App\Models\Battle;
 use App\Models\Character;
 use App\Models\User;
@@ -66,6 +67,15 @@ class ArenaService
         $oldElo = $user->elo;
         $newElo = $draw ? $oldElo : $this->elo->newRating($oldElo, $bot['elo'], $won);
 
+        // Changement de ligue : promotion si on monte, relégation si on descend
+        $oldLeague = League::fromElo($oldElo);
+        $newLeague = League::fromElo($newElo);
+        $leagueChange = match (true) {
+            $newLeague->isHigherThan($oldLeague) => 'promotion',
+            $oldLeague->isHigherThan($newLeague) => 'relegation',
+            default                              => null,
+        };
+
         // Match nul : petit lot de consolation
         $rewards = GameConfig::rewards();
         [$coins, $xp] = match (true) {
@@ -110,6 +120,9 @@ class ArenaService
             'turns'     => $outcome['turns'],
             'reason'    => $outcome['reason'],
             'elo_delta' => $newElo - $oldElo,
+            'league_change' => $leagueChange
+                ? ['type' => $leagueChange, 'label' => $newLeague->label(), 'icon' => $newLeague->icon(), 'color' => $newLeague->color()]
+                : null,
             'coins'     => $coins,
             'xp'        => $xp,
             'max_hp'    => ['challenger' => $fighter->max_hp, 'opponent' => $bot['max_hp']],

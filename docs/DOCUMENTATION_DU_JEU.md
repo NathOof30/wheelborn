@@ -274,10 +274,10 @@ Tous les joueurs et bots d'arène sont répartis dans **5 Ligues officielles** :
 | Ligue | Badge | Tranche ÉLO | Rôle & Prestige |
 | :--- | :---: | :---: | :--- |
 | **Bronze** | 🥉 | 0 – 999 | Débutants et nouveaux guerriers |
-| **Argent** | 🥈 | 1 000 – 1 199 | Rang de départ officiel (1 000 Élo) |
-| **Or** | 🥇 | 1 200 – 1 399 | Combattants aguerris aux synergies rodées |
-| **Platine** | 💎 | 1 400 – 1 599 | Élite de l'Arène |
-| **Maître** | 👑 | 1 600+ | Légendes incontestées de Wheelborn |
+| **Argent** | 🥈 | 1 000 – 1 399 | Rang de départ officiel (1 000 Élo) |
+| **Or** | 🥇 | 1 400 – 1 799 | Combattants aguerris aux synergies rodées |
+| **Platine** | 💎 | 1 800 – 2 199 | Élite de l'Arène |
+| **Maître** | 👑 | 2 200+ | Légendes incontestées de Wheelborn |
 
 #### Récompenses de Duel :
 - **Victoire :** $+75$ Pièces de base (amplifié par l'Atelier) + bonus contre adversaire à Élo supérieur + $50$ XP.

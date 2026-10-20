@@ -153,6 +153,31 @@
                         <span class="px-3 py-1 rounded-full bg-slate-800 text-amber-400">+{{ $result['coins'] }} 🪙</span>
                         <span class="px-3 py-1 rounded-full bg-slate-800 text-sky-400">+{{ $result['xp'] }} XP</span>
                     </div>
+
+                    {{-- Changement de ligue --}}
+                    @if ($result['league_change'])
+                        @if ($result['league_change']['type'] === 'promotion')
+                            <div
+                                class="mx-auto max-w-sm rounded-2xl border-2 bg-slate-950/80 px-5 py-4 shadow-2xl animate-bounce"
+                                style="border-color: {{ $result['league_change']['color'] }}; box-shadow: 0 0 30px {{ $result['league_change']['color'] }}55"
+                            >
+                                <div class="text-4xl">🎉 {{ $result['league_change']['icon'] }} 🎉</div>
+                                <div class="text-lg font-black uppercase tracking-wider" style="color: {{ $result['league_change']['color'] }}">Promotion !</div>
+                                <div class="text-sm text-slate-300">
+                                    Tu entres en ligue <strong style="color: {{ $result['league_change']['color'] }}">{{ $result['league_change']['label'] }}</strong>
+                                </div>
+                            </div>
+                        @else
+                            <div class="mx-auto max-w-sm rounded-2xl border-2 border-rose-700/60 bg-rose-950/40 px-5 py-4">
+                                <div class="text-4xl">📉 {{ $result['league_change']['icon'] }}</div>
+                                <div class="text-lg font-black uppercase tracking-wider text-rose-400">Relégation</div>
+                                <div class="text-sm text-slate-300">
+                                    Tu redescends en ligue <strong style="color: {{ $result['league_change']['color'] }}">{{ $result['league_change']['label'] }}</strong>. Quelques victoires et tu remontes !
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
                     <button wire:click="newOpponent" class="px-8 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-xl transition hover:scale-105 active:scale-95">
                         ⚔️ Nouveau duel
                     </button>
