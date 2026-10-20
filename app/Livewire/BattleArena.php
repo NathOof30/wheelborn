@@ -2,8 +2,11 @@
 
 namespace App\Livewire;
 
+use App\Data\GameConfig;
 use App\Models\Character;
 use App\Services\BattleEngineService;
+use App\Services\EnergyManagerService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -19,8 +22,16 @@ class BattleArena extends Component
     #[Locked]
     public ?array $result = null;
 
+    // Tickets d'arène (affichage uniquement, la vérification se fait côté serveur au lancement du duel)
+    public int $arenaTickets = 0;
+    public int $maxTickets = 0;
+    public int $nextTicketSeconds = 0;
+    public bool $isAdmin = false;
+    public ?string $error = null;
+
     public function mount(): void
     {
+        $this->refreshTickets();
         $this->fighterId = $this->fighters->first()?->id;
 
         if ($this->fighterId) {
@@ -51,6 +62,27 @@ class BattleArena extends Component
         ]);
     }
 
+    /** Temps avant le prochain ticket, au format "mm:ss". */
+    #[Computed]
+    public function nextTicketIn(): string
+    {
+        return gmdate('i:s', $this->nextTicketSeconds);
+    }
+
+    /** Recharge les tickets (rattrapage hors-ligne compris) et met à jour le compteur affiché. */
+    public function refreshTickets(): void
+    {
+        $user = auth()->user();
+        $energy = app(EnergyManagerService::class);
+
+        $energy->regenArenaTickets($user);
+
+        $this->isAdmin = $user->isAdmin();
+        $this->arenaTickets = $user->arena_tickets;
+        $this->maxTickets = GameConfig::arenaEnergy()['max'];
+        $this->nextTicketSeconds = $energy->getNextArenaRegenSeconds($user);
+    }
+
     public function selectFighter(string $characterId): void
     {
         if (!$this->fighters->contains('id', $characterId)) {
@@ -74,7 +106,18 @@ class BattleArena extends Component
         }
 
         $user = auth()->user();
-        $outcome = app(BattleEngineService::class)->fightBot($user, $this->fighter, $this->bot);
+
+        // Ticket et combat dans la même transaction : si le combat échoue, le ticket est rendu
+        $outcome = DB::transaction(fn () => app(EnergyManagerService::class)->consumeArenaTicket($user)
+            ? app(BattleEngineService::class)->fightBot($user, $this->fighter, $this->bot)
+            : null);
+
+        $this->refreshTickets();
+
+        if ($outcome === null) {
+            $this->error = "Plus de ticket d'arène ! Un nouveau ticket arrive dans {$this->nextTicketIn}.";
+            return;
+        }
 
         // Le journal part directement à l'animation Alpine, inutile de le garder dans l'état du composant
         $this->result = collect($outcome)->except('log')->all();
@@ -87,6 +130,7 @@ class BattleArena extends Component
     private function resetBattle(): void
     {
         $this->result = null;
+        $this->error = null;
         $this->dispatch('battle-reset');
     }
 

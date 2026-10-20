@@ -88,13 +88,36 @@
 
         {{-- Actions --}}
         @if (!$result)
-            <div class="flex flex-wrap justify-center gap-3">
-                <button wire:click="newOpponent" wire:loading.attr="disabled" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 transition">
-                    🔄 Autre adversaire
-                </button>
-                <button wire:click="fight" wire:loading.attr="disabled" class="px-8 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-xl shadow-lg shadow-rose-900/40 transition hover:scale-105 active:scale-95">
-                    ⚔️ Combattre !
-                </button>
+            <div
+                class="space-y-3"
+                @if (!$isAdmin && $arenaTickets < $maxTickets) wire:poll.10s="refreshTickets" @endif
+            >
+                {{-- Tickets d'arène --}}
+                <div class="flex justify-center items-center gap-2 text-sm">
+                    @if ($isAdmin)
+                        <span class="px-3 py-1 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold">🎟️ Tickets illimités</span>
+                    @else
+                        <span class="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 font-bold {{ $arenaTickets > 0 ? 'text-amber-300' : 'text-rose-400' }}">
+                            🎟️ {{ $arenaTickets }} / {{ $maxTickets }} tickets
+                        </span>
+                        @if ($arenaTickets < $maxTickets)
+                            <span class="text-xs text-slate-500">+1 dans {{ $this->nextTicketIn }}</span>
+                        @endif
+                    @endif
+                </div>
+
+                @if ($error)
+                    <p class="text-center text-sm font-semibold text-rose-300 bg-rose-950/60 border border-rose-700/50 rounded-xl px-4 py-2">{{ $error }}</p>
+                @endif
+
+                <div class="flex flex-wrap justify-center gap-3">
+                    <button wire:click="newOpponent" wire:loading.attr="disabled" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 transition">
+                        🔄 Autre adversaire
+                    </button>
+                    <button wire:click="fight" wire:loading.attr="disabled" class="px-8 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-xl shadow-lg shadow-rose-900/40 transition hover:scale-105 active:scale-95 {{ !$isAdmin && $arenaTickets === 0 ? 'opacity-50' : '' }}">
+                        ⚔️ Combattre ! <span class="text-xs font-bold opacity-80">(-1 🎟️)</span>
+                    </button>
+                </div>
             </div>
         @else
             {{-- Animation du combat --}}
