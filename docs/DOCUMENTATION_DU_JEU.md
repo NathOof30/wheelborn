@@ -571,10 +571,14 @@ Pour conserver la propreté du code, la logique ne résidera pas dans les contr�
    - `availableFighters(User $user)` : combattants du joueur pouvant combattre.
    - `generateBotOpponent(User $user)` : bot adverse dont la difficulté et l'Élo suivent ceux du joueur.
    - `fightBot(User $user, Character $fighter, array $bot)` : lance le duel via `BattleEngineService`, puis enregistre le combat (`seed`, `turns_log`, `fighters_snapshot`) et met à jour l'Élo, les pièces, l'XP et le palmarès.
-   - Formule officielle FIDE : `eloDelta(int $playerElo, int $opponentElo, bool $won): int`.
+   - Calcul de l'Élo délégué à `EloService`.
    - Anti-triche : `replay(Battle $battle)` recalcule un combat enregistré, `isAuthentic(Battle $battle)` vérifie qu'il n'a pas été modifié.
    - `describeFighter(...)` : données d'affichage d'un combattant (fiche du face-à-face).
-4. `App\Services\EnergyManagerService` :
+4. `App\Services\EloService` (formule officielle FIDE, K = 32) :
+   - `expectedScore(int $playerElo, int $opponentElo): float` : probabilité de victoire attendue.
+   - `calculateDelta(int $playerElo, int $opponentElo, bool $isWin): int` : variation d'Élo du duel.
+   - `newRating(int $playerElo, int $opponentElo, bool $isWin): int` : nouvel Élo, avec plancher à 0.
+5. `App\Services\EnergyManagerService` :
    - `checkAndRegenSpins(User $user): void` (3 max, 1 / 4 min).
    - `checkAndRegenTickets(User $user): void` (5 max, 1 / 5 min).
 

@@ -20,7 +20,6 @@ use Illuminate\Support\Facades\DB;
  */
 class ArenaService
 {
-    private const ELO_K_FACTOR = 32;
     private const BOT_ELO_SPREAD = 100;
     private const BOT_ELO_PER_STAT_POINT = 40;
     private const BOT_STAT_BONUS_MIN = -10;
@@ -32,6 +31,7 @@ class ArenaService
     public function __construct(
         private BattleEngineService $engine,
         private CharacterGeneratorService $generator,
+        private EloService $elo,
     ) {
     }
 
@@ -64,7 +64,7 @@ class ArenaService
 
         // Match nul : l'Élo ne bouge pas
         $oldElo = $user->elo;
-        $newElo = $draw ? $oldElo : max(0, $oldElo + $this->eloDelta($oldElo, $bot['elo'], $won));
+        $newElo = $draw ? $oldElo : $this->elo->newRating($oldElo, $bot['elo'], $won);
 
         // Match nul : petit lot de consolation
         $rewards = GameConfig::rewards();
@@ -137,14 +137,6 @@ class ArenaService
         $replay = $this->replay($battle);
 
         return $replay['winner_id'] === $battle->winner_id && $replay['log'] === $battle->turns_log;
-    }
-
-    /** Élo FIDE : K × (S − E). */
-    public function eloDelta(int $playerElo, int $opponentElo, bool $won): int
-    {
-        $expected = 1 / (1 + 10 ** (($opponentElo - $playerElo) / 400));
-
-        return (int) round(self::ELO_K_FACTOR * ((int) $won - $expected));
     }
 
     /** Fiche d'affichage d'un combattant (personnage du joueur ou bot). */
