@@ -135,9 +135,14 @@
 
                 {{-- Bilan --}}
                 <div x-show="done" x-cloak x-transition class="text-center space-y-3">
-                    <div class="text-3xl font-black {{ $result['won'] ? 'text-emerald-400' : 'text-rose-400' }}">
-                        {{ $result['won'] ? '🏆 VICTOIRE' : '💀 DÉFAITE' }}
-                    </div>
+                    @if ($result['draw'])
+                        <div class="text-3xl font-black text-amber-400">🩸 ÉGALITÉ SANGLANTE !</div>
+                        <div class="text-sm text-slate-400">Les deux combattants sont tombés en même temps. Match nul.</div>
+                    @elseif ($result['won'])
+                        <div class="text-3xl font-black text-emerald-400">🏆 VICTOIRE</div>
+                    @else
+                        <div class="text-3xl font-black text-rose-400">💀 DÉFAITE</div>
+                    @endif
                     <div class="text-xs text-slate-500">
                         {{ $result['turns'] }} tour(s){{ $result['reason'] === 'turn_limit' ? ' · décision aux points' : '' }}
                     </div>

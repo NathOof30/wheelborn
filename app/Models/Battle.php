@@ -59,4 +59,10 @@ class Battle extends Model
     {
         return $this->winner_id === $this->challenger_id;
     }
+
+    /** Match nul (double K.O.) : aucun vainqueur. */
+    public function isDraw(): bool
+    {
+        return $this->winner_id === null;
+    }
 }
