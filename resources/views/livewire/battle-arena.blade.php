@@ -192,24 +192,14 @@
                                         style="width: 270px; height: 465px; min-height: 465px;"
                                     >
                                         <div>
-                                            {{-- En-tête Verso : Nom, Rareté, Bouton Retourner --}}
-                                            <div class="flex items-center justify-between gap-1.5 mb-2 pb-1.5 border-b border-slate-800">
-                                                <div class="flex items-center gap-1 min-w-0">
-                                                    <span class="px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider {{ $badgeStyle }} shrink-0">
-                                                        {{ $card['rarity_label'] }}
-                                                    </span>
-                                                    <h4 class="text-xs font-black text-white truncate" title="{{ $card['name'] }}">
-                                                        {{ $card['name'] }}
-                                                    </h4>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    @click.stop="flipped = false"
-                                                    class="p-1 rounded-lg text-xs bg-slate-900 text-slate-400 hover:text-white border border-slate-800 transition shrink-0"
-                                                    title="Retourner la carte (voir le recto)"
-                                                >
-                                                    🔄
-                                                </button>
+                                            {{-- En-tête Verso : Nom & Rareté --}}
+                                            <div class="flex items-center gap-1.5 mb-2 pb-1.5 border-b border-slate-800">
+                                                <span class="px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider {{ $badgeStyle }} shrink-0">
+                                                    {{ $card['rarity_label'] }}
+                                                </span>
+                                                <h4 class="text-xs font-black text-white truncate" title="{{ $card['name'] }}">
+                                                    {{ $card['name'] }}
+                                                </h4>
                                             </div>
 
                                             {{-- Tri-Slot Compact --}}

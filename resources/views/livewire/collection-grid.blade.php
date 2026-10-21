@@ -388,15 +388,6 @@
                                         </h4>
                                     </div>
                                     <div class="flex items-center gap-1 shrink-0">
-                                        {{-- Bouton Retourner au recto --}}
-                                        <button
-                                            type="button"
-                                            @click.stop="flipped = false"
-                                            class="p-1 rounded-lg text-xs bg-slate-900 text-slate-400 hover:text-white border border-slate-800 transition"
-                                            title="Retourner la carte (voir le recto)"
-                                        >
-                                            🔄
-                                        </button>
                                         {{-- Bouton Cadenas (T1.3 / T6.2) --}}
                                         <button
                                             type="button"
@@ -585,10 +576,6 @@
                     </div>
 
                     <div class="flex items-center gap-2 shrink-0">
-                        <div class="flex items-center gap-1 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-xs">
-                            <span class="text-amber-400">⚡</span>
-                            <span class="font-black text-white font-mono">{{ $inspectedCharacter->power_score }}</span>
-                        </div>
                         <button
                             type="button"
                             wire:click="closeInspector"
@@ -804,150 +791,100 @@
                         </div>
                     </div>
 
-                        {{-- Hint interactif sous la carte --}}
-                        <span class="text-[11px] text-slate-500 font-mono mt-2 flex items-center gap-1.5">
-                            <span>🔄</span>
-                            <span>Survolez la carte pour voir son verso</span>
-                        </span>
                     </div>
 
                     {{-- ========================================================================= --}}
                     {{-- COLONNE DROITE : FICHE TECHNIQUE COMPLÈTE & PASSIFS COMPACTS              --}}
                     {{-- ========================================================================= --}}
-                    <div class="lg:col-span-7 flex flex-col justify-between space-y-3">
-                        {{-- 1. Statistiques Détaillées avec barres pleines compactes --}}
-                        <div class="bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
-                            <span class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider block mb-2">
-                                ⚔️ Statistiques de Combat
-                            </span>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                                <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800/60">
-                                    <div class="flex justify-between items-center mb-1 text-[11px]">
-                                        <span class="text-rose-400 font-bold">❤️ PV</span>
-                                        <span class="font-mono text-white font-extrabold">{{ $inspectedCharacter->hp }}</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-rose-500 h-full rounded-full" style="width: {{ min(100, ($inspectedCharacter->hp / 140) * 100) }}%"></div>
-                                    </div>
-                                </div>
-                                <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800/60">
-                                    <div class="flex justify-between items-center mb-1 text-[11px]">
-                                        <span class="text-amber-400 font-bold">⚔️ Force</span>
-                                        <span class="font-mono text-white font-extrabold">{{ $inspectedCharacter->strength }}</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-amber-500 h-full rounded-full" style="width: {{ min(100, ($inspectedCharacter->strength / 100) * 100) }}%"></div>
-                                    </div>
-                                </div>
-                                <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800/60">
-                                    <div class="flex justify-between items-center mb-1 text-[11px]">
-                                        <span class="text-cyan-400 font-bold">⚡ Vitesse</span>
-                                        <span class="font-mono text-white font-extrabold">{{ $inspectedCharacter->speed }}</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-cyan-500 h-full rounded-full" style="width: {{ min(100, ($inspectedCharacter->speed / 100) * 100) }}%"></div>
-                                    </div>
-                                </div>
-                                <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800/60">
-                                    <div class="flex justify-between items-center mb-1 text-[11px]">
-                                        <span class="text-emerald-400 font-bold">🛡️ Défense</span>
-                                        <span class="font-mono text-white font-extrabold">{{ $inspectedCharacter->defense }}</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-emerald-500 h-full rounded-full" style="width: {{ min(100, ($inspectedCharacter->defense / 100) * 100) }}%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- 2. Détail des 3 Composants (Race, Arme, Pouvoir) & Leurs Passifs en Grille 3 Colonnes --}}
-                        <div class="bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
-                            <span class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider block mb-2">
+                    <div class="lg:col-span-7 flex flex-col justify-between space-y-3.5">
+                        {{-- 1. Détail des 3 Composants (Race, Arme, Pouvoir) & Leurs Passifs en Grille 3 Colonnes --}}
+                        <div class="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800">
+                            <span class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider block mb-2.5">
                                 📜 Composants & Passifs Innés
                             </span>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
                                 {{-- Passif de Race --}}
-                                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between">
+                                <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-2">
                                     <div>
-                                        <div class="flex items-center gap-1.5 mb-1">
+                                        <div class="flex items-center gap-1.5 mb-1.5">
                                             <span class="text-base">{{ $inspectedCharacter->race_data['icon'] ?? '👤' }}</span>
                                             <span class="font-black text-white text-xs truncate">{{ $inspectedCharacter->race_data['name'] ?? ucfirst($inspectedCharacter->race_id) }}</span>
                                         </div>
-                                        <span class="text-[10px] text-amber-400 bg-amber-950/40 px-1.5 py-0.5 rounded font-mono border border-amber-600/30 inline-block mb-1.5">
+                                        <span class="text-[10px] text-amber-400 bg-amber-950/40 px-1.5 py-0.5 rounded font-mono border border-amber-600/30 inline-block mb-1">
                                             Passif : {{ $inspectedCharacter->race_data['passive'] ?? 'Adaptabilité' }}
                                         </span>
                                     </div>
-                                    <p class="text-[10.5px] text-slate-400 leading-snug">
+                                    <p class="text-[11px] text-slate-400 leading-snug">
                                         {{ $inspectedCharacter->race_data['passive_desc'] ?? 'Bonus universel équilibré sur toutes les statistiques.' }}
                                     </p>
                                 </div>
 
                                 {{-- Passif d'Arme --}}
-                                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between">
+                                <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-2">
                                     <div>
-                                        <div class="flex items-center gap-1.5 mb-1">
+                                        <div class="flex items-center gap-1.5 mb-1.5">
                                             <span class="text-base">{{ $inspectedCharacter->weapon_data['icon'] ?? '⚔️' }}</span>
                                             <span class="font-black text-white text-xs truncate">{{ $inspectedCharacter->weapon_data['name'] ?? ucfirst($inspectedCharacter->weapon_id) }}</span>
                                         </div>
-                                        <span class="text-[10px] text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded font-mono border border-cyan-600/30 inline-block mb-1.5">
+                                        <span class="text-[10px] text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded font-mono border border-cyan-600/30 inline-block mb-1">
                                             {{ $inspectedCharacter->weapon_data['passive'] ?? 'Tranchant' }}
                                         </span>
                                     </div>
-                                    <p class="text-[10.5px] text-slate-400 leading-snug">
+                                    <p class="text-[11px] text-slate-400 leading-snug">
                                         {{ $inspectedCharacter->weapon_data['passive_desc'] ?? $inspectedCharacter->weapon_data['description'] ?? 'Modifie la cadence et la force des attaques.' }}
                                     </p>
                                 </div>
 
                                 {{-- Pouvoir Élémentaire --}}
-                                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between">
+                                <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-2">
                                     <div>
-                                        <div class="flex items-center gap-1.5 mb-1">
+                                        <div class="flex items-center gap-1.5 mb-1.5">
                                             <span class="text-base">{{ $inspectedCharacter->power_data['icon'] ?? '🔮' }}</span>
                                             <span class="font-black text-white text-xs truncate">{{ $inspectedCharacter->power_data['name'] ?? ucfirst($inspectedCharacter->power_id) }}</span>
                                         </div>
-                                        <span class="text-[10px] text-indigo-400 bg-indigo-950/40 px-1.5 py-0.5 rounded font-mono border border-indigo-600/30 inline-block mb-1.5">
+                                        <span class="text-[10px] text-indigo-400 bg-indigo-950/40 px-1.5 py-0.5 rounded font-mono border border-indigo-600/30 inline-block mb-1">
                                             Tier {{ ucfirst($inspectedCharacter->power_data['tier'] ?? 'Commun') }}
                                         </span>
                                     </div>
-                                    <p class="text-[10.5px] text-slate-400 leading-snug">
+                                    <p class="text-[11px] text-slate-400 leading-snug">
                                         {{ $inspectedCharacter->power_data['description'] ?? 'Inflige des altérations d\'état élémentaires en combat.' }}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- 3. Synergies Actives en Détail Compact --}}
-                        <div class="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-xs">
-                            <div class="flex items-center justify-between mb-1.5">
+                        {{-- 2. Synergies Actives en Détail & Description Complète --}}
+                        <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 text-xs">
+                            <div class="flex items-center justify-between mb-2">
                                 <span class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">✨ Synergies Actives</span>
                                 <span class="text-[10px] font-mono text-amber-400">{{ !empty($inspectedCharacter->synergies_data) ? count($inspectedCharacter->synergies_data) : 0 }} active(s)</span>
                             </div>
 
                             @if (!empty($inspectedCharacter->synergies_data))
-                                <div class="space-y-1.5">
+                                <div class="space-y-2">
                                     @foreach ($inspectedCharacter->synergies_data as $syn)
-                                        <div class="p-2 rounded-xl border flex items-center justify-between gap-2 {{ !empty($syn['is_unstable']) ? 'bg-amber-950/40 border-amber-500/50 text-amber-200' : 'bg-indigo-950/40 border-indigo-500/40 text-indigo-200' }}">
-                                            <div class="flex items-center gap-2 min-w-0">
-                                                <span class="text-sm shrink-0">{{ $syn['icon'] ?? '✨' }}</span>
-                                                <div class="min-w-0">
+                                        <div class="p-2.5 rounded-xl border flex items-start justify-between gap-2.5 {{ !empty($syn['is_unstable']) ? 'bg-amber-950/40 border-amber-500/50 text-amber-200' : 'bg-indigo-950/40 border-indigo-500/40 text-indigo-200' }}">
+                                            <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                                                <span class="text-base shrink-0 mt-0.5">{{ $syn['icon'] ?? '✨' }}</span>
+                                                <div class="min-w-0 flex-1">
                                                     <span class="font-bold text-xs block leading-tight">{{ $syn['name'] }}</span>
-                                                    <span class="text-[11px] text-slate-300 block truncate leading-tight">{{ $syn['description'] ?? 'Confère des bonus majeurs de combat.' }}</span>
+                                                    <p class="text-[11px] text-slate-300 leading-relaxed mt-0.5 whitespace-normal break-words">{{ $syn['description'] ?? 'Confère des bonus majeurs de combat.' }}</p>
                                                 </div>
                                             </div>
                                             @if (!empty($syn['is_unstable']))
-                                                <span class="text-[9px] text-amber-400 font-mono bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-600/50 shrink-0">Instable</span>
+                                                <span class="text-[9px] text-amber-400 font-mono bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-600/50 shrink-0 mt-0.5">Instable</span>
                                             @endif
                                         </div>
                                     @endforeach
                                 </div>
                             @else
-                                <div class="py-1.5 px-2.5 rounded-xl bg-slate-900/40 border border-slate-800/40 text-[11px] text-slate-500 italic">
+                                <div class="py-2 px-3 rounded-xl bg-slate-900/40 border border-slate-800/40 text-[11px] text-slate-500 italic">
                                     Aucune synergie active sur cette combinaison d'éléments.
                                 </div>
                             @endif
                         </div>
 
-                        {{-- 4. Barre Inférieure Intégrée : Historique d'Arène & Actions Rapides --}}
+                        {{-- 3. Barre Inférieure Intégrée : Historique d'Arène & Actions Rapides --}}
                         <div class="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-wrap items-center justify-between gap-2.5 text-xs">
                             {{-- Palmarès de Combat --}}
                             <div class="flex items-center gap-2">
@@ -958,7 +895,7 @@
                                 </span>
                             </div>
 
-                            {{-- Actions de Gestion & Fermer --}}
+                            {{-- Actions de Gestion --}}
                             <div class="flex items-center gap-2 ml-auto">
                                 <button
                                     type="button"
@@ -984,14 +921,6 @@
                                         <span>Recycler (+{{ $inspectedCharacter->recycle_value }})</span>
                                     </button>
                                 @endif
-
-                                <button
-                                    type="button"
-                                    wire:click="closeInspector"
-                                    class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-[11px] transition cursor-pointer"
-                                >
-                                    Fermer la fiche
-                                </button>
                             </div>
                         </div>
                     </div>

@@ -130,19 +130,18 @@
     - Rotation fluide sur l'axe Y (`transform: rotateY(180deg);`) avec courbe d'accélération naturelle `cubic-bezier(0.23, 1, 0.32, 1)` pour un rendu physique et tactile.
     - Occultation naturelle des faces opposées (`backface-visibility: hidden;` `.backface-hidden`).
     - **Ergonomie Grille vs Modale :**
-      - Sur la **grille de collection**, le flip se déclenche **au clic sur la carte** (mention "🔄 Cliquer pour les stats"), avec retour au recto par clic sur le fond du verso ou bouton `🔄`.
-      - Sur la **modale d'inspection**, le flip reste fluide **au survol (hover)**.
+      - Sur la **grille de collection**, le flip se déclenche **au clic sur la carte** (retour au recto par simple clic sur le verso, bouton/émoji flip superflu supprimé pour alléger l'en-tête).
+      - Sur la **modale d'inspection**, le flip reste fluide **au survol (hover)** sans texte indicatif redondant.
     - Isolation stricte des événements pointeur (`pointer-events-none` sur la face cachée, `pointer-events-auto` sur la face active) pour garantir l'interactivité 100% fiable des boutons du verso (cadenas, recyclage, inspection) sans fausse sélection.
   - [x] **Parité Dimensionnelle Recto/Verso :** Hauteur et largeur strictement identiques (`height: 490px; min-height: 490px; w-full`) éliminant tout décalage vertical ou écrasement.
   - [x] **Face Recto (Par défaut) :** Carte collector graphique avec portrait Paper Doll composite dynamique `<x-character-avatar>`, étoiles de rareté, score de puissance, rareté et titre.
-  - [x] **Face Verso (Révélée au Flip) :** Tri-slot des composants avec icônes, 4 barres de stats colorées, badges de synergies actives (ou mention d'absence), palmarès d'arène et boutons d'action rapide.
-  - [x] **Modale d'Inspection Grand Format Épurée & Compacte :**
-    - [x] Résolution de l'asymétrie de hauteur : recalibrage de la colonne technique (~450px) pour correspondre parfaitement à la carte de gauche, supprimant le grand vide noir et les débordements d'écran.
-    - [x] En-tête dédié intégrant le titre du héros, son badge de rareté, son archétype, son Power Score et un bouton de fermeture `✕` sans collision graphique avec les titres de section.
-    - [x] Barre de statistiques de combat compacte en 4 colonnes (`sm:grid-cols-4` : PV, Force, Vitesse, Défense) avec micro-jauges.
+  - [x] **Face Verso (Révélée au Flip) :** Tri-slot des composants avec icônes, 4 barres de stats colorées, badges de synergies actives (ou mention d'absence), palmarès d'arène et bouton cadenas.
+  - [x] **Modale d'Inspection Grand Format Épurée & Compacte (Refonte UX & Graphique) :**
+    - [x] En-tête épuré intégrant le titre du héros, son badge de rareté, son archétype et la croix de fermeture `✕` (suppression du doublon du score et du bouton inférieur "Fermer la fiche").
     - [x] Grille 3 colonnes responsive (`sm:grid-cols-3`) pour les 3 composants (Race, Arme, Pouvoir) affichant leurs passifs innés et effets élémentaires de façon équilibrée et lisible.
-    - [x] Bandeau de synergies actives compact avec alerte visuelle pour les synergies instables.
-    - [x] Barre inférieure unifiée regroupant l'historique d'arène (V/D, winrate) et les boutons d'actions (Verrouiller, Recycler, Fermer la fiche).
+    - [x] Suppression de la section redondante des statistiques de combat brutes dans la colonne droite (déjà présentes sur le verso de la carte) pour éliminer tout scroll vertical.
+    - [x] Section Synergies actives avec descriptions complètes sans troncature (`break-words`, `whitespace-normal`), affichage lisible et badge "Instable" le cas échéant.
+    - [x] Barre inférieure unifiée regroupant l'historique d'arène (V/D, winrate) et les actions de gestion (Verrouiller, Recycler).
   - [x] Suite de tests automatisés validant l'ouverture/fermeture de l'inspecteur, le recyclage et les actions associées.
 
 
