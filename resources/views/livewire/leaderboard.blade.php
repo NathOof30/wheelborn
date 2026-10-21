@@ -1,7 +1,7 @@
 <div class="space-y-6 pb-24">
     {{-- Onglets de ligue --}}
     <div class="flex flex-wrap justify-center gap-2">
-        @foreach ($this->tabs as $tab)
+        @foreach ($this->leagueTabs as $tab)
             <button
                 wire:key="tab-{{ $tab['value'] }}"
                 wire:click="setLeague('{{ $tab['value'] }}')"
@@ -42,9 +42,9 @@
         </div>
 
         {{-- Suite du classement --}}
-        @if (!empty($this->others))
+        @if (!empty($this->playersAfterPodium))
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden">
-                @foreach ($this->others as $player)
+                @foreach ($this->playersAfterPodium as $player)
                     <div
                         wire:key="row-{{ $player['id'] }}"
                         class="flex items-center gap-4 px-5 py-3 border-b border-slate-800/70 last:border-0 {{ $player['id'] === auth()->id() ? 'bg-indigo-500/10' : '' }}"
@@ -65,19 +65,19 @@
     <p class="text-center text-[11px] text-slate-600">Classement mis à jour toutes les minutes.</p>
 
     {{-- Ligne épinglée du joueur connecté --}}
-    @if ($this->me)
+    @if ($this->currentPlayer)
         <div class="fixed bottom-4 inset-x-0 px-4 z-40">
             <div
                 class="max-w-3xl mx-auto flex items-center gap-4 px-5 py-3 rounded-2xl border-2 bg-slate-950/95 backdrop-blur-md shadow-2xl"
-                style="border-color: {{ $this->me['league']['color'] }}"
+                style="border-color: {{ $this->currentPlayer['league']['color'] }}"
             >
                 <span class="text-xs uppercase tracking-widest text-slate-500">Toi</span>
-                <span class="font-mono font-black text-white">#{{ $this->me['rank'] }}</span>
-                <span class="flex-1 font-bold text-white truncate">{{ $this->me['name'] }}</span>
-                <span class="text-xs font-bold" style="color: {{ $this->me['league']['color'] }}">
-                    {{ $this->me['league']['icon'] }} {{ $this->me['league']['label'] }}
+                <span class="font-mono font-black text-white">#{{ $this->currentPlayer['rank'] }}</span>
+                <span class="flex-1 font-bold text-white truncate">{{ $this->currentPlayer['name'] }}</span>
+                <span class="text-xs font-bold" style="color: {{ $this->currentPlayer['league']['color'] }}">
+                    {{ $this->currentPlayer['league']['icon'] }} {{ $this->currentPlayer['league']['label'] }}
                 </span>
-                <span class="font-mono font-bold text-amber-300">{{ $this->me['elo'] }} Élo</span>
+                <span class="font-mono font-bold text-amber-300">{{ $this->currentPlayer['elo'] }} Élo</span>
             </div>
         </div>
     @endif

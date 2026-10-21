@@ -24,7 +24,11 @@ class BattleHistoryService
      */
     public function recent(User $user): array
     {
+        // On ne charge que les colonnes affichées : le journal complet (turns_log) est lourd et inutile ici,
+        // c'est la base qui indique s'il existe (et donc si le combat peut être revu).
         return Battle::where('player_id', $user->id)
+            ->select(['id', 'challenger_id', 'winner_id', 'opponent_id', 'opponent_name', 'elo_delta', 'created_at'])
+            ->selectRaw('(turns_log IS NOT NULL AND fighters_snapshot IS NOT NULL) AS has_replay')
             ->latest('id')
             ->limit(self::LIMIT)
             ->get()
@@ -35,7 +39,7 @@ class BattleHistoryService
                 'opponent_kind' => $battle->opponent_id ? 'player' : 'ghost',
                 'elo_delta'     => $battle->elo_delta,
                 'ago'           => $battle->created_at->locale('fr')->shortRelativeDiffForHumans(), // "il y a 5 min"
-                'can_replay'    => $this->canReplay($battle),
+                'can_replay'    => (bool) $battle->has_replay,
             ])
             ->all();
     }
@@ -46,15 +50,14 @@ class BattleHistoryService
      */
     public function replayData(User $user, int $battleId): ?array
     {
-        $battle = Battle::where('player_id', $user->id)->find($battleId);
+        // Les cartes et le propriétaire adverse sont chargés d'avance avec le combat
+        $battle = Battle::with(['challenger', 'opponent.user'])->where('player_id', $user->id)->find($battleId);
 
         if (!$battle || !$this->canReplay($battle)) {
             return null;
         }
 
         $snapshot = $battle->fighters_snapshot;
-        $won = $battle->isPlayerVictory();
-        $draw = $battle->isDraw();
 
         return [
             'log'    => $battle->turns_log,
@@ -63,9 +66,9 @@ class BattleHistoryService
                 'opponent'   => $snapshot['opponent']['max_hp'] ?? $snapshot['opponent']['hp'],
             ],
             // Si la carte existe encore en base, on l'utilise pour l'affichage, sinon les stats figées du duel
-            'challenger' => $this->display($battle->challenger) ?? $snapshot['challenger'],
+            'challenger' => $this->cardForDisplay($battle->challenger) ?? $snapshot['challenger'],
             'opponent'   => [
-                ...($this->display($battle->opponent) ?? $snapshot['opponent']),
+                ...($this->cardForDisplay($battle->opponent) ?? $snapshot['opponent']),
                 'name'  => $battle->opponent_name,
                 'elo'   => $battle->opponent_elo,
                 'kind'  => $battle->opponent_id ? 'player' : 'ghost',
@@ -73,8 +76,8 @@ class BattleHistoryService
             ],
             // Même format que le résultat d'un combat, pour réutiliser le bilan de l'arène
             'result' => [
-                'won'           => $won,
-                'draw'          => $draw,
+                'won'           => $battle->isPlayerVictory(),
+                'draw'          => $battle->isDraw(),
                 'turns'         => $battle->turns_count,
                 'reason'        => null,
                 'elo_delta'     => $battle->elo_delta,
@@ -87,7 +90,7 @@ class BattleHistoryService
     }
 
     /** Carte en base convertie en tableau simple (la rareté en texte), ou null si elle n'existe plus. */
-    private function display(?Character $card): ?array
+    private function cardForDisplay(?Character $card): ?array
     {
         return $card ? ['rarity' => $card->rarity->value] + $card->only(self::DISPLAY_FIELDS) : null;
     }

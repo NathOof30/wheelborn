@@ -28,7 +28,7 @@ class BotGeneratorService
     private const TITLES = ['Gladiateur', 'Garde', 'Spectre', 'Sentinelle', 'Champion', 'Chevalier', 'Rôdeur', 'Colosse'];
     private const EPITHETS = ["de l'Ombre", 'de Fer', 'des Cendres', 'du Néant', 'des Abysses', 'de Givre', 'sans Visage', 'du Crépuscule'];
 
-    public function __construct(private CharacterGeneratorService $generator)
+    public function __construct(private CharacterGeneratorService $characterGenerator)
     {
     }
 
@@ -38,13 +38,13 @@ class BotGeneratorService
      */
     public function generateGhost(User $user): array
     {
-        $league = $user->getLeague();
+        $playerLeague = $user->getLeague();
 
-        $ghost = $this->generator->generateBot(self::STAT_BONUS_BY_LEAGUE[$league->value]);
+        $ghostStats = $this->characterGenerator->generateBot(self::STAT_BONUS_BY_LEAGUE[$playerLeague->value]);
 
-        return array_merge($ghost, [
+        return array_merge($ghostStats, [
             'name' => $this->ghostName(),
-            'elo'  => $this->ghostElo($user->elo, $league),
+            'elo'  => $this->ghostElo($user->elo, $playerLeague),
             'kind' => 'ghost',
         ]);
     }
@@ -55,11 +55,11 @@ class BotGeneratorService
     }
 
     /** Élo tiré à ±100 autour du joueur, mais borné à sa ligue. */
-    private function ghostElo(int $playerElo, League $league): int
+    private function ghostElo(int $playerElo, League $playerLeague): int
     {
-        $min = max($league->minElo(), $playerElo - self::ELO_SPREAD);
-        $max = min($league->maxElo() ?? PHP_INT_MAX, $playerElo + self::ELO_SPREAD);
+        $lowestElo = max($playerLeague->minElo(), $playerElo - self::ELO_SPREAD);
+        $highestElo = min($playerLeague->maxElo() ?? PHP_INT_MAX, $playerElo + self::ELO_SPREAD);
 
-        return random_int($min, max($min, $max));
+        return random_int($lowestElo, max($lowestElo, $highestElo));
     }
 }

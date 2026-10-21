@@ -28,14 +28,15 @@ class Leaderboard extends Component
 
     /** Onglets : "Tous" puis les ligues de la plus haute à la plus basse. */
     #[Computed]
-    public function tabs(): array
+    public function leagueTabs(): array
     {
-        $service = app(LeaderboardService::class);
-        $leagues = array_map(fn (League $league) => $service->leagueData($league), array_reverse(League::cases()));
+        $leaderboard = app(LeaderboardService::class);
+        $leagueTabs = array_map(fn (League $league) => $leaderboard->leagueData($league), array_reverse(League::cases()));
 
-        return [['value' => 'all', 'label' => 'Tous', 'icon' => '🏆', 'color' => '#e2e8f0'], ...$leagues];
+        return [['value' => 'all', 'label' => 'Tous', 'icon' => '🏆', 'color' => '#e2e8f0'], ...$leagueTabs];
     }
 
+    /** Joueurs classés de l'onglet actif (servis par le cache de 60 secondes). */
     #[Computed]
     public function players(): array
     {
@@ -57,16 +58,16 @@ class Leaderboard extends Component
         return $podium;
     }
 
-    /** Joueurs suivants (à partir du 4e). */
+    /** Joueurs affichés sous le podium (à partir du 4e). */
     #[Computed]
-    public function others(): array
+    public function playersAfterPodium(): array
     {
         return array_slice($this->players, 3);
     }
 
     /** Ligne épinglée du joueur connecté (null pour un admin, non classé). */
     #[Computed]
-    public function me(): ?array
+    public function currentPlayer(): ?array
     {
         return app(LeaderboardService::class)->playerStanding(auth()->user());
     }

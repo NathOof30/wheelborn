@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\League;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -29,7 +30,7 @@ class LeaderboardService
         return Cache::remember(
             'leaderboard:' . ($league?->value ?? 'all'),
             self::CACHE_SECONDS,
-            fn () => $this->ranked($league),
+            fn () => $this->buildRanking($league),
         );
     }
 
@@ -43,7 +44,7 @@ class LeaderboardService
         return [
             'name'   => $user->name,
             'elo'    => $user->elo,
-            'rank'   => $this->rankOf($user->elo),
+            'rank'   => $this->globalRankForElo($user->elo),
             'league' => $this->leagueData($user->getLeague()),
         ];
     }
@@ -54,59 +55,60 @@ class LeaderboardService
         return ['value' => $league->value, 'label' => $league->label(), 'icon' => $league->icon(), 'color' => $league->color()];
     }
 
-    private function ranked(?League $league): array
+    /** Liste classée (2 requêtes au total : la liste, puis le rang du premier joueur). */
+    private function buildRanking(?League $league): array
     {
-        $query = $this->rankedPlayers()
+        $playersQuery = $this->rankablePlayers()
             ->withCount('battles')
             ->orderByDesc('elo')
             ->orderBy('id')
             ->limit(self::LIMIT);
 
         if ($league) {
-            $query->where('elo', '>=', $league->minElo());
+            $playersQuery->where('elo', '>=', $league->minElo());
             if ($league->maxElo() !== null) {
-                $query->where('elo', '<=', $league->maxElo());
+                $playersQuery->where('elo', '<=', $league->maxElo());
             }
         }
 
-        $players = $query->get(['id', 'name', 'elo']);
+        $players = $playersQuery->get(['id', 'name', 'elo']);
         if ($players->isEmpty()) {
             return [];
         }
 
-        // Un seul calcul en base pour le premier joueur. La liste étant triée et sans trou,
-        // le rang suivant vaut ce rang + la position, sauf à Élo égal où l'on garde le rang précédent.
-        $firstRank = $this->rankOf($players->first()->elo);
-        $rank = $firstRank;
-        $previousElo = $players->first()->elo;
+        // Un seul calcul de rang en base, pour le premier joueur. La liste étant triée et sans trou,
+        // le rang d'un joueur vaut ce premier rang + sa position, sauf à Élo égal où il garde le rang précédent.
+        $firstRank = $this->globalRankForElo($players->first()->elo);
+        $ranking = [];
 
-        return $players->values()->map(function (User $user, int $index) use ($firstRank, &$rank, &$previousElo) {
-            if ($user->elo !== $previousElo) {
-                $rank = $firstRank + $index;
-            }
-            $previousElo = $user->elo;
+        foreach ($players->values() as $position => $player) {
+            $previousEntry = end($ranking);
+            $sharesPreviousRank = $previousEntry && $previousEntry['elo'] === $player->elo;
 
-            return [
-                'id'      => $user->id,
-                'name'    => $user->name,
-                'elo'     => $user->elo,
-                'rank'    => $rank,
-                'battles' => $user->battles_count,
-                'league'  => $this->leagueData($user->getLeague()),
+            $ranking[] = [
+                'id'      => $player->id,
+                'name'    => $player->name,
+                'elo'     => $player->elo,
+                'rank'    => $sharesPreviousRank ? $previousEntry['rank'] : $firstRank + $position,
+                'battles' => $player->battles_count,
+                'league'  => $this->leagueData($player->getLeague()),
             ];
-        })->all();
+        }
+
+        return $ranking;
     }
 
     /**
      * Rang au classement général : 1 + nombre de joueurs ayant strictement plus d'Élo.
      * Deux joueurs à Élo égal partagent donc le même rang (1, 2, 2, 4…).
      */
-    private function rankOf(int $elo): int
+    private function globalRankForElo(int $elo): int
     {
-        return $this->rankedPlayers()->where('elo', '>', $elo)->count() + 1;
+        return $this->rankablePlayers()->where('elo', '>', $elo)->count() + 1;
     }
 
-    private function rankedPlayers()
+    /** Joueurs pris en compte dans le classement (les admins en sont exclus). */
+    private function rankablePlayers(): Builder
     {
         return User::query()->where('is_admin', false);
     }

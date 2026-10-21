@@ -20,7 +20,7 @@ class BattleHistory extends Component
      * pour ne pas afficher la victoire ou la défaite avant la fin du combat.
      */
     #[On('stats-updated')]
-    public function refresh(): void
+    public function refreshAfterBattle(): void
     {
         unset($this->battles);
     }

@@ -31,22 +31,29 @@ class EloService
      */
     public function findOpponent(User $user, Character $attackerCard): ?Character
     {
-        foreach (self::MATCHMAKING_WINDOWS as $window) {
-            $opponent = Character::query()
-                ->where('user_id', '!=', $user->id) // Jamais ses propres personnages
-                ->whereNull('recycled_at')
-                ->where('pending_reveal', false)
-                ->whereHas('user', fn ($owner) => $owner->whereBetween('elo', [$user->elo - $window, $user->elo + $window]))
-                ->orderByRaw('ABS(power_score - ?)', [$attackerCard->power_score]) // Puissance la plus proche d'abord
-                ->inRandomOrder() // À puissance égale, on varie les adversaires
-                ->first();
+        $widestWindow = max(self::MATCHMAKING_WINDOWS);
 
-            if ($opponent) {
-                return $opponent;
-            }
+        // Numéro de la plus petite fenêtre contenant le propriétaire de la carte : 0 pour ±100, 1 pour ±150…
+        // Trier d'abord sur ce numéro revient à « élargir progressivement », mais en une seule requête.
+        $windowNumberSql = 'CASE';
+        $windowNumberBindings = [];
+        foreach (self::MATCHMAKING_WINDOWS as $windowNumber => $windowSize) {
+            $windowNumberSql .= " WHEN ABS(users.elo - ?) <= {$windowSize} THEN {$windowNumber}";
+            $windowNumberBindings[] = $user->elo;
         }
+        $windowNumberSql .= ' END';
 
-        return null;
+        return Character::query()
+            ->select('characters.*')
+            ->join('users', 'users.id', '=', 'characters.user_id')
+            ->where('characters.user_id', '!=', $user->id) // Jamais ses propres personnages
+            ->whereNull('characters.recycled_at')
+            ->where('characters.pending_reveal', false)
+            ->whereBetween('users.elo', [$user->elo - $widestWindow, $user->elo + $widestWindow])
+            ->orderByRaw($windowNumberSql, $windowNumberBindings)                                  // 1. Élo le plus proche d'abord
+            ->orderByRaw('ABS(characters.power_score - ?)', [$attackerCard->power_score])           // 2. Puissance la plus proche
+            ->inRandomOrder()                                                                      // 3. À égalité, on varie les adversaires
+            ->first();
     }
 
     /**

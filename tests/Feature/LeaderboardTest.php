@@ -82,9 +82,9 @@ class LeaderboardTest extends TestCase
 
         Livewire::actingAs($me)
             ->test(Leaderboard::class)
-            ->assertSet('me.rank', 2)
-            ->assertSet('me.elo', 1450)
-            ->assertSet('me.league.label', 'Or');
+            ->assertSet('currentPlayer.rank', 2)
+            ->assertSet('currentPlayer.elo', 1450)
+            ->assertSet('currentPlayer.league.label', 'Or');
     }
 
     public function test_podium_is_in_visual_order_second_first_third(): void
