@@ -492,10 +492,10 @@ class BattleEngineServiceTest extends TestCase
             'pending_reveal' => false,
         ]);
 
-        $bot = $arena->generateBotOpponent($user);
+        $bot = $arena->findOpponent($user, $fighter);
 
         // Exécute le combat contre le bot
-        $arena->fightBot($user, $fighter, $bot);
+        $arena->fight($user, $fighter, $bot);
 
         $battle = Battle::latest()->first();
         $this->assertNotNull($battle);

@@ -7,8 +7,10 @@ use App\Models\Character;
 use App\Services\ArenaService;
 use App\Services\EnergyManagerService;
 use Illuminate\Support\Facades\DB;
+use App\Services\BattleHistoryService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class BattleArena extends Component
@@ -16,9 +18,13 @@ class BattleArena extends Component
     public ?string $fighterId = null;
     public ?string $error = null;
 
-    // Verrouillés : le client ne doit pas pouvoir affaiblir le bot ou falsifier le résultat
+    // Verrouillés : le client ne doit pas pouvoir affaiblir l'adversaire ou falsifier le résultat
     #[Locked]
-    public ?array $bot = null;
+    public ?array $opponent = null;
+
+    // Combattant du joueur dans le combat revu depuis l'historique (null hors replay)
+    #[Locked]
+    public ?array $replayFighter = null;
 
     #[Locked]
     public ?array $result = null;
@@ -109,9 +115,21 @@ class BattleArena extends Component
         $arena = app(ArenaService::class);
 
         return array_filter([
-            'challenger' => $this->fighter ? ['label' => 'Ton combattant'] + $arena->describeFighter($this->fighter) : null,
-            'opponent'   => $this->bot ? ['label' => '🤖 Bot d\'arène'] + $arena->describeFighter($this->bot) : null,
+            'challenger' => match (true) {
+                $this->replayFighter !== null => ['label' => 'Ton combattant (replay)'] + $arena->describeFighter($this->replayFighter),
+                $this->fighter !== null       => ['label' => 'Ton combattant'] + $arena->describeFighter($this->fighter),
+                default                       => null,
+            },
+            'opponent'   => $this->opponent ? ['label' => $this->opponentLabel()] + $arena->describeFighter($this->opponent) : null,
         ]);
+    }
+
+    /** Étiquette de la carte adverse : vrai joueur ou Fantôme d'Arène. */
+    private function opponentLabel(): string
+    {
+        return $this->opponent['kind'] === 'player'
+            ? "⚔️ Joueur : {$this->opponent['owner']}"
+            : "🤖 Bot d'arène · Fantôme";
     }
 
     #[Computed]
@@ -173,7 +191,7 @@ class BattleArena extends Component
                 'icon'  => '⚡',
             ],
             $speedDiff < 0 => [
-                'label' => 'Bot frappe en 1er',
+                'label' => 'L\'adversaire frappe en 1er',
                 'badge' => 'text-rose-400 bg-rose-950/70 border-rose-800/60',
                 'icon'  => '⚠️',
             ],
@@ -222,18 +240,21 @@ class BattleArena extends Component
 
         $this->fighterId = $characterId;
         $this->showFighterModal = false;
-        $this->resetBattle();
+        unset($this->fighter);
+
+        // L'adversaire dépend de la puissance de la carte choisie : on en cherche un nouveau
+        $this->newOpponent();
     }
 
     public function newOpponent(): void
     {
-        $this->bot = app(ArenaService::class)->generateBotOpponent(auth()->user());
+        $this->opponent = app(ArenaService::class)->findOpponent(auth()->user(), $this->fighter);
         $this->resetBattle();
     }
 
     public function fight(): void
     {
-        if (!$this->fighter || !$this->bot) {
+        if (!$this->fighter || !$this->opponent) {
             return;
         }
 
@@ -241,7 +262,7 @@ class BattleArena extends Component
 
         // Ticket et combat dans la même transaction : si le combat échoue, le ticket est rendu
         $outcome = DB::transaction(fn () => app(EnergyManagerService::class)->consumeArenaTicket($user)
-            ? app(ArenaService::class)->fightBot($user, $this->fighter, $this->bot)
+            ? app(ArenaService::class)->fight($user, $this->fighter, $this->opponent)
             : null);
 
         $this->refreshTickets();
@@ -269,9 +290,30 @@ class BattleArena extends Component
         $this->resetBattle();
     }
 
+    /**
+     * Revoir un combat depuis l'historique : on rejoue son journal enregistré, sans ticket ni recalcul.
+     * L'Élo et les pièces ne bougent pas, le HUD n'est donc pas mis à jour.
+     */
+    #[On('replay-battle')]
+    public function replayBattle(int $battleId): void
+    {
+        $replay = app(BattleHistoryService::class)->replayData(auth()->user(), $battleId);
+        if (!$replay) {
+            return;
+        }
+
+        $this->replayFighter = $replay['challenger'];
+        $this->opponent = $replay['opponent'];
+        $this->result = $replay['result'];
+        $this->error = null;
+
+        $this->dispatch('battle-started', log: $replay['log'], maxHp: $replay['max_hp'], stats: null, replay: true);
+    }
+
     private function resetBattle(): void
     {
         $this->result = null;
+        $this->replayFighter = null;
         $this->error = null;
         $this->dispatch('battle-reset');
     }

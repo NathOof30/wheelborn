@@ -7,6 +7,7 @@ use App\Data\PowerData;
 use App\Data\RaceData;
 use App\Data\SynergyData;
 use App\Data\WeaponData;
+use App\Enums\League;
 use App\Models\Battle;
 use App\Models\Character;
 use App\Models\User;
@@ -14,24 +15,19 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Arène contre les bots : choix des combattants, génération des bots, enregistrement des duels
- * (Élo, récompenses, palmarès) et vérification anti-triche des combats enregistrés.
+ * Arène : choix des combattants, recherche d'un adversaire (vrai joueur ou Fantôme d'Arène),
+ * enregistrement des duels (Élo, récompenses, palmarès) et vérification anti-triche des combats enregistrés.
  * Les règles du combat lui-même sont dans BattleEngineService.
  */
 class ArenaService
 {
-    private const ELO_K_FACTOR = 32;
-    private const BOT_ELO_SPREAD = 100;
-    private const BOT_ELO_PER_STAT_POINT = 40;
-    private const BOT_STAT_BONUS_MIN = -10;
-    private const BOT_STAT_BONUS_MAX = 15;
-
-    // Seules ces données influencent le combat : elles suffisent à le recalculer
-    private const SNAPSHOT_FIELDS = ['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'luck'];
+    // Données qui influencent le combat (elles suffisent à le recalculer), plus power_score pour l'afficher en replay
+    private const SNAPSHOT_FIELDS = ['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'luck', 'power_score'];
 
     public function __construct(
         private BattleEngineService $engine,
-        private CharacterGeneratorService $generator,
+        private BotGeneratorService $bots,
+        private EloService $elo,
     ) {
     }
 
@@ -46,25 +42,36 @@ class ArenaService
             ->get();
     }
 
-    /** Génère un bot dont la difficulté et l'Élo sont indexés sur ceux du joueur. */
-    public function generateBotOpponent(User $user): array
+    /**
+     * Adversaire pour la carte choisie : d'abord un vrai joueur proche en Élo (carte de puissance proche),
+     * sinon un Fantôme d'Arène généré à la volée. Le résultat est toujours un tableau au même format.
+     */
+    public function findOpponent(User $user, Character $fighter): array
     {
-        $statBonus = max(self::BOT_STAT_BONUS_MIN, min(self::BOT_STAT_BONUS_MAX, intdiv($user->elo - 1000, self::BOT_ELO_PER_STAT_POINT)));
+        $card = $this->elo->findOpponent($user, $fighter);
 
-        return $this->generator->generateBot($statBonus)
-            + ['elo' => max(0, $user->elo + random_int(-self::BOT_ELO_SPREAD, self::BOT_ELO_SPREAD))];
+        return $card ? $this->playerOpponent($card) : $this->bots->generateGhost($user);
     }
 
-    /** Lance un duel contre un bot, puis enregistre le combat et la progression (Élo, pièces, XP, palmarès). */
-    public function fightBot(User $user, Character $fighter, array $bot): array
+    /** Lance un duel, puis enregistre le combat et la progression du joueur (Élo, pièces, XP, palmarès). */
+    public function fight(User $user, Character $fighter, array $opponent): array
     {
-        $outcome = $this->engine->simulate($fighter, $bot);
+        $outcome = $this->engine->simulate($fighter, $opponent);
         $won = $outcome['winner'] === 'challenger';
         $draw = $outcome['winner'] === BattleEngineService::DRAW;
 
         // Match nul : l'Élo ne bouge pas
         $oldElo = $user->elo;
-        $newElo = $draw ? $oldElo : max(0, $oldElo + $this->eloDelta($oldElo, $bot['elo'], $won));
+        $newElo = $draw ? $oldElo : $this->elo->newRating($oldElo, $opponent['elo'], $won);
+
+        // Changement de ligue : promotion si on monte, relégation si on descend
+        $oldLeague = League::fromElo($oldElo);
+        $newLeague = League::fromElo($newElo);
+        $leagueChange = match (true) {
+            $newLeague->isHigherThan($oldLeague) => 'promotion',
+            $oldLeague->isHigherThan($newLeague) => 'relegation',
+            default                              => null,
+        };
 
         // Match nul : petit lot de consolation
         $rewards = GameConfig::rewards();
@@ -74,12 +81,13 @@ class ArenaService
             default => [$rewards['loss_coins_base'], $rewards['loss_xp']],
         };
 
-        DB::transaction(function () use ($user, $fighter, $bot, $outcome, $won, $draw, $oldElo, $newElo, $coins, $xp) {
+        DB::transaction(function () use ($user, $fighter, $opponent, $outcome, $won, $draw, $oldElo, $newElo, $coins, $xp) {
             Battle::create([
                 'player_id'      => $user->id,
                 'challenger_id'  => $fighter->id,
-                'opponent_name'  => $bot['name'],
-                'opponent_elo'   => $bot['elo'],
+                'opponent_id'    => $opponent['kind'] === 'player' ? $opponent['id'] : null, // Fantôme : pas de carte en base
+                'opponent_name'  => $opponent['name'],
+                'opponent_elo'   => $opponent['elo'],
                 'winner_id'      => $outcome['winner_id'],
                 'seed'           => $outcome['seed'],
                 'turns_count'    => $outcome['turns'],
@@ -91,7 +99,7 @@ class ArenaService
                 'turns_log'      => $outcome['log'],
                 'fighters_snapshot' => [
                     'challenger' => $this->snapshot($fighter),
-                    'opponent'   => $this->snapshot($bot),
+                    'opponent'   => $this->snapshot($opponent),
                 ],
             ]);
 
@@ -110,9 +118,12 @@ class ArenaService
             'turns'     => $outcome['turns'],
             'reason'    => $outcome['reason'],
             'elo_delta' => $newElo - $oldElo,
+            'league_change' => $leagueChange
+                ? ['type' => $leagueChange, 'label' => $newLeague->label(), 'icon' => $newLeague->icon(), 'color' => $newLeague->color()]
+                : null,
             'coins'     => $coins,
             'xp'        => $xp,
-            'max_hp'    => ['challenger' => $fighter->max_hp, 'opponent' => $bot['max_hp']],
+            'max_hp'    => ['challenger' => $fighter->max_hp, 'opponent' => $opponent['max_hp']],
             'log'       => $outcome['log'],
         ];
     }
@@ -137,14 +148,6 @@ class ArenaService
         $replay = $this->replay($battle);
 
         return $replay['winner_id'] === $battle->winner_id && $replay['log'] === $battle->turns_log;
-    }
-
-    /** Élo FIDE : K × (S − E). */
-    public function eloDelta(int $playerElo, int $opponentElo, bool $won): int
-    {
-        $expected = 1 / (1 + 10 ** (($opponentElo - $playerElo) / 400));
-
-        return (int) round(self::ELO_K_FACTOR * ((int) $won - $expected));
     }
 
     /** Fiche d'affichage d'un combattant (personnage du joueur ou bot). */
@@ -178,7 +181,7 @@ class ArenaService
             'strength'       => (int) $data['strength'],
             'speed'          => (int) $data['speed'],
             'defense'        => (int) $data['defense'],
-            'power_score'    => (int) $data['power_score'],
+            'power_score'    => (int) ($data['power_score'] ?? 0), // Absent des combats enregistrés avant le replay
             'rarity_key'     => $rarityKey,
             'rarity_label'   => $rarityLabel,
             'synergies'      => array_column($synergies, 'name'),
@@ -187,6 +190,21 @@ class ArenaService
             'losses'         => $data['losses'] ?? 0,
             'is_locked'      => (bool) ($data['is_locked'] ?? false),
         ];
+    }
+
+    /**
+     * Carte d'un vrai joueur, mise au même format qu'un fantôme.
+     * L'Élo affiché et utilisé pour le calcul est celui de son propriétaire (qui, lui, n'est pas modifié par le duel).
+     */
+    private function playerOpponent(Character $card): array
+    {
+        return $card->only(['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'power_score'])
+            + [
+                'rarity' => $card->rarity->value,
+                'elo'    => $card->user->elo,
+                'owner'  => $card->user->name,
+                'kind'   => 'player',
+            ];
     }
 
     /** Stats figées d'un combattant au moment du duel. */

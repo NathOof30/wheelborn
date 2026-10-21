@@ -116,7 +116,7 @@ La transition vers **Laravel 11+ et Livewire 3** est directe grâce à l'archite
 2. **Services PHP purs** :
    * `App\Services\CharacterGeneratorService` : convertit `characterGenerator.js` en service injectable.
    * `App\Services\BattleEngineService` : convertit `battleEngine.js`. Moteur de combat pur (aucun accès BDD) : simule un duel tour par tour, de manière déterministe à partir d'une seed.
-   * `App\Services\ArenaService` : tout ce qui entoure le combat dans l'arène. Liste les combattants du joueur, génère les bots, lance le duel via `BattleEngineService` puis enregistre le résultat (Élo FIDE, pièces, XP, palmarès, `turns_log`). Permet aussi de rejouer et vérifier un combat enregistré (anti-triche).
+   * `App\Services\ArenaService` : tout ce qui entoure le combat dans l'arène. Liste les combattants du joueur, trouve l'adversaire (vrai joueur proche en Élo, sinon Fantôme d'Arène via `BotGeneratorService`), lance le duel via `BattleEngineService` puis enregistre le résultat (Élo FIDE, pièces, XP, palmarès, `turns_log`). Permet aussi de rejouer et vérifier un combat enregistré (anti-triche).
    * `App\Services\EnergyManagerService` : régénère les charges de spins et tickets d'arène côté serveur.
 3. **Composants Livewire 3** :
    * `Livewire\CharacterWheel` : gère les charges, le spin avec rouleaux Alpine.js et la jauge de chance (Pity 10/10).

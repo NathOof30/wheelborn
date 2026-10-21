@@ -24,6 +24,9 @@
                     <a href="{{ route('arena') }}" class="inline-flex items-center px-1 pt-1 border-b-2 font-medium text-sm leading-5 transition duration-150 {{ request()->routeIs('arena') ? 'border-rose-400 text-rose-400' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600' }}">
                         ⚔️ Arène
                     </a>
+                    <a href="{{ route('leaderboard') }}" class="inline-flex items-center px-1 pt-1 border-b-2 font-medium text-sm leading-5 transition duration-150 {{ request()->routeIs('leaderboard') ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600' }}">
+                        🏆 Classement
+                    </a>
                 </div>
             </div>
 
@@ -90,6 +93,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('arena')" :active="request()->routeIs('arena')" class="text-slate-200">
                 ⚔️ Arène
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('leaderboard')" :active="request()->routeIs('leaderboard')" class="text-slate-200">
+                🏆 Classement
             </x-responsive-nav-link>
         </div>
 

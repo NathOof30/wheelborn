@@ -144,10 +144,10 @@ class BattleArenaTest extends TestCase
         ]);
 
         $test = Livewire::actingAs($user)->test(BattleArena::class);
-        $firstBotId = $test->get('bot')['id'];
+        $firstBotId = $test->get('opponent')['id'];
 
         $test->call('newOpponent');
-        $secondBotId = $test->get('bot')['id'];
+        $secondBotId = $test->get('opponent')['id'];
 
         $this->assertNotEmpty($firstBotId);
         $this->assertNotEmpty($secondBotId);

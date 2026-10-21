@@ -85,7 +85,7 @@
                                         wire:loading.attr="disabled"
                                         @disabled($result)
                                         class="px-2.5 py-1 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                                        title="Tirer un nouvel adversaire bot"
+                                        title="Chercher un nouvel adversaire"
                                     >
                                         <span>🎲</span>
                                         <span>Autre</span>
@@ -592,6 +592,30 @@
                                         +{{ $result['xp'] }} XP
                                     </span>
                                 </div>
+
+                                {{-- Changement de ligue --}}
+                                @if ($result['league_change'])
+                                    @if ($result['league_change']['type'] === 'promotion')
+                                        <div
+                                            class="mx-auto max-w-xs rounded-xl border-2 bg-slate-900/80 px-3 py-2 animate-bounce"
+                                            style="border-color: {{ $result['league_change']['color'] }}; box-shadow: 0 0 24px {{ $result['league_change']['color'] }}55"
+                                        >
+                                            <div class="text-2xl">🎉 {{ $result['league_change']['icon'] }} 🎉</div>
+                                            <div class="text-sm font-black uppercase tracking-wider" style="color: {{ $result['league_change']['color'] }}">Promotion !</div>
+                                            <div class="text-xs text-slate-300">
+                                                Tu entres en ligue <strong style="color: {{ $result['league_change']['color'] }}">{{ $result['league_change']['label'] }}</strong>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="mx-auto max-w-xs rounded-xl border-2 border-rose-700/60 bg-rose-950/40 px-3 py-2">
+                                            <div class="text-2xl">📉 {{ $result['league_change']['icon'] }}</div>
+                                            <div class="text-sm font-black uppercase tracking-wider text-rose-400">Relégation</div>
+                                            <div class="text-xs text-slate-300">
+                                                Tu redescends en ligue <strong style="color: {{ $result['league_change']['color'] }}">{{ $result['league_change']['label'] }}</strong>. Quelques victoires et tu remontes !
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endif
                             </div>
                         </div>
                     @endif
@@ -632,7 +656,7 @@
                                 type="button"
                                 wire:click="newOpponent"
                                 class="py-3.5 bg-gradient-to-r from-indigo-600 to-rose-600 hover:from-indigo-500 hover:to-rose-500 text-white font-extrabold text-xs rounded-2xl shadow-lg transition hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
-                                title="Tirer un nouvel adversaire bot"
+                                title="Chercher un nouvel adversaire"
                             >
                                 <span>⚔️</span>
                                 <span>Autre adversaire</span>

@@ -41,10 +41,16 @@ export default () => ({
         clearInterval(this.timer);
     },
 
-    play({ log, stats }) {
+    play({ log, stats, replay = false }) {
         this.reset();
         this.log = log;
         this.pendingStats = stats;
+
+        // Replay lancé depuis l'historique (plus bas dans la page) : on remonte jusqu'à l'arène
+        if (replay) {
+            this.$root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
         this.timer = setInterval(() => (this.step < this.log.length ? this.step++ : this.finish()), STEP_DELAY_MS);
     },
 

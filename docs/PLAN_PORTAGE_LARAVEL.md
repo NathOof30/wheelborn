@@ -84,7 +84,8 @@ app/
 ├── Services/                  # Logique métier pure (AUCUNE dépendance UI)
 │   ├── CharacterGeneratorService.php
 │   ├── BattleEngineService.php    # Moteur de combat pur (simulation déterministe)
-│   ├── ArenaService.php           # Arène : bots, enregistrement des duels, Élo, récompenses, anti-triche
+│   ├── ArenaService.php           # Arène : choix de l'adversaire, enregistrement des duels, Élo, récompenses, anti-triche
+│   ├── BotGeneratorService.php    # Fantômes d'Arène générés à la volée (anti cold start)
 │   ├── EnergyManagerService.php
 │   ├── EloService.php
 │   ├── RecycleService.php
