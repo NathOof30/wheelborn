@@ -581,7 +581,10 @@ Pour conserver la propreté du code, la logique ne résidera pas dans les contr�
    - `calculateDelta(int $playerElo, int $opponentElo, bool $isWin): int` : variation d'Élo du duel.
    - `newRating(int $playerElo, int $opponentElo, bool $isWin): int` : nouvel Élo, avec plancher à 0.
    - `findOpponent(User $user, Character $attackerCard): ?Character` : matchmaking. Cherche un autre joueur à ±100 Élo (élargi progressivement jusqu'à ±250), puis prend dans sa collection la carte de puissance la plus proche de celle de l'attaquant ; `null` si personne (repli sur un bot). L'Élo du joueur affronté ne change pas.
-6. `App\Services\EnergyManagerService` :
+6. `App\Services\LeaderboardService` (classement de l'arène) :
+   - `top(?League $league = null): array` : 50 meilleurs joueurs (tous ou d'une ligue) avec rang, Élo, ligue et nombre de combats. Mis en cache 60 secondes par onglet. Les admins ne sont pas classés.
+   - `playerStanding(User $user): ?array` : rang, Élo et ligue du joueur connecté, recalculés à chaque affichage.
+7. `App\Services\EnergyManagerService` :
    - `checkAndRegenSpins(User $user): void` (3 max, 1 / 4 min).
    - `checkAndRegenTickets(User $user): void` (5 max, 1 / 5 min).
 
