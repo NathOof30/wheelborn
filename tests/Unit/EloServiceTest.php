@@ -61,4 +61,31 @@ class EloServiceTest extends TestCase
         $this->assertSame(1016, $this->elo->newRating(1000, 1000, true));
         $this->assertSame(984, $this->elo->newRating(1000, 1000, false));
     }
+
+    public function test_massive_power_advantage_dampens_win_elo_gain_anti_farm(): void
+    {
+        // 1000 vs 1000 : gain de base = +16
+        // Challenger a le double de puissance (120 vs 60) : ratio = 2.0 -> mult = 0.40 -> +6 Élo
+        $this->assertSame(6, $this->elo->calculateDelta(1000, 1000, true, 120, 60));
+        $this->assertLessThan(10, $this->elo->calculateDelta(1000, 1000, true, 120, 60));
+    }
+
+    public function test_underdog_win_boosts_elo_gain_for_skill(): void
+    {
+        // Challenger outsider avec carte 2x plus faible (60 vs 120) : ratio = 0.5 -> mult = 1.50 -> +24 Élo
+        $this->assertSame(24, $this->elo->calculateDelta(1000, 1000, true, 60, 120));
+        $this->assertGreaterThan(20, $this->elo->calculateDelta(1000, 1000, true, 60, 120));
+    }
+
+    public function test_underdog_defeat_mitigates_elo_loss(): void
+    {
+        // Défaite prévisible face à un colosse (60 vs 120) : perte atténuée à -11 au lieu de -16
+        $this->assertSame(-11, $this->elo->calculateDelta(1000, 1000, false, 60, 120));
+    }
+
+    public function test_overpowered_card_defeat_penalizes_severely(): void
+    {
+        // Défaite impardonnable avec le double de puissance (120 vs 60) : sanction amplifiée à -24
+        $this->assertSame(-24, $this->elo->calculateDelta(1000, 1000, false, 120, 60));
+    }
 }

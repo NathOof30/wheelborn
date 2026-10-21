@@ -28,7 +28,7 @@
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ En cours (1/4 - Paper Doll V1 ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode & Seeder ✅) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (111 tests ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (121 tests ✅) |
 
 ---
 
@@ -258,26 +258,32 @@
   - [x] Méthode sur `User` : `$user->league` / `$user->getLeague()`.
   - [x] Détection des changements de palier (promotion / relégation).
 
-### [x] T3.3 — Matchmaking équilibré par Plage d'Élo
-- **Priorité :** 🔴 P0 (Fair-play)
+### [x] T3.3 — Matchmaking équilibré par Plage d'Élo & Pool Hybride (Anti-Farm)
+- **Priorité :** 🔴 P0 (Fair-play & Variété)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/ArenaService.php`, `tests/Feature/MatchmakingTest.php`
-- **Description :** Trouver un adversaire réel dont l'Élo est proche de celui du joueur pour des duels équilibrés.
+- **Cible :** `app/Services/ArenaService.php`, `app/Services/EloService.php`, `tests/Feature/MatchmakingTest.php`
+- **Description :** Trouver un adversaire réel dont l'Élo est proche de celui du joueur pour des duels équilibrés, avec garantie de diversité et régulation anti-farm.
 - **Critères d'acceptation :**
-  - [x] Recherche en priorité dans une fenêtre de $\pm 100$ Élo.
-  - [x] Élargissement progressif à $\pm 250$ Élo si aucun joueur disponible.
-  - [x] Exclusion des propres personnages du joueur connecté.
-  - [x] Sélection de la carte adverse au Power Score le plus compétitif.
+  - [x] Recherche en priorité dans une fenêtre de $\pm 100$ Élo, élargie progressivement à $\pm 250$ Élo.
+  - [x] Exclusion stricte des propres personnages du joueur connecté.
+  - [x] **Garantie Pool Minimum de 10 Cibles :** Si la base contient moins de 10 cartes de vrais joueurs éligibles, constitution d'un pool hybride complété par des Fantômes d'Arène procéduraux (au moins 10 adversaires distincts).
+  - [x] **Anti-Répétition / Anti-Loop :** Dépriorisation / rotation de la carte adverse récemment affrontée lors des derniers combats pour empêcher les boucles de farm unilatérales (ex: 2 comptes de test).
+  - [x] **Modulateur de Difficulté de Puissance sur l'Élo :** Prise en compte du ratio de puissance (`power_score`). Gain d'Élo amorti en cas d'écrasement sans risque ($\Delta \approx +4$ à $+8$ si surpuissant), gain équilibré ($\Delta \approx +16$), et bonus récompensant l'exploit d'outsider ($\Delta \approx +22$ à $+28$).
+  - [x] **Régulation Économique du Reroll & Anti-Triche F5 :**
+    - Persistance en BDD (`has_free_arena_reroll`) : le reroll gratuit n'est rechargé qu'après avoir réellement terminé un combat d'arène. Recharger la page (F5) ne redonne pas de reroll gratuit.
+    - Persistance de l'adversaire courant en session : impossible de contourner le coût de 10 🪙 en rafraîchissant la page pour obtenir un autre adversaire sans payer.
+    - Synchronisation en direct du HUD (`stats-updated`) : déduction visuelle immédiate des 10 🪙 sans rechargement de page.
 
-### [x] T3.4 — Système de Combattants Fantômes / Bots (Anti-Cold Start)
+### [x] T3.4 — Système de Combattants Fantômes / Bots (Anti-Cold Start & Diversité)
 - **Priorité :** 🔴 P0 (Indispensable pour la soutenance)
 - **Attribué à :** 🧑‍💻 Mathéo
 - **Cible :** `app/Services/BotGeneratorService.php`, `tests/Feature/ArenaGhostTest.php`
-- **Description :** Permettre de jouer même si la BDD est vierge de vrais utilisateurs.
+- **Description :** Permettre de jouer même si la BDD est vierge de vrais utilisateurs ou avec peu de comptes réels.
 - **Critères d'acceptation :**
-  - [x] Si aucun joueur réel n'est trouvé dans la plage d'Élo, génération à la volée d'un "Fantôme d'Arène" adapté à la ligue actuelle.
+  - [x] Génération procédurale à la volée de "Fantômes d'Arène" adaptés à la ligue et au palier de puissance du joueur.
   - [x] Nom procédural évocateur ("Gladiateur de l'Ombre", "Garde de Fer", etc.).
-  - [x] Le calcul d'Élo s'applique normalement pour le joueur.
+  - [x] Le calcul d'Élo et les récompenses s'appliquent normalement pour le joueur.
+  - [x] Complétion dynamique du pool de 10 adversaires éligibles en synergie avec le matchmaking.
 
 ### [x] T3.5 — Composant Livewire `Leaderboard`
 - **Priorité :** 🟡 P1

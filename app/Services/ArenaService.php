@@ -43,14 +43,80 @@ class ArenaService
     }
 
     /**
-     * Adversaire pour la carte choisie : d'abord un vrai joueur proche en Élo (carte de puissance proche),
-     * sinon un Fantôme d'Arène généré à la volée. Le résultat est toujours un tableau au même format.
+     * Adversaire pour la carte choisie :
+     * 1. Construit un pool hybride d'au moins 10 candidats (vrais joueurs proches en Élo + Fantômes d'Arène).
+     * 2. Applique un filtre anti-répétition (cooldown des derniers adversaires affrontés pour éviter le farm en boucle).
+     * 3. Exclut l'adversaire actuel si un reroll est demandé.
+     * 4. Sélectionne le meilleur adversaire éligible en favorisant les vrais joueurs non récents.
      */
-    public function findOpponent(User $user, Character $fighter): array
+    public function findOpponent(User $user, Character $fighter, string|int|null $excludeOpponentId = null): array
     {
-        $card = $this->elo->findOpponent($user, $fighter);
+        $config = GameConfig::matchmaking();
+        $minPoolSize = $config['min_pool_size'] ?? 10;
+        $recentLimit = $config['recent_cooldown'] ?? 3;
 
-        return $card ? $this->playerOpponent($card) : $this->bots->generateGhost($user);
+        // 1. Récupération des cartes de vrais joueurs dans la fenêtre d'Élo
+        $realCards = $this->elo->findOpponentCandidates($user, $fighter, $minPoolSize);
+
+        // 2. Récupération des IDs d'adversaires récemment affrontés (anti-farm)
+        $recentOpponentIds = Battle::where('player_id', $user->id)
+            ->latest('id')
+            ->take($recentLimit)
+            ->pluck('opponent_id')
+            ->filter()
+            ->all();
+
+        // 3. Conversion des cartes de vrais joueurs
+        $pool = [];
+        foreach ($realCards as $card) {
+            $data = $this->playerOpponent($card);
+            $data['is_recent'] = in_array($card->id, $recentOpponentIds);
+            $pool[] = $data;
+        }
+
+        // 4. Compléter le pool avec des Fantômes d'Arène jusqu'à au moins minPoolSize (10)
+        $missingCount = max(0, $minPoolSize - count($pool));
+        if ($missingCount > 0) {
+            $ghosts = $this->bots->generateGhostPool($user, $missingCount, $fighter);
+            foreach ($ghosts as $ghost) {
+                $ghost['is_recent'] = false;
+                $pool[] = $ghost;
+            }
+        }
+
+        // 5. Exclure l'adversaire actuellement affiché si reroll
+        $available = array_filter($pool, function ($cand) use ($excludeOpponentId) {
+            if ($excludeOpponentId === null) {
+                return true;
+            }
+            $candId = (string) ($cand['id'] ?? $cand['name']);
+            return $candId !== (string) $excludeOpponentId;
+        });
+
+        if (empty($available)) {
+            $available = $pool;
+        }
+
+        // 6. Choix de l'adversaire :
+        // Pour la proposition initiale (hors reroll), on privilégie en priorité un vrai joueur non récent
+        if ($excludeOpponentId === null) {
+            $freshReal = array_values(array_filter($available, fn ($c) => $c['kind'] === 'player' && !$c['is_recent']));
+            if (!empty($freshReal)) {
+                return $freshReal[0];
+            }
+        }
+
+        // Lors d'un reroll (ou si aucun vrai joueur frais n'est dispo) :
+        // On tire au sort parmi l'ensemble des candidats disponibles non récents (vrais joueurs + bots)
+        // pour garantir une diversité totale et éviter le ping-pong entre 2 cartes
+        $freshOthers = array_values(array_filter($available, fn ($c) => !$c['is_recent']));
+        if (!empty($freshOthers)) {
+            return $freshOthers[array_rand($freshOthers)];
+        }
+
+        // Fallback ultime si tous les candidats sont marqués récents
+        $availableValues = array_values($available);
+        return $availableValues[array_rand($availableValues)];
     }
 
     /** Lance un duel, puis enregistre le combat et la progression du joueur (Élo, pièces, XP, palmarès). */
@@ -62,7 +128,9 @@ class ArenaService
 
         // Match nul : l'Élo ne bouge pas
         $oldElo = $user->elo;
-        $newElo = $draw ? $oldElo : $this->elo->newRating($oldElo, $opponent['elo'], $won);
+        $challengerPower = (int) $fighter->power_score;
+        $opponentPower = (int) ($opponent['power_score'] ?? 50);
+        $newElo = $draw ? $oldElo : $this->elo->newRating($oldElo, $opponent['elo'], $won, $challengerPower, $opponentPower);
 
         // Changement de ligue : promotion si on monte, relégation si on descend
         $oldLeague = League::fromElo($oldElo);
@@ -109,7 +177,12 @@ class ArenaService
                 $fighter->increment($won ? 'wins' : 'losses');
             }
 
-            $user->update(['elo' => $newElo, 'coins' => $user->coins + $coins, 'xp' => $user->xp + $xp]);
+            $user->update([
+                'elo' => $newElo,
+                'coins' => $user->coins + $coins,
+                'xp' => $user->xp + $xp,
+                'has_free_arena_reroll' => true,
+            ]);
         });
 
         return [

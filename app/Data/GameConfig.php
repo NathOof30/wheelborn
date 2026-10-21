@@ -25,6 +25,15 @@ class GameConfig
         ];
     }
 
+    public static function matchmaking(): array
+    {
+        return [
+            'min_pool_size'   => 10, // Pool minimum de cibles éligibles (vrais joueurs + bots)
+            'reroll_cost'     => 10, // Coût en pièces d'or après le 1er reroll gratuit
+            'recent_cooldown' => 3,  // Nombre de duels récents à déprioriser pour éviter les boucles
+        ];
+    }
+
     public static function pityThreshold(): int
     {
         return 10;

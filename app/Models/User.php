@@ -29,6 +29,7 @@ class User extends Authenticatable
         'last_spin_regen_at',
         'arena_tickets',
         'last_arena_regen_at',
+        'has_free_arena_reroll',
         'is_admin',
     ];
 
@@ -40,18 +41,19 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at'   => 'datetime',
-            'password'            => 'hashed',
-            'last_spin_regen_at'  => 'datetime',
-            'last_arena_regen_at' => 'datetime',
-            'is_admin'            => 'boolean',
-            'coins'               => 'integer',
-            'elo'                 => 'integer',
-            'pity_counter'        => 'integer',
-            'xp'                  => 'integer',
-            'level'               => 'integer',
-            'spin_charges'        => 'integer',
-            'arena_tickets'       => 'integer',
+            'email_verified_at'       => 'datetime',
+            'password'                => 'hashed',
+            'last_spin_regen_at'      => 'datetime',
+            'last_arena_regen_at'     => 'datetime',
+            'has_free_arena_reroll'   => 'boolean',
+            'is_admin'                => 'boolean',
+            'coins'                   => 'integer',
+            'elo'                     => 'integer',
+            'pity_counter'            => 'integer',
+            'xp'                      => 'integer',
+            'level'                   => 'integer',
+            'spin_charges'            => 'integer',
+            'arena_tickets'           => 'integer',
         ];
     }
 

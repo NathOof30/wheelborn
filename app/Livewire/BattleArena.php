@@ -46,7 +46,13 @@ class BattleArena extends Component
         $this->fighterId = $this->fighters->first()?->id;
 
         if ($this->fighterId) {
-            $this->newOpponent();
+            // Anti-triche F5 : restaurer l'adversaire en cours depuis la session s'il existe
+            $savedOpponent = session('arena_current_opponent');
+            if ($savedOpponent && !empty($savedOpponent['name'])) {
+                $this->opponent = $savedOpponent;
+            } else {
+                $this->newOpponent();
+            }
         }
     }
 
@@ -232,6 +238,14 @@ class BattleArena extends Component
         $this->nextTicketSeconds = $energy->getNextArenaRegenSeconds($user);
     }
 
+    /** Coût en or du changement d'adversaire (1er gratuit après un combat, puis 10 🪙). */
+    #[Computed]
+    public function rerollCost(): int
+    {
+        $user = auth()->user();
+        return ($user && $user->has_free_arena_reroll) ? 0 : (GameConfig::matchmaking()['reroll_cost'] ?? 10);
+    }
+
     public function selectFighter(string $characterId): void
     {
         if (!$this->fighters->contains('id', $characterId)) {
@@ -243,12 +257,47 @@ class BattleArena extends Component
         unset($this->fighter);
 
         // L'adversaire dépend de la puissance de la carte choisie : on en cherche un nouveau
+        session()->forget('arena_current_opponent');
         $this->newOpponent();
     }
 
     public function newOpponent(): void
     {
-        $this->opponent = app(ArenaService::class)->findOpponent(auth()->user(), $this->fighter);
+        $currentId = $this->opponent['id'] ?? null;
+        $this->opponent = app(ArenaService::class)->findOpponent(auth()->user(), $this->fighter, $currentId);
+        session(['arena_current_opponent' => $this->opponent]);
+        $this->resetBattle();
+    }
+
+    /** Changer d'adversaire avant le duel avec gestion du coût (1er gratuit après un combat, suivants payants). */
+    public function rerollOpponent(): void
+    {
+        if ($this->result !== null || !$this->fighter) {
+            return;
+        }
+
+        $user = auth()->user();
+        $cost = $this->rerollCost;
+
+        if ($cost > 0) {
+            if ($user->coins < $cost) {
+                $this->error = "Pas assez de pièces ({$cost} 🪙 requis) pour chercher un autre adversaire.";
+                return;
+            }
+
+            $user->decrement('coins', $cost);
+        } else {
+            // Le reroll gratuit accordé après un combat est consommé
+            $user->update(['has_free_arena_reroll' => false]);
+        }
+
+        // Met à jour la barre HUD en temps réel sans rechargement de page
+        $this->dispatch('stats-updated', coins: $user->fresh()->coins, elo: $user->elo, spinCharges: $user->spin_charges);
+
+        unset($this->rerollCost);
+        $currentId = $this->opponent['id'] ?? null;
+        $this->opponent = app(ArenaService::class)->findOpponent($user, $this->fighter, $currentId);
+        session(['arena_current_opponent' => $this->opponent]);
         $this->resetBattle();
     }
 
@@ -271,6 +320,10 @@ class BattleArena extends Component
             $this->error = "Plus de ticket d'arène ! Un nouveau ticket arrive dans {$this->nextTicketIn}.";
             return;
         }
+
+        // Combat terminé : l'adversaire en session est effacé pour le prochain duel
+        session()->forget('arena_current_opponent');
+        unset($this->rerollCost);
 
         // Le journal part directement à l'animation Alpine, inutile de le garder dans l'état du composant
         $this->result = collect($outcome)->except('log')->all();

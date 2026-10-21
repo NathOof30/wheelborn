@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\League;
+use App\Models\Character;
 use App\Models\User;
 
 /**
@@ -36,17 +37,55 @@ class BotGeneratorService
      * Génère un Fantôme d'Arène adapté à la ligue actuelle du joueur :
      * stats ajustées selon la ligue, et Élo proche de celui du joueur sans sortir de sa ligue.
      */
-    public function generateGhost(User $user): array
+    public function generateGhost(User $user, ?Character $targetFighter = null): array
     {
         $playerLeague = $user->getLeague();
+        $statBonus = self::STAT_BONUS_BY_LEAGUE[$playerLeague->value] ?? 0;
 
-        $ghostStats = $this->characterGenerator->generateBot(self::STAT_BONUS_BY_LEAGUE[$playerLeague->value]);
+        $ghostStats = $this->characterGenerator->generateBot($statBonus);
 
         return array_merge($ghostStats, [
+            'id'   => 'ghost_' . bin2hex(random_bytes(6)),
             'name' => $this->ghostName(),
             'elo'  => $this->ghostElo($user->elo, $playerLeague),
             'kind' => 'ghost',
         ]);
+    }
+
+    /**
+     * Génère un ensemble de Fantômes d'Arène diversifiés pour compléter le pool de matchmaking.
+     * Assure des noms procéduraux distincts et une variété de stats autour du palier.
+     */
+    public function generateGhostPool(User $user, int $count, ?Character $targetFighter = null): array
+    {
+        $playerLeague = $user->getLeague();
+        $baseBonus = self::STAT_BONUS_BY_LEAGUE[$playerLeague->value] ?? 0;
+        $ghosts = [];
+        $usedNames = [];
+
+        for ($i = 0; $i < $count; $i++) {
+            // Légère variance de stat (±3) pour varier les profils
+            $variance = random_int(-3, 3);
+            $ghostStats = $this->characterGenerator->generateBot($baseBonus + $variance);
+
+            // Tirage d'un nom unique dans le lot si possible
+            $name = $this->ghostName();
+            $attempts = 0;
+            while (in_array($name, $usedNames, true) && $attempts < 10) {
+                $name = $this->ghostName();
+                $attempts++;
+            }
+            $usedNames[] = $name;
+
+            $ghosts[] = array_merge($ghostStats, [
+                'id'   => 'ghost_' . bin2hex(random_bytes(6)),
+                'name' => $name,
+                'elo'  => $this->ghostElo($user->elo, $playerLeague),
+                'kind' => 'ghost',
+            ]);
+        }
+
+        return $ghosts;
     }
 
     private function ghostName(): string

@@ -198,5 +198,128 @@ class BattleArenaTest extends TestCase
             ->call('rematch')
             ->assertSee('Comparatif des Forces');
     }
+
+    public function test_first_reroll_is_free_and_subsequent_rerolls_cost_gold(): void
+    {
+        $user = User::factory()->create(['coins' => 50, 'has_free_arena_reroll' => true]);
+        Character::create([
+            'user_id' => $user->id,
+            'name' => 'Fighter',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => \App\Enums\PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 50,
+            'speed' => 50,
+            'defense' => 50,
+            'power_score' => 200,
+            'rarity' => \App\Enums\Rarity::Common,
+            'is_lucky_spin' => false,
+            'is_unstable' => false,
+            'synergies_data' => [],
+            'recycle_value' => 50,
+            'is_active_fighter' => false,
+            'pending_reveal' => false,
+        ]);
+
+        $test = Livewire::actingAs($user)->test(BattleArena::class);
+
+        // Au départ : a droit à son reroll gratuit
+        $this->assertSame(0, $test->get('rerollCost'));
+        $test->assertSee('Gratuit');
+
+        // 1er reroll : gratuit
+        $test->call('rerollOpponent')
+            ->assertDispatched('stats-updated');
+        $this->assertSame(50, $user->fresh()->coins);
+        $this->assertFalse($user->fresh()->has_free_arena_reroll);
+        $this->assertSame(10, $test->get('rerollCost'));
+        $test->assertSee('10 🪙');
+
+        // Test Anti-Triche F5 : recharger la page ne redonne PAS le reroll gratuit
+        $reloaded = Livewire::actingAs($user)->test(BattleArena::class);
+        $this->assertSame(10, $reloaded->get('rerollCost'));
+        $reloaded->assertSee('10 🪙');
+
+        // 2e reroll : payant (coûte 10 pièces)
+        $test->call('rerollOpponent')
+            ->assertDispatched('stats-updated');
+        $this->assertSame(40, $user->fresh()->coins);
+    }
+
+    public function test_combat_completion_restores_the_free_reroll_for_next_match(): void
+    {
+        $user = User::factory()->create(['coins' => 50, 'has_free_arena_reroll' => false]);
+        Character::create([
+            'user_id' => $user->id,
+            'name' => 'Fighter',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => \App\Enums\PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 50,
+            'speed' => 50,
+            'defense' => 50,
+            'power_score' => 200,
+            'rarity' => \App\Enums\Rarity::Common,
+            'is_lucky_spin' => false,
+            'is_unstable' => false,
+            'synergies_data' => [],
+            'recycle_value' => 50,
+            'is_active_fighter' => false,
+            'pending_reveal' => false,
+        ]);
+
+        $test = Livewire::actingAs($user)->test(BattleArena::class);
+        $this->assertSame(10, $test->get('rerollCost'));
+
+        // Le joueur fait un combat
+        $test->call('fight');
+
+        // À l'issue du combat, le reroll gratuit est restauré en BDD pour le duel suivant
+        $this->assertTrue($user->fresh()->has_free_arena_reroll);
+    }
+
+    public function test_reroll_fails_if_user_has_insufficient_gold(): void
+    {
+        $user = User::factory()->create(['coins' => 5, 'has_free_arena_reroll' => true]);
+        Character::create([
+            'user_id' => $user->id,
+            'name' => 'Fighter',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => \App\Enums\PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 50,
+            'speed' => 50,
+            'defense' => 50,
+            'power_score' => 200,
+            'rarity' => \App\Enums\Rarity::Common,
+            'is_lucky_spin' => false,
+            'is_unstable' => false,
+            'synergies_data' => [],
+            'recycle_value' => 50,
+            'is_active_fighter' => false,
+            'pending_reveal' => false,
+        ]);
+
+        $test = Livewire::actingAs($user)->test(BattleArena::class);
+
+        // 1er reroll : gratuit
+        $test->call('rerollOpponent');
+        $this->assertSame(5, $user->fresh()->coins);
+        $this->assertFalse($user->fresh()->has_free_arena_reroll);
+
+        // 2e reroll : doit échouer car seulement 5 pièces
+        $test->call('rerollOpponent');
+        $this->assertSame(5, $user->fresh()->coins); // Aucune pièce déduite
+        $test->assertSee('Pas assez de pièces (10 🪙 requis)');
+    }
 }
 

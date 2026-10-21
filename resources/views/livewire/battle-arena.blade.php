@@ -81,14 +81,19 @@
                                     </span>
                                     <button
                                         type="button"
-                                        wire:click="newOpponent"
+                                        wire:click="rerollOpponent"
                                         wire:loading.attr="disabled"
                                         @disabled($result)
                                         class="px-2.5 py-1 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                                        title="Chercher un nouvel adversaire"
+                                        title="{{ $this->rerollCost === 0 ? 'Chercher un autre adversaire (1er essai gratuit)' : 'Chercher un autre adversaire (coûte ' . $this->rerollCost . ' 🪙)' }}"
                                     >
                                         <span>🎲</span>
                                         <span>Autre</span>
+                                        @if ($this->rerollCost === 0)
+                                            <span class="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded border border-emerald-800/60">Gratuit</span>
+                                        @else
+                                            <span class="text-[9px] font-mono font-bold text-amber-300 bg-amber-950/80 px-1 py-0.5 rounded border border-amber-800/60">{{ $this->rerollCost }} 🪙</span>
+                                        @endif
                                     </button>
                                 @endif
                             </div>
