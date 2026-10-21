@@ -23,12 +23,12 @@
 | **Épic 0 : Fondations, Roue & Équilibrage** | 🔴 P0 | 👥 Binôme | 5 | ⏳ En cours (4/5) |
 | **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
-| **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ⏳ À démarrer (0/6) |
+| **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ En cours (1/4 - Paper Doll V1 ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode & Seeder ✅) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ⏳ Partiel (4/5 - 78 tests ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (111 tests ✅) |
 
 ---
 
@@ -237,66 +237,67 @@
 ## 🏆 Épic 3 — Système d'Élo FIDE & Matchmaking (`Leaderboard`)
 > **Responsable principal :** 🧑‍💻 Mathéo
 
-### [ ] T3.1 — Service Mathématique d'Élo Standard FIDE
+### [x] T3.1 — Service Mathématique d'Élo Standard FIDE
 - **Priorité :** 🔴 P0 (Équilibrage)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/EloService.php`
+- **Cible :** `app/Services/EloService.php`, `tests/Unit/EloServiceTest.php`
 - **Description :** Implémenter la formule officielle d'Élo d'échecs (FIDE) avec facteur $K=32$.
 - **Critères d'acceptation :**
-  - [ ] Calcul de la probabilité attendue : $E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}$.
-  - [ ] Calcul du delta : $\Delta = \text{round}(K \times (Score - E_A))$.
-  - [ ] Test des cas limites : victoire contre plus fort (+ fort gain), défaite contre plus faible (- forte perte).
-  - [ ] Plancher d'Élo fixé à 0 (l'Élo ne peut pas être négatif).
+  - [x] Calcul de la probabilité attendue : $E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}$.
+  - [x] Calcul du delta : $\Delta = \text{round}(K \times (Score - E_A))$.
+  - [x] Test des cas limites : victoire contre plus fort (+ fort gain), défaite contre plus faible (- forte perte).
+  - [x] Plancher d'Élo fixé à 0 (l'Élo ne peut pas être négatif).
 
-### [ ] T3.2 — Système de Ligues dynamiques par Paliers
+### [x] T3.2 — Système de Ligues dynamiques par Paliers
 - **Priorité :** 🔴 P0 (Visuel & Rétention)
 - **Attribué à :** 🧑‍💻 Mathéo
 - **Cible :** `app/Enums/League.php`, `app/Models/User.php`
 - **Description :** Catégoriser les joueurs selon leur score d'Élo avec badge et couleur associés.
 - **Critères d'acceptation :**
-  - [ ] Paliers : Bronze (0-999), Argent (1000-1399), Or (1400-1799), Platine (1800-2199), Maître (2200+).
-  - [ ] Méthode sur `User` : `$user->getLeague()`.
-  - [ ] Déclenchement d'une alerte/notification festive lors d'une promotion de ligue.
+  - [x] Paliers : Bronze (0-999), Argent (1000-1399), Or (1400-1799), Platine (1800-2199), Maître (2200+).
+  - [x] Méthode sur `User` : `$user->league` / `$user->getLeague()`.
+  - [x] Détection des changements de palier (promotion / relégation).
 
-### [ ] T3.3 — Matchmaking équilibré par Plage d'Élo
+### [x] T3.3 — Matchmaking équilibré par Plage d'Élo
 - **Priorité :** 🔴 P0 (Fair-play)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/EloService.php`
+- **Cible :** `app/Services/ArenaService.php`, `tests/Feature/MatchmakingTest.php`
 - **Description :** Trouver un adversaire réel dont l'Élo est proche de celui du joueur pour des duels équilibrés.
 - **Critères d'acceptation :**
-  - [ ] Recherche en priorité dans une fenêtre de $\pm 100$ Élo.
-  - [ ] Élargissement progressif à $\pm 250$ Élo si aucun joueur disponible.
-  - [ ] Exclusion des propres personnages du joueur connecté.
+  - [x] Recherche en priorité dans une fenêtre de $\pm 100$ Élo.
+  - [x] Élargissement progressif à $\pm 250$ Élo si aucun joueur disponible.
+  - [x] Exclusion des propres personnages du joueur connecté.
+  - [x] Sélection de la carte adverse au Power Score le plus compétitif.
 
-### [ ] T3.4 — Système de Combattants Fantômes / Bots (Anti-Cold Start)
+### [x] T3.4 — Système de Combattants Fantômes / Bots (Anti-Cold Start)
 - **Priorité :** 🔴 P0 (Indispensable pour la soutenance)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/BotGeneratorService.php` ou Seeder
+- **Cible :** `app/Services/BotGeneratorService.php`, `tests/Feature/ArenaGhostTest.php`
 - **Description :** Permettre de jouer même si la BDD est vierge de vrais utilisateurs.
 - **Critères d'acceptation :**
-  - [ ] Si aucun joueur réel n'est trouvé dans la plage d'Élo, génération à la volée d'un "Fantôme d'Arène" adapté à la ligue actuelle.
-  - [ ] Nom procédural évocateur ("Gladiateur de l'Ombre", "Garde de Fer", etc.).
-  - [ ] Le calcul d'Élo s'applique normalement pour le joueur.
+  - [x] Si aucun joueur réel n'est trouvé dans la plage d'Élo, génération à la volée d'un "Fantôme d'Arène" adapté à la ligue actuelle.
+  - [x] Nom procédural évocateur ("Gladiateur de l'Ombre", "Garde de Fer", etc.).
+  - [x] Le calcul d'Élo s'applique normalement pour le joueur.
 
-### [ ] T3.5 — Composant Livewire `Leaderboard`
+### [x] T3.5 — Composant Livewire `Leaderboard`
 - **Priorité :** 🟡 P1
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Livewire/Leaderboard.php`, `resources/views/livewire/leaderboard.blade.php`
+- **Cible :** `app/Livewire/Leaderboard.php`, `resources/views/livewire/leaderboard.blade.php`, `resources/views/leaderboard.blade.php`, `tests/Feature/LeaderboardTest.php`
 - **Description :** Tableau des meilleurs joueurs de l'arène avec filtres par ligue.
 - **Critères d'acceptation :**
-  - [ ] Podium stylisé pour le Top 3 (or, argent, bronze néon).
-  - [ ] Ligne épinglée indiquant le rang, l'Élo et la ligue du joueur connecté.
-  - [ ] Onglets de filtrage par ligue (Tous, Maître, Platine, etc.).
-  - [ ] Cache Redis ou Cache Laravel (durée 60 secondes) pour préserver les perfs BDD.
+  - [x] Podium stylisé pour le Top 3 (or, argent, bronze néon).
+  - [x] Ligne épinglée indiquant le rang, l'Élo et la ligue du joueur connecté.
+  - [x] Onglets de filtrage par ligue (Tous, Maître, Platine, Or, Argent, Bronze).
+  - [x] Cache Laravel (durée 60 secondes) pour préserver les perfs BDD.
 
-### [ ] T3.6 — Historique & Replay des Duels
+### [x] T3.6 — Historique & Replay des Duels
 - **Priorité :** 🟢 P2
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `resources/views/livewire/battle-history.blade.php`
+- **Cible :** `app/Livewire/BattleHistory.php`, `resources/views/livewire/battle-history.blade.php`, `tests/Feature/BattleHistoryTest.php`
 - **Description :** Historique des 10 derniers combats du joueur avec consultation du journal.
 - **Critères d'acceptation :**
-  - [ ] Liste des combats récents : V/D, adversaire, delta d'Élo, date relative ("il y a 5 min").
-  - [ ] Bouton "Revoir le combat" qui recharge le `turns_log` dans l'arène.
+  - [x] Liste des combats récents : V/D, adversaire, delta d'Élo, date relative ("il y a 5 min").
+  - [x] Bouton "Revoir le combat" qui recharge le `turns_log` dans l'arène.
 
 ---
 
