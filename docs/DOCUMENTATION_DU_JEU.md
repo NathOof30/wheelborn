@@ -567,19 +567,21 @@ Pour conserver la propreté du code, la logique ne résidera pas dans les contr�
    - `simulate(Character|array $challenger, Character|array $opponent, ?int $seed = null): array`
    - Résout le duel tour par tour (initiative, dégâts, critiques, esquives, effets, synergies, double K.O. = match nul) et renvoie le vainqueur, la seed et le journal complet.
    - Déterministe : mêmes combattants + même seed = combat strictement identique.
-3. `App\Services\ArenaService` (arène contre les bots) :
+3. `App\Services\ArenaService` (arène : vrais joueurs ou Fantômes d'Arène) :
    - `availableFighters(User $user)` : combattants du joueur pouvant combattre.
-   - `generateBotOpponent(User $user)` : bot adverse dont la difficulté et l'Élo suivent ceux du joueur.
-   - `fightBot(User $user, Character $fighter, array $bot)` : lance le duel via `BattleEngineService`, puis enregistre le combat (`seed`, `turns_log`, `fighters_snapshot`) et met à jour l'Élo, les pièces, l'XP et le palmarès.
+   - `findOpponent(User $user, Character $fighter)` : adversaire de la carte choisie. D'abord un vrai joueur via `EloService::findOpponent()`, sinon un Fantôme d'Arène généré par `BotGeneratorService`.
+   - `fight(User $user, Character $fighter, array $opponent)` : lance le duel via `BattleEngineService`, puis enregistre le combat (`seed`, `turns_log`, `fighters_snapshot`, `opponent_id` si vrai joueur) et met à jour l'Élo, les pièces, l'XP et le palmarès du joueur. Le propriétaire de la carte adverse n'est jamais modifié.
    - Calcul de l'Élo délégué à `EloService`.
    - Anti-triche : `replay(Battle $battle)` recalcule un combat enregistré, `isAuthentic(Battle $battle)` vérifie qu'il n'a pas été modifié.
    - `describeFighter(...)` : données d'affichage d'un combattant (fiche du face-à-face).
-4. `App\Services\EloService` (formule officielle FIDE, K = 32) :
+4. `App\Services\BotGeneratorService` (anti « cold start ») :
+   - `generateGhost(User $user): array` : Fantôme d'Arène généré à la volée quand aucun vrai joueur n'est dans la plage d'Élo. Stats ajustées selon la ligue du joueur, Élo à ±100 sans sortir de sa ligue, nom procédural (« Gladiateur de l'Ombre », « Garde de Fer »…). Jamais enregistré en base.
+5. `App\Services\EloService` (formule officielle FIDE, K = 32) :
    - `expectedScore(int $playerElo, int $opponentElo): float` : probabilité de victoire attendue.
    - `calculateDelta(int $playerElo, int $opponentElo, bool $isWin): int` : variation d'Élo du duel.
    - `newRating(int $playerElo, int $opponentElo, bool $isWin): int` : nouvel Élo, avec plancher à 0.
    - `findOpponent(User $user, Character $attackerCard): ?Character` : matchmaking. Cherche un autre joueur à ±100 Élo (élargi progressivement jusqu'à ±250), puis prend dans sa collection la carte de puissance la plus proche de celle de l'attaquant ; `null` si personne (repli sur un bot). L'Élo du joueur affronté ne change pas.
-5. `App\Services\EnergyManagerService` :
+6. `App\Services\EnergyManagerService` :
    - `checkAndRegenSpins(User $user): void` (3 max, 1 / 4 min).
    - `checkAndRegenTickets(User $user): void` (5 max, 1 / 5 min).
 

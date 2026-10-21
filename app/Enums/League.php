@@ -27,6 +27,14 @@ enum League: string
         return self::Bronze;
     }
 
+    /** Élo maximum de la ligue (palier de la ligue suivante - 1), null pour la plus haute. */
+    public function maxElo(): ?int
+    {
+        $next = self::cases()[array_search($this, self::cases(), true) + 1] ?? null;
+
+        return $next ? $next->minElo() - 1 : null;
+    }
+
     /** Vrai si cette ligue est au-dessus de l'autre (sert à détecter une promotion). */
     public function isHigherThan(self $other): bool
     {
