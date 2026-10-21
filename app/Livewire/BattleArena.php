@@ -14,6 +14,7 @@ use Livewire\Component;
 class BattleArena extends Component
 {
     public ?string $fighterId = null;
+    public ?string $error = null;
 
     // Verrouillés : le client ne doit pas pouvoir affaiblir l'adversaire ou falsifier le résultat
     #[Locked]
@@ -27,7 +28,11 @@ class BattleArena extends Component
     public int $maxTickets = 0;
     public int $nextTicketSeconds = 0;
     public bool $isAdmin = false;
-    public ?string $error = null;
+    // Modale de sélection de combattant
+    public bool $showFighterModal = false;
+    public string $search = '';
+    public string $rarityFilter = '';
+    public string $sortBy = 'power_desc';
 
     public function mount(): void
     {
@@ -43,6 +48,53 @@ class BattleArena extends Component
     public function fighters()
     {
         return app(ArenaService::class)->availableFighters(auth()->user());
+    }
+
+    #[Computed]
+    public function modalFighters()
+    {
+        $collection = $this->fighters;
+
+        if (!empty($this->search)) {
+            $term = mb_strtolower(trim($this->search));
+            $collection = $collection->filter(function ($char) use ($term) {
+                return str_contains(mb_strtolower($char->name), $term)
+                    || str_contains(mb_strtolower($char->race_id), $term)
+                    || str_contains(mb_strtolower($char->weapon_id), $term)
+                    || str_contains(mb_strtolower($char->power_id), $term);
+            });
+        }
+
+        if (!empty($this->rarityFilter)) {
+            $collection = $collection->filter(function ($char) {
+                $val = $char->rarity instanceof \App\Enums\Rarity ? $char->rarity->value : (string) $char->rarity;
+                return $val === $this->rarityFilter;
+            });
+        }
+
+        return match ($this->sortBy) {
+            'power_asc' => $collection->sortBy('power_score'),
+            'wins_desc' => $collection->sortByDesc('wins'),
+            'date_desc' => $collection->sortByDesc('created_at'),
+            default     => $collection->sortByDesc('power_score'),
+        };
+    }
+
+    public function openFighterModal(): void
+    {
+        $this->showFighterModal = true;
+    }
+
+    public function closeFighterModal(): void
+    {
+        $this->showFighterModal = false;
+    }
+
+    public function resetModalFilters(): void
+    {
+        $this->search = '';
+        $this->rarityFilter = '';
+        $this->sortBy = 'power_desc';
     }
 
     #[Computed]
@@ -68,6 +120,85 @@ class BattleArena extends Component
         return $this->opponent['kind'] === 'player'
             ? "⚔️ Joueur : {$this->opponent['owner']}"
             : "🤖 Bot d'arène · Fantôme";
+    }
+
+    #[Computed]
+    public function comparison(): ?array
+    {
+        $challenger = $this->cards['challenger'] ?? null;
+        $opponent = $this->cards['opponent'] ?? null;
+
+        if (!$challenger || !$opponent) {
+            return null;
+        }
+
+        $stats = [
+            'hp' => [
+                'label' => 'Points de Vie',
+                'short' => 'PV',
+                'icon'  => '❤️',
+                'c_val' => (int) $challenger['hp'],
+                'o_val' => (int) $opponent['hp'],
+            ],
+            'strength' => [
+                'label' => 'Force d\'Attaque',
+                'short' => 'Force',
+                'icon'  => '⚔️',
+                'c_val' => (int) $challenger['strength'],
+                'o_val' => (int) $opponent['strength'],
+            ],
+            'speed' => [
+                'label' => 'Vitesse & Initiative',
+                'short' => 'Vitesse',
+                'icon'  => '⚡',
+                'c_val' => (int) $challenger['speed'],
+                'o_val' => (int) $opponent['speed'],
+            ],
+            'defense' => [
+                'label' => 'Défense & Armure',
+                'short' => 'Défense',
+                'icon'  => '🛡️',
+                'c_val' => (int) $challenger['defense'],
+                'o_val' => (int) $opponent['defense'],
+            ],
+        ];
+
+        foreach ($stats as $key => &$stat) {
+            $sum = $stat['c_val'] + $stat['o_val'];
+            $stat['ratio_c'] = $sum > 0 ? (int) round(($stat['c_val'] / $sum) * 100) : 50;
+            $stat['ratio_o'] = 100 - $stat['ratio_c'];
+            $stat['diff'] = $stat['c_val'] - $stat['o_val'];
+        }
+        unset($stat);
+
+        $powerDiff = (int) $challenger['power_score'] - (int) $opponent['power_score'];
+        $speedDiff = (int) $challenger['speed'] - (int) $opponent['speed'];
+
+        $initiative = match (true) {
+            $speedDiff > 0 => [
+                'label' => 'Tu frappes en 1er',
+                'badge' => 'text-emerald-400 bg-emerald-950/70 border-emerald-800/60',
+                'icon'  => '⚡',
+            ],
+            $speedDiff < 0 => [
+                'label' => 'L\'adversaire frappe en 1er',
+                'badge' => 'text-rose-400 bg-rose-950/70 border-rose-800/60',
+                'icon'  => '⚠️',
+            ],
+            default        => [
+                'label' => 'Égalité (Tirage 50/50)',
+                'badge' => 'text-amber-400 bg-amber-950/70 border-amber-800/60',
+                'icon'  => '🪙',
+            ],
+        };
+
+        return [
+            'stats'       => $stats,
+            'power_diff'  => $powerDiff,
+            'initiative'  => $initiative,
+            'challenger'  => $challenger,
+            'opponent'    => $opponent,
+        ];
     }
 
     /** Temps avant le prochain ticket, au format "mm:ss". */
@@ -98,6 +229,7 @@ class BattleArena extends Component
         }
 
         $this->fighterId = $characterId;
+        $this->showFighterModal = false;
         unset($this->fighter);
 
         // L'adversaire dépend de la puissance de la carte choisie : on en cherche un nouveau
@@ -143,6 +275,11 @@ class BattleArena extends Component
         );
     }
 
+    public function rematch(): void
+    {
+        $this->resetBattle();
+    }
+
     private function resetBattle(): void
     {
         $this->result = null;
@@ -152,6 +289,9 @@ class BattleArena extends Component
 
     public function render()
     {
-        return view('livewire.battle-arena');
+        return view('livewire.battle-arena', [
+            'cards'      => $this->cards,
+            'comparison' => $this->comparison,
+        ]);
     }
 }
