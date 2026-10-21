@@ -21,8 +21,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ArenaService
 {
-    // Seules ces données influencent le combat : elles suffisent à le recalculer
-    private const SNAPSHOT_FIELDS = ['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'luck'];
+    // Données qui influencent le combat (elles suffisent à le recalculer), plus power_score pour l'afficher en replay
+    private const SNAPSHOT_FIELDS = ['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'luck', 'power_score'];
 
     public function __construct(
         private BattleEngineService $engine,
@@ -181,7 +181,7 @@ class ArenaService
             'strength'       => (int) $data['strength'],
             'speed'          => (int) $data['speed'],
             'defense'        => (int) $data['defense'],
-            'power_score'    => (int) $data['power_score'],
+            'power_score'    => (int) ($data['power_score'] ?? 0), // Absent des combats enregistrés avant le replay
             'rarity_key'     => $rarityKey,
             'rarity_label'   => $rarityLabel,
             'synergies'      => array_column($synergies, 'name'),

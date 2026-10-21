@@ -584,7 +584,10 @@ Pour conserver la propreté du code, la logique ne résidera pas dans les contr�
 6. `App\Services\LeaderboardService` (classement de l'arène) :
    - `top(?League $league = null): array` : 50 meilleurs joueurs (tous ou d'une ligue) avec rang, Élo, ligue et nombre de combats. Mis en cache 60 secondes par onglet. Les admins ne sont pas classés.
    - `playerStanding(User $user): ?array` : rang, Élo et ligue du joueur connecté, recalculés à chaque affichage.
-7. `App\Services\EnergyManagerService` :
+7. `App\Services\BattleHistoryService` (historique des duels) :
+   - `recent(User $user): array` : 10 derniers combats (V/D/N, adversaire, delta d'Élo, date relative « il y a 5 min »).
+   - `replayData(User $user, int $battleId): ?array` : journal (`turns_log`), cartes et bilan d'un combat du joueur, pour le revoir dans l'arène sans recalcul ni coût.
+8. `App\Services\EnergyManagerService` :
    - `checkAndRegenSpins(User $user): void` (3 max, 1 / 4 min).
    - `checkAndRegenTickets(User $user): void` (5 max, 1 / 5 min).
 

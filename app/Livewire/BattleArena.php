@@ -7,8 +7,10 @@ use App\Models\Character;
 use App\Services\ArenaService;
 use App\Services\EnergyManagerService;
 use Illuminate\Support\Facades\DB;
+use App\Services\BattleHistoryService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class BattleArena extends Component
@@ -19,6 +21,10 @@ class BattleArena extends Component
     // Verrouillés : le client ne doit pas pouvoir affaiblir l'adversaire ou falsifier le résultat
     #[Locked]
     public ?array $opponent = null;
+
+    // Combattant du joueur dans le combat revu depuis l'historique (null hors replay)
+    #[Locked]
+    public ?array $replayFighter = null;
 
     #[Locked]
     public ?array $result = null;
@@ -109,7 +115,11 @@ class BattleArena extends Component
         $arena = app(ArenaService::class);
 
         return array_filter([
-            'challenger' => $this->fighter ? ['label' => 'Ton combattant'] + $arena->describeFighter($this->fighter) : null,
+            'challenger' => match (true) {
+                $this->replayFighter !== null => ['label' => 'Ton combattant (replay)'] + $arena->describeFighter($this->replayFighter),
+                $this->fighter !== null       => ['label' => 'Ton combattant'] + $arena->describeFighter($this->fighter),
+                default                       => null,
+            },
             'opponent'   => $this->opponent ? ['label' => $this->opponentLabel()] + $arena->describeFighter($this->opponent) : null,
         ]);
     }
@@ -280,9 +290,30 @@ class BattleArena extends Component
         $this->resetBattle();
     }
 
+    /**
+     * Revoir un combat depuis l'historique : on rejoue son journal enregistré, sans ticket ni recalcul.
+     * L'Élo et les pièces ne bougent pas, le HUD n'est donc pas mis à jour.
+     */
+    #[On('replay-battle')]
+    public function replayBattle(int $battleId): void
+    {
+        $replay = app(BattleHistoryService::class)->replayData(auth()->user(), $battleId);
+        if (!$replay) {
+            return;
+        }
+
+        $this->replayFighter = $replay['challenger'];
+        $this->opponent = $replay['opponent'];
+        $this->result = $replay['result'];
+        $this->error = null;
+
+        $this->dispatch('battle-started', log: $replay['log'], maxHp: $replay['max_hp'], stats: null, replay: true);
+    }
+
     private function resetBattle(): void
     {
         $this->result = null;
+        $this->replayFighter = null;
         $this->error = null;
         $this->dispatch('battle-reset');
     }
