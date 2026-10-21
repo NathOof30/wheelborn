@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Character;
+use App\Models\User;
+
 /**
- * Classement Élo selon la formule officielle des échecs (FIDE).
+ * Classement Élo selon la formule officielle des échecs (FIDE), et matchmaking par proximité d'Élo.
  *
  * Exemples (K = 32) :
  * - 1000 bat 1000 : +16 ; 1000 perd contre 1000 : -16
@@ -16,6 +19,35 @@ class EloService
 
     // L'Élo ne peut jamais devenir négatif
     public const MIN_ELO = 0;
+
+    // Matchmaking : fenêtres d'Élo essayées l'une après l'autre (±100 en priorité, jusqu'à ±250)
+    public const MATCHMAKING_WINDOWS = [100, 150, 200, 250];
+
+    /**
+     * Trouve un adversaire réel pour la carte choisie par le joueur :
+     * 1. un autre joueur dont l'Élo est proche (±100 en priorité, élargi jusqu'à ±250 si personne) ;
+     * 2. dans sa collection, la carte dont la puissance (power_score) est la plus proche de celle de l'attaquant.
+     * Retourne null si aucun adversaire n'est trouvé, même à ±250 (l'arène peut alors proposer un bot).
+     */
+    public function findOpponent(User $user, Character $attackerCard): ?Character
+    {
+        foreach (self::MATCHMAKING_WINDOWS as $window) {
+            $opponent = Character::query()
+                ->where('user_id', '!=', $user->id) // Jamais ses propres personnages
+                ->whereNull('recycled_at')
+                ->where('pending_reveal', false)
+                ->whereHas('user', fn ($owner) => $owner->whereBetween('elo', [$user->elo - $window, $user->elo + $window]))
+                ->orderByRaw('ABS(power_score - ?)', [$attackerCard->power_score]) // Puissance la plus proche d'abord
+                ->inRandomOrder() // À puissance égale, on varie les adversaires
+                ->first();
+
+            if ($opponent) {
+                return $opponent;
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Probabilité que le joueur gagne, selon l'écart d'Élo (entre 0 et 1).

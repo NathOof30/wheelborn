@@ -578,6 +578,7 @@ Pour conserver la propreté du code, la logique ne résidera pas dans les contr�
    - `expectedScore(int $playerElo, int $opponentElo): float` : probabilité de victoire attendue.
    - `calculateDelta(int $playerElo, int $opponentElo, bool $isWin): int` : variation d'Élo du duel.
    - `newRating(int $playerElo, int $opponentElo, bool $isWin): int` : nouvel Élo, avec plancher à 0.
+   - `findOpponent(User $user, Character $attackerCard): ?Character` : matchmaking. Cherche un autre joueur à ±100 Élo (élargi progressivement jusqu'à ±250), puis prend dans sa collection la carte de puissance la plus proche de celle de l'attaquant ; `null` si personne (repli sur un bot). L'Élo du joueur affronté ne change pas.
 5. `App\Services\EnergyManagerService` :
    - `checkAndRegenSpins(User $user): void` (3 max, 1 / 4 min).
    - `checkAndRegenTickets(User $user): void` (5 max, 1 / 5 min).
