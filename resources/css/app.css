@@ -2,31 +2,241 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   WHEELBORN — Direction Artistique "Le Vide et la Roue"
+   Philosophie : contempler, respirer, se rendre compte de la grandeur.
+   Le vide est puissant mais pas menaçant — un ciel étoilé serein.
+   ========================================================================== */
+
 @layer base {
   :root {
-    --color-game-bg: #0a0e1a;
-    --color-game-surface: rgba(15, 23, 42, 0.9);
-    --color-game-card: #131b2e;
-    --color-game-border: #1e293b;
+    /* ── Cosmos palette ── */
+    --color-cosmos-deep: #050a14;
+    --color-cosmos-mid: #0a0e1a;
+    --color-cosmos-surface: rgba(12, 17, 30, 0.55);
+    --color-cosmos-card: rgba(15, 22, 40, 0.5);
+    --color-cosmos-border: rgba(30, 41, 59, 0.45);
 
+    /* ── Gold (Destin) ── */
+    --color-gold: #d4a843;
+    --color-gold-light: #f0c96e;
+    --color-gold-glow: rgba(212, 168, 67, 0.15);
+
+    /* ── Frost (Élémentaire) ── */
+    --color-frost: #7dd3fc;
+    --color-frost-light: #a5b4fc;
+
+    /* ── Rarity system (preserved) ── */
     --color-rarity-common: #94a3b8;
     --color-rarity-rare: #38bdf8;
     --color-rarity-epic: #c084fc;
     --color-rarity-legendary: #fbbf24;
 
+    /* ── Stats (preserved) ── */
     --color-stat-hp: #f43f5e;
     --color-stat-strength: #f59e0b;
     --color-stat-speed: #06b6d4;
     --color-stat-defense: #10b981;
+
+    /* ── Spacing contemplatif ── */
+    --space-breathe: clamp(3rem, 6vw, 6rem);
+    --space-section: clamp(4rem, 8vw, 8rem);
   }
 
+  /* ── Base body : gradient cosmique ── */
   body {
-    background-color: #0a0e1a;
-    color: #f8fafc;
+    background: linear-gradient(
+      175deg,
+      var(--color-cosmos-deep) 0%,
+      var(--color-cosmos-mid) 40%,
+      #0c1424 100%
+    );
+    color: #e2e8f0;
+    min-height: 100vh;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Typographie aérée ── */
+  h1, h2, h3 {
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+  }
+
+  p {
+    line-height: 1.75;
+  }
+
+  /* ── Sélection ── */
+  ::selection {
+    background: var(--color-gold);
+    color: var(--color-cosmos-deep);
   }
 }
 
-/* Animations et effets néon WHEELBORN */
+/* ==========================================================================
+   AMBIANCE COSMIQUE — Étoiles + lueur orbitale
+   ========================================================================== */
+
+/* Champ d'étoiles — appliqué au layout principal */
+.cosmos-field {
+  position: relative;
+  overflow-x: hidden;
+}
+
+.cosmos-field::before,
+.cosmos-field::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Couche 1 : étoiles fines */
+.cosmos-field::before {
+  background-image:
+    radial-gradient(1.2px 1.2px at 15% 20%, rgba(255,255,255,0.35), transparent),
+    radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1.5px 1.5px at 65% 35%, rgba(212,168,67,0.25), transparent),
+    radial-gradient(1px 1px at 80% 60%, rgba(255,255,255,0.15), transparent),
+    radial-gradient(1.3px 1.3px at 25% 75%, rgba(125,211,252,0.2), transparent),
+    radial-gradient(1px 1px at 50% 90%, rgba(255,255,255,0.18), transparent),
+    radial-gradient(1.4px 1.4px at 90% 15%, rgba(255,255,255,0.22), transparent),
+    radial-gradient(1px 1px at 10% 50%, rgba(192,132,252,0.15), transparent),
+    radial-gradient(1.2px 1.2px at 70% 80%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 35% 45%, rgba(212,168,67,0.18), transparent);
+  animation: starfield-drift 120s linear infinite;
+}
+
+/* Couche 2 : lueur orbitale douce */
+.cosmos-field::after {
+  background:
+    radial-gradient(ellipse 600px 400px at 15% 20%, rgba(212,168,67,0.04), transparent),
+    radial-gradient(ellipse 500px 500px at 85% 80%, rgba(99,102,241,0.03), transparent);
+  animation: cosmos-breathe 20s ease-in-out infinite;
+}
+
+@keyframes starfield-drift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-20px); }
+}
+
+@keyframes cosmos-breathe {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ==========================================================================
+   ANIMATIONS CONTEMPLATIVES
+   ========================================================================== */
+
+/* Entrée douce par le bas */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Délais d'entrée séquentiels */
+.animate-delay-100 { animation-delay: 0.1s; }
+.animate-delay-200 { animation-delay: 0.2s; }
+.animate-delay-300 { animation-delay: 0.3s; }
+.animate-delay-400 { animation-delay: 0.4s; }
+.animate-delay-500 { animation-delay: 0.5s; }
+.animate-delay-600 { animation-delay: 0.6s; }
+.animate-delay-700 { animation-delay: 0.7s; }
+
+/* Respiration douce — pour les éléments « vivants » */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.9; }
+}
+
+.animate-breathe {
+  animation: breathe 6s ease-in-out infinite;
+}
+
+/* Orbit lent — pour les orbes décoratives */
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(40px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(40px) rotate(-360deg); }
+}
+
+.animate-orbit {
+  animation: orbit 30s linear infinite;
+}
+
+/* Fade simple */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease both;
+}
+
+/* ==========================================================================
+   GLASSMORPHISM SEREIN
+   ========================================================================== */
+
+.glass {
+  background: var(--color-cosmos-surface);
+  border: 1px solid var(--color-cosmos-border);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+.glass-card {
+  background: var(--color-cosmos-card);
+  border: 1px solid var(--color-cosmos-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ==========================================================================
+   SCROLLBAR — DARK & DISCRÈTE
+   ========================================================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.3) transparent;
+}
+
+/* ==========================================================================
+   ANIMATIONS EXISTANTES PRÉSERVÉES (Neon, Spin, Card Flip)
+   ========================================================================== */
+
 @keyframes neonPulse {
   0%, 100% { opacity: 1; filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6)); }
   50% { opacity: 0.85; filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.3)); }
@@ -76,4 +286,52 @@
 
 [x-cloak] {
     display: none !important;
+}
+
+/* ==========================================================================
+   COMPOSANTS DA — SECTIONS CONTEMPLATIVES
+   ========================================================================== */
+
+/* Section de page avec respiration verticale */
+.section-breathe {
+  padding-top: var(--space-breathe);
+  padding-bottom: var(--space-breathe);
+}
+
+.section-wide {
+  padding-top: var(--space-section);
+  padding-bottom: var(--space-section);
+}
+
+/* Séparateur lumineux subtil */
+.divider-glow {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 168, 67, 0.2) 30%,
+    rgba(212, 168, 67, 0.35) 50%,
+    rgba(212, 168, 67, 0.2) 70%,
+    transparent 100%
+  );
+  border: none;
+}
+
+/* Titre de section — majestueux */
+.heading-majestic {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: linear-gradient(135deg, #f0c96e 0%, #d4a843 40%, #e8d5a3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Texte contemplatif — léger, aéré */
+.text-contemplative {
+  color: #94a3b8;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  max-width: 42ch;
 }
