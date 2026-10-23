@@ -8,6 +8,7 @@ use App\Data\RaceData;
 use App\Data\SynergyData;
 use App\Data\WeaponData;
 use App\Enums\League;
+use App\Events\ArenaBattleFinished;
 use App\Models\Battle;
 use App\Models\Character;
 use App\Models\User;
@@ -184,6 +185,9 @@ class ArenaService
                 'has_free_arena_reroll' => true,
             ]);
         });
+
+        // Succès liés à l'arène (« Premier Sang »)
+        ArenaBattleFinished::dispatch($user, $won, $draw);
 
         return [
             'won'       => $won,

@@ -12,6 +12,7 @@ use App\Data\WeaponData;
 use App\Data\PowerData;
 use App\Data\SynergyData;
 use App\Data\NameGenerator;
+use App\Events\CharacterGenerated;
 use Illuminate\Support\Str;
 
 class CharacterGeneratorService
@@ -35,7 +36,7 @@ class CharacterGeneratorService
 
         $recycleValue = $this->calculateRecycleValue($powerScore, count($synergies), $rarity);
 
-        return Character::create([
+        $character = Character::create([
             'user_id'           => $user->id,
             'name'              => NameGenerator::generate($race['id']),
             'race_id'           => $race['id'],
@@ -56,6 +57,11 @@ class CharacterGeneratorService
             'is_active_fighter' => false,
             'pending_reveal'    => true,
         ]);
+
+        // Succès liés au tirage (carte Légendaire, synergie instable)
+        CharacterGenerated::dispatch($user, $character);
+
+        return $character;
     }
 
     /**

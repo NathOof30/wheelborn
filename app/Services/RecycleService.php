@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Character;
+use App\Events\CharactersRecycled;
 use Illuminate\Support\Facades\DB;
 use DomainException;
 
@@ -17,7 +18,7 @@ class RecycleService
      */
     public function recycle(User $user, string $characterId): int
     {
-        return DB::transaction(function () use ($user, $characterId) {
+        $coins = DB::transaction(function () use ($user, $characterId) {
             $lockedUser = User::where('id', $user->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -54,6 +55,11 @@ class RecycleService
 
             return $coins;
         });
+
+        // Succès liés au recyclage (« Maître Alchimiste »)
+        CharactersRecycled::dispatch($user, 1);
+
+        return $coins;
     }
 
     /**
@@ -159,7 +165,7 @@ class RecycleService
             return ['count' => 0, 'coins' => 0];
         }
 
-        return DB::transaction(function () use ($user, $criteria) {
+        $result = DB::transaction(function () use ($user, $criteria) {
             $lockedUser = User::where('id', $user->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -194,5 +200,11 @@ class RecycleService
                 'coins' => $totalCoins,
             ];
         });
+
+        if ($result['count'] > 0) {
+            CharactersRecycled::dispatch($user, $result['count']);
+        }
+
+        return $result;
     }
 }
