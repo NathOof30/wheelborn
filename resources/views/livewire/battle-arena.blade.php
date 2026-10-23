@@ -121,12 +121,12 @@
                             <div
                                 x-data="{ flipped: false }"
                                 class="perspective-1000 w-[270px] select-none"
-                                style="width: 270px; height: 465px; min-height: 465px;"
+                                style="width: 270px; height: 415px; min-height: 415px;"
                             >
                                 <div
                                     class="relative w-full h-full preserve-3d card-flip-transition"
                                     :class="{ 'rotate-y-180': flipped }"
-                                    style="width: 270px; height: 465px; min-height: 465px;"
+                                    style="width: 270px; height: 415px; min-height: 415px;"
                                 >
                                     {{-- ========================================================================= --}}
                                     {{-- FACE RECTO (CLIC POUR FLIP VERS LE VERSO)                                  --}}
@@ -135,7 +135,7 @@
                                         @click="flipped = true"
                                         class="absolute inset-0 w-full h-full rounded-3xl border {{ $borderStyles }} overflow-hidden p-3.5 flex flex-col justify-between backface-hidden shadow-xl cursor-pointer hover:scale-[1.01] transition-transform duration-200"
                                         :class="{ 'pointer-events-none': flipped }"
-                                        style="width: 270px; height: 465px; min-height: 465px;"
+                                        style="width: 270px; height: 415px; min-height: 415px;"
                                         title="Cliquer pour afficher les statistiques et passifs"
                                     >
                                         {{-- En-tête Recto --}}
@@ -189,7 +189,7 @@
                                         @click="if (!$event.target.closest('button, a')) flipped = false"
                                         class="absolute inset-0 w-full h-full rounded-3xl border {{ $borderStyles }} bg-slate-950/95 backdrop-blur-md overflow-hidden p-3.5 flex flex-col justify-between backface-hidden rotate-y-180 shadow-2xl cursor-pointer"
                                         :class="{ 'pointer-events-auto': flipped, 'pointer-events-none': !flipped }"
-                                        style="width: 270px; height: 465px; min-height: 465px;"
+                                        style="width: 270px; height: 415px; min-height: 415px;"
                                     >
                                         <div>
                                             {{-- En-tête Verso : Nom & Rareté --}}
@@ -772,21 +772,27 @@
                                 </button>
                             </div>
                         @else
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                 @foreach ($this->modalFighters as $char)
                                     @php
                                         $cRarityKey = $char->rarity instanceof \App\Enums\Rarity ? $char->rarity->value : (string) $char->rarity;
                                         $cBorder = match($cRarityKey) {
-                                            'legendary' => 'border-amber-400/80 bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950',
-                                            'epic'      => 'border-purple-500/70 bg-gradient-to-b from-purple-950/30 via-slate-900 to-slate-950',
-                                            'rare'      => 'border-cyan-400/60 bg-gradient-to-b from-cyan-950/30 via-slate-900 to-slate-950',
-                                            default     => 'border-slate-800 bg-slate-900',
+                                            'legendary' => 'border-amber-400/80 bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.25)]',
+                                            'epic'      => 'border-purple-500/70 bg-gradient-to-b from-purple-950/30 via-slate-900 to-slate-950 shadow-[0_0_15px_rgba(192,132,252,0.2)]',
+                                            'rare'      => 'border-cyan-400/60 bg-gradient-to-b from-cyan-950/30 via-slate-900 to-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.18)]',
+                                            default     => 'border-slate-800 bg-slate-900/90 hover:border-slate-700',
                                         };
                                         $cBadge = match($cRarityKey) {
-                                            'legendary' => 'bg-amber-400 text-slate-950 font-black',
+                                            'legendary' => 'bg-amber-400 text-slate-950 font-black shadow-[0_0_8px_rgba(251,191,36,0.4)]',
                                             'epic'      => 'bg-purple-500 text-white font-bold',
                                             'rare'      => 'bg-cyan-500 text-slate-950 font-bold',
                                             default     => 'bg-slate-700 text-slate-200 font-medium',
+                                        };
+                                        $cStars = match($cRarityKey) {
+                                            'legendary' => 5,
+                                            'epic'      => 4,
+                                            'rare'      => 3,
+                                            default     => 2,
                                         };
                                         $isSelected = $char->id === $fighterId;
                                     @endphp
@@ -795,37 +801,52 @@
                                         type="button"
                                         wire:key="modal-pick-{{ $char->id }}"
                                         wire:click="selectFighter('{{ $char->id }}')"
-                                        class="group rounded-2xl border p-3 flex flex-col justify-between text-left transition-all duration-200 relative overflow-hidden cursor-pointer {{ $cBorder }} {{ $isSelected ? 'ring-2 ring-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.35)] scale-[1.02]' : 'hover:scale-[1.02] hover:border-slate-600' }}"
-                                        style="height: 250px;"
+                                        class="group rounded-3xl border p-3 flex flex-col justify-between text-left transition-all duration-300 relative overflow-hidden cursor-pointer select-none {{ $cBorder }} {{ $isSelected ? 'ring-2 ring-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)] scale-[1.02]' : 'hover:scale-[1.02] hover:-translate-y-1' }}"
+                                        style="height: 305px;"
+                                        title="{{ $char->name }}"
                                     >
-                                        {{-- En-tête de carte compacte --}}
+                                        {{-- En-tête de carte fidèle au Recto --}}
                                         <div class="flex items-center justify-between gap-1 w-full">
-                                            <span class="px-2 py-0.5 rounded text-[8px] uppercase tracking-wider {{ $cBadge }}">
+                                            <span class="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider {{ $cBadge }}">
                                                 {{ $char->rarity->label() }}
                                             </span>
-                                            <span class="text-xs font-mono font-bold text-amber-300">
-                                                ⚡ {{ $char->power_score }}
-                                            </span>
+                                            <div class="flex items-center gap-1 bg-slate-950/80 px-2 py-0.5 rounded-lg border border-slate-800">
+                                                <span class="text-[10px] text-amber-400">⚡</span>
+                                                <span class="font-extrabold text-xs text-white font-mono">{{ $char->power_score }}</span>
+                                            </div>
                                         </div>
 
-                                        {{-- Avatar Paper Doll --}}
+                                        {{-- Avatar Paper Doll centré au bon gabarit --}}
                                         <div class="my-auto flex items-center justify-center overflow-hidden py-1">
-                                            <x-character-avatar :character="$char" class="max-w-[110px]" />
+                                            <x-character-avatar :character="$char" class="max-w-[135px]" />
                                         </div>
 
-                                        {{-- Infos Héros --}}
-                                        <div class="w-full pt-1.5 border-t border-slate-800/80 space-y-0.5 text-center">
-                                            <div class="font-extrabold text-xs text-white truncate group-hover:text-amber-300 transition-colors">
+                                        {{-- Pied de carte avec Étoiles & Décoration identiques à la Collection --}}
+                                        <div class="w-full pt-1.5 border-t border-slate-800/80 text-center">
+                                            <div class="flex items-center justify-center gap-0.5 mb-1">
+                                                @for ($s = 1; $s <= 5; $s++)
+                                                    <span class="text-[10px] {{ $s <= $cStars ? 'text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]' : 'text-slate-800' }}">★</span>
+                                                @endfor
+                                            </div>
+
+                                            <div class="font-black text-xs text-white truncate tracking-tight group-hover:text-amber-300 transition-colors">
                                                 {{ $char->name }}
                                             </div>
-                                            <div class="text-[10px] text-slate-400 truncate">
-                                                {{ $char->race_data['icon'] ?? '' }} {{ $char->weapon_data['icon'] ?? '' }} {{ $char->power_data['icon'] ?? '' }}
-                                            </div>
-                                            <div class="text-[9px] font-mono text-slate-500 flex items-center justify-center gap-1">
+
+                                            <p class="text-[10px] text-slate-400 truncate mt-0.5 font-medium">
+                                                {{ $char->race_data['name'] ?? ucfirst($char->race_id) }} • {{ $char->weapon_data['name'] ?? ucfirst($char->weapon_id) }}
+                                                <span class="text-indigo-400 font-semibold">({{ $char->power_data['name'] ?? ucfirst($char->power_id) }})</span>
+                                            </p>
+
+                                            <div class="mt-1.5 pt-1 border-t border-slate-800/60 flex items-center justify-center">
                                                 @if ($isSelected)
-                                                    <span class="text-rose-400 font-bold">✓ En combat</span>
+                                                    <span class="text-[9px] text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold shadow-sm">
+                                                        ✓ En combat
+                                                    </span>
                                                 @else
-                                                    <span>🏆 {{ $char->wins }}V - {{ $char->losses }}D</span>
+                                                    <span class="text-[9px] font-mono text-slate-500">
+                                                        🏆 {{ $char->wins }}V - {{ $char->losses }}D
+                                                    </span>
                                                 @endif
                                             </div>
                                         </div>
