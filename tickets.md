@@ -25,10 +25,10 @@
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
-| **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 4 | ⏳ En cours (1/4 - Paper Doll V1 ✅) |
+| **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 5 | ⏳ En cours (2/5 - Paper Doll & DA Cosmique ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode & Seeder ✅) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (121 tests ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (164 tests ✅) |
 
 ---
 
@@ -386,6 +386,23 @@
   - [ ] Calque 2 : Effet élémentaire / VFX semi-transparent (`elements/` - futur).
   - [x] Châssis de carte responsive (bordure, liserés, halo glow de rareté en pur CSS Tailwind) s'adaptant à n'importe quelle taille de carte sans distorsion.
   - [x] Tests automatisés unitaires & fonctionnels (`tests/Feature/PaperDollTest.php` - 7 tests validés).
+
+### [x] T5.5 — Direction Artistique "Le Vide et la Roue", Respiration Contemplative & Standardisation du Ratio Carte Physique (TCG 1:1.53)
+- **Priorité :** 🟢 P2 (Direction Artistique & Polish Visuel Majeur)
+- **Attribué à :** 👥 Binôme
+- **Cible :** `resources/css/app.css`, `tailwind.config.js`, `resources/views/layouts/*`, `resources/views/welcome.blade.php`, `resources/views/collection.blade.php`, `resources/views/arena.blade.php`, `resources/views/dashboard.blade.php`, `resources/views/livewire/collection-grid.blade.php`, `resources/views/livewire/battle-arena.blade.php`, `resources/views/components/*`, `resources/views/auth/*`, `resources/views/profile/*`
+- **Description :** Refonte esthétique complète orientée contemplation, espace et grandeur du vide sans agressivité, et harmonisation stricte du gabarit des cartes à collectionner pour assurer la continuité visuelle physique entre la Collection et l'Arène.
+- **Critères d'acceptation :**
+  - [x] **Fond Cosmique & Respiration :** Fond avec gradient cosmique profond (`#050a14` $\rightarrow$ `#0a0e1a`), champ d'étoiles procédural (`starfield-drift`), respiration d'orbe orbitale (`cosmos-breathe`), scrollbar discrète et correction du défilement vertical (`overflow-x: hidden`).
+  - [x] **Typographie & Titres Majestueux :** Intégration de la police `Outfit` en 800 pour les titres dorés `.heading-majestic` et dégradés élémentaires, police `Inter` avec interligne 1.75 pour les textes narratifs aérés.
+  - [x] **Hero Section Contemplatif :** Page d'accueil (`welcome.blade.php`) monumentale avec titre 8xl, grand espacement vertical contemplatif et cartes piliers flottantes.
+  - [x] **Harmonisation UI Complète :** Refonte dark glassmorphism de toutes les pages d'authentification (login, register, reset, verification), de l'espace profil et de l'ensemble des composants Blade de base (`text-input`, `primary-button`, `secondary-button`, `danger-button`, `modal`, `nav-link`, `responsive-nav-link`).
+  - [x] **Standardisation du Ratio Carte Physique (TCG ~1 : 1.53) :**
+    - [x] Rétablissement du conteneur large `max-w-7xl` sur les vues principales (Collection, Arène, Dashboard) pour redonner aux 4 colonnes leur largeur naturelle (~289px).
+    - [x] Calibrage de la hauteur des cartes de collection de 490px à 440px (grille et modale zoom inspecteur) pour éliminer l'effet étiré/trop haut (ratio TCG équilibré 1 : 1.52).
+    - [x] Refonte intégrale du catalogue de sélection de héros de l'Arène (`battle-arena.blade.php`) : remplacement du format bouton carré 250px par une vraie carte miniature proportionnelle (hauteur 305px, ratio 1 : 1.55) avec châssis `rounded-3xl`, lueur de rareté, étoiles ★, en-tête de puissance et avatar Paper Doll valorisé (135px) pour préserver la continuité physique de la carte.
+    - [x] Harmonisation des cartes déployées en duel 1v1 à 270px × 415px (ratio 1 : 1.54).
+  - [x] **Validation & Tests :** 100% de la suite de tests automatisés au vert (164 tests passés, 621 assertions) et compilation Vite sans avertissement (`✓ built in 1.62s`).
 
 
 ### [ ] T5.2 — Ambiance Sonore & Haptique (SFX optionnels)
