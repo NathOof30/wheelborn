@@ -72,7 +72,7 @@
                     La Roue du Destin
                 </h1>
                 <p class="mt-2 text-slate-400 text-sm sm:text-base">
-                    Actionne les rouleaux pour fusionner une Race, une Arme et un Pouvoir élémentaire.
+                    Lance les roues pour fusionner une Race, une Arme et un Pouvoir élémentaire.
                 </p>
             </div>
 
@@ -156,6 +156,44 @@
                 </div>
             </div>
 
+            {{-- Roues du destin : le serveur choisit le résultat et calcule l'angle d'arrêt, la vue ne fait que jouer la transition CSS --}}
+            <div class="grid grid-cols-3 gap-3 sm:gap-6">
+                @foreach ($this->wheels as $key => $wheel)
+                    <div wire:key="wheel-{{ $key }}" class="flex flex-col items-center gap-2">
+                        <span class="text-[10px] sm:text-xs uppercase font-semibold tracking-widest text-slate-400">{{ $wheel['label'] }}</span>
+
+                        <div class="relative w-full max-w-[180px] aspect-square">
+                            {{-- Pointeur fixe --}}
+                            <div class="absolute left-1/2 -top-1 -translate-x-1/2 z-20 w-0 h-0 border-l-[9px] border-r-[9px] border-t-[16px] border-l-transparent border-r-transparent border-t-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)]"></div>
+
+                            {{-- Disque : seul l'angle change d'un rendu à l'autre, la transition CSS fait le reste --}}
+                            <div
+                                class="absolute inset-0 rounded-full border-4 border-slate-700 overflow-hidden shadow-[0_0_25px_rgba(99,102,241,0.25)]"
+                                style="background: {{ $wheel['gradient'] }}; transform: rotate({{ $wheel['rotation'] }}deg); transition: transform {{ $wheel['duration'] }}ms cubic-bezier(0.12, 0.8, 0.1, 1);"
+                                @if ($key === $lastWheel) x-on:transitionend.self="$wire.finishSpin()" @endif
+                            >
+                                @foreach ($wheel['segments'] as $segment)
+                                    <div class="absolute inset-0 flex justify-center pt-[7%]" style="transform: rotate({{ $segment['angle'] }}deg);">
+                                        <span class="{{ $segment['small'] ? 'text-[10px] sm:text-sm' : 'text-base sm:text-2xl' }} leading-none select-none" title="{{ $segment['name'] }} ({{ $segment['chance'] }} %)">{{ $segment['icon'] }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            {{-- Moyeu --}}
+                            <div class="absolute inset-[40%] z-10 rounded-full bg-slate-950 border-2 border-slate-600"></div>
+                        </div>
+
+                        <span class="h-5 text-xs sm:text-sm font-bold">
+                            @if ($isSpinning)
+                                <span class="text-slate-500 animate-pulse">…</span>
+                            @elseif ($wheel['result'])
+                                <span class="text-white">{{ $wheel['result']['icon'] }} {{ $wheel['result']['name'] }}</span>
+                            @endif
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+
             {{-- Spin Action Button --}}
             <div class="pt-2">
                 <button
@@ -165,7 +203,9 @@
                     class="w-full sm:w-auto px-10 py-5 rounded-xl font-extrabold text-lg uppercase tracking-wider transition-all duration-300 shadow-xl disabled:opacity-40 disabled:cursor-not-allowed {{ !empty($revealedCharacter) ? 'bg-slate-800 border border-slate-700 text-slate-400' : ($pityCounter >= $pityMax ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 hover:shadow-amber-500/30 hover:scale-105 animate-neon-pulse' : 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white hover:from-indigo-600 hover:to-cyan-600 hover:shadow-cyan-500/25 hover:scale-105') }}"
                 >
                     <span wire:loading.remove wire:target="spin">
-                        @if (!empty($revealedCharacter))
+                        @if ($isSpinning)
+                            🎡 Les roues tournent...
+                        @elseif (!empty($revealedCharacter))
                             ⚠️ Finalisez le tirage ci-dessous
                         @elseif ($pityCounter >= $pityMax)
                             🌟 Déclencher le Super Spin !
@@ -189,8 +229,8 @@
         </div>
     </div>
 
-    {{-- Modal / Reveal Card Section --}}
-    @if ($revealedCharacter)
+    {{-- Modal / Reveal Card Section (cachée tant que les roues tournent) --}}
+    @if ($revealedCharacter && !$isSpinning)
         <div class="bg-slate-900 border-2 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden transition-all duration-500 {{ $revealedCharacter['rarity'] === 'legendary' ? 'border-amber-400 shadow-amber-500/20' : ($revealedCharacter['rarity'] === 'epic' ? 'border-purple-400 shadow-purple-500/20' : ($revealedCharacter['rarity'] === 'rare' ? 'border-cyan-400 shadow-cyan-500/20' : 'border-slate-700')) }}">
             {{-- Badge Rareté --}}
             <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-6">
