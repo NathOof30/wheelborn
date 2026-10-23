@@ -48,6 +48,10 @@ class CharacterWheel extends Component
     #[Locked]
     public array $wheelRotations = ['race' => 0, 'weapon' => 0, 'power' => 0];
 
+    // Angle avant le tirage courant pour initialiser l'animation CSS sans saut
+    #[Locked]
+    public array $previousRotations = ['race' => 0, 'weapon' => 0, 'power' => 0];
+
     public ?array $revealedCharacter = null;
     public ?string $notification = null;
     public ?string $notificationType = null;
@@ -255,6 +259,7 @@ class CharacterWheel extends Component
         if ($launched) {
             // Le résultat est déjà enregistré (pending_reveal) : les roues ne font que le mettre en scène.
             // isSpinning reste vrai jusqu'à finishSpin(), appelé par la vue à l'arrêt de la dernière roue.
+            $this->previousRotations = $this->wheelRotations;
             $this->aimWheels($this->revealedCharacter, self::WHEEL_EXTRA_TURNS);
         } else {
             $this->isSpinning = false;
@@ -539,6 +544,8 @@ class CharacterWheel extends Component
         return view('livewire.character-wheel', [
             // Roue qui s'arrête en dernier : c'est elle qui prévient le serveur de la fin du tirage
             'lastWheel' => array_search(max(self::WHEEL_DURATIONS), self::WHEEL_DURATIONS, true),
+            'maxDuration' => max(self::WHEEL_DURATIONS),
+            'previousRotations' => $this->previousRotations,
         ]);
     }
 }
