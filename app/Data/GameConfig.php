@@ -128,8 +128,7 @@ class GameConfig
             'emergency_spin' => [
                 'name' => 'Jeton d\'Urgence',
                 'icon' => '🎟️',
-                'base_cost' => 120,
-                'cost_multiplier' => 1.6,
+                'costs' => [120, 250], // Prix du 1er puis du 2e achat de la journée (2 achats max par jour)
             ],
         ];
     }

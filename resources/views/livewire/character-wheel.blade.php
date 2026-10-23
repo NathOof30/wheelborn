@@ -225,6 +225,32 @@
                         Tirage en cours...
                     </span>
                 </button>
+
+                {{-- T4.3 : Ticket d'Urgence, proposé uniquement quand la réserve de charges est vide --}}
+                @if (!$isAdmin && $spinCharges <= 0 && empty($revealedCharacter) && !$isSpinning)
+                    <div class="mt-4 flex flex-col items-center gap-1.5">
+                        @if ($emergencyCost !== null)
+                            <button
+                                wire:click="buyEmergencySpin"
+                                wire:loading.attr="disabled"
+                                @disabled($coins < $emergencyCost)
+                                class="px-5 py-2.5 rounded-xl text-sm font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            >
+                                <span wire:loading.remove wire:target="buyEmergencySpin">🎟️ Ticket d'Urgence : +1 charge ({{ $emergencyCost }} 🪙)</span>
+                                <span wire:loading wire:target="buyEmergencySpin">Achat en cours...</span>
+                            </button>
+                            <span class="text-[11px] text-slate-500">
+                                @if ($coins < $emergencyCost)
+                                    Pas assez de pièces ({{ $coins }}/{{ $emergencyCost }} 🪙)
+                                @else
+                                    {{ $emergencyRemaining }} achat{{ $emergencyRemaining > 1 ? 's' : '' }} restant{{ $emergencyRemaining > 1 ? 's' : '' }} aujourd'hui
+                                @endif
+                            </span>
+                        @else
+                            <span class="text-[11px] text-slate-500">🎟️ Tickets d'Urgence épuisés pour aujourd'hui</span>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
     </div>
