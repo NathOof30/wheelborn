@@ -15,23 +15,33 @@
         @livewireStyles
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-amber-500 selection:text-black">
-        <div class="min-h-screen bg-slate-950 flex flex-col">
+    <body class="font-sans antialiased min-h-screen flex flex-col cosmos-field">
+        <div class="min-h-screen flex flex-col relative z-10">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="relative z-10 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 shadow-lg">
-                    <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+                <header class="glass border-b border-white/[0.04]">
+                    <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
                 </header>
             @endisset
 
-            <!-- Page Content -->
+            <!-- Page Content — respiration verticale -->
             <main class="flex-1">
                 {{ $slot }}
             </main>
+
+            <!-- Footer contemplatif -->
+            <footer class="border-t border-white/[0.04] py-10 text-center">
+                <p class="text-xs text-slate-600 tracking-wide">
+                    WHEELBORN — Projet Universitaire Full-Stack
+                </p>
+                <p class="text-[10px] text-slate-700 mt-1">
+                    Laravel 11 · Livewire 3 · Tailwind CSS
+                </p>
+            </footer>
         </div>
 
         @livewireScripts

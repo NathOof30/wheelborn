@@ -306,12 +306,12 @@
                 <div
                     x-data="{ flipped: false }"
                     class="perspective-1000 w-full group select-none transition-transform duration-300 hover:-translate-y-1"
-                    style="height: 490px; min-height: 490px;"
+                    style="height: 440px; min-height: 440px;"
                 >
                     <div
                         class="relative w-full h-full preserve-3d card-flip-transition"
                         :class="{ 'rotate-y-180': flipped }"
-                        style="height: 490px; min-height: 490px;"
+                        style="height: 440px; min-height: 440px;"
                     >
                         {{-- ========================================================================= --}}
                         {{-- FACE RECTO (CLIC POUR FLIP VERS LE VERSO)                                  --}}
@@ -320,7 +320,7 @@
                             @click="flipped = true"
                             class="absolute inset-0 w-full h-full rounded-3xl border {{ $borderStyles }} overflow-hidden p-4 flex flex-col justify-between backface-hidden shadow-xl cursor-pointer"
                             :class="{ 'pointer-events-none': flipped }"
-                            style="height: 490px; min-height: 490px;"
+                            style="height: 440px; min-height: 440px;"
                             title="Cliquer pour retourner la carte"
                         >
                             {{-- En-tête Recto --}}
@@ -343,8 +343,8 @@
                             </div>
 
                             {{-- Scène Visuelle : Avatar Composite Paper Doll ou Fallback --}}
-                            <div class="flex-1 my-2 flex items-center justify-center">
-                                <x-character-avatar :character="$character" />
+                            <div class="flex-1 my-1.5 flex items-center justify-center">
+                                <x-character-avatar :character="$character" class="max-w-[210px]" />
                             </div>
 
                             {{-- Pied de carte Recto : Titre & Décoration --}}
@@ -374,7 +374,7 @@
                             @click="if (!$event.target.closest('button, a')) flipped = false"
                             class="absolute inset-0 w-full h-full rounded-3xl border {{ $borderStyles }} bg-slate-950/95 backdrop-blur-md overflow-hidden p-4 flex flex-col justify-between backface-hidden rotate-y-180 shadow-2xl cursor-pointer"
                             :class="{ 'pointer-events-auto': flipped, 'pointer-events-none': !flipped }"
-                            style="height: 490px; min-height: 490px;"
+                            style="height: 440px; min-height: 440px;"
                         >
                             <div>
                                 {{-- En-tête Verso : Nom, Rareté, Bouton Retourner & Cadenas --}}
@@ -597,12 +597,12 @@
                             @mouseenter="flipped = true"
                             @mouseleave="flipped = false"
                             class="perspective-1000 w-full max-w-[290px] group select-none transition-transform duration-300 hover:scale-[1.02]"
-                            style="height: 460px; min-height: 460px;"
+                            style="height: 440px; min-height: 440px;"
                         >
                             <div
                                 class="relative w-full h-full preserve-3d card-flip-transition"
                                 :class="{ 'rotate-y-180': flipped }"
-                                style="height: 460px; min-height: 460px;"
+                                style="height: 440px; min-height: 440px;"
                             >
                                 {{-- ========================================================================= --}}
                                 {{-- FACE RECTO : ARTWORK HERO & PAPER DOLL COMPOSITE (EN GRAND)               --}}
@@ -610,7 +610,7 @@
                                 <div
                                     class="absolute inset-0 w-full h-full rounded-3xl border {{ $iCardBorderStyles }} overflow-hidden p-3.5 flex flex-col justify-between backface-hidden shadow-2xl"
                                     :class="{ 'pointer-events-none': flipped }"
-                                    style="height: 460px; min-height: 460px;"
+                                    style="height: 440px; min-height: 440px;"
                                 >
                                 {{-- En-tête Recto --}}
                                 <div class="flex items-center justify-between gap-2">
@@ -662,7 +662,7 @@
                                 <div
                                     class="absolute inset-0 w-full h-full rounded-3xl border {{ $iCardBorderStyles }} bg-slate-950/95 backdrop-blur-md overflow-hidden p-3.5 flex flex-col justify-between backface-hidden rotate-y-180 shadow-2xl"
                                     :class="{ 'pointer-events-auto': flipped, 'pointer-events-none': !flipped }"
-                                    style="height: 460px; min-height: 460px;"
+                                    style="height: 440px; min-height: 440px;"
                                 >
                                 <div>
                                     {{-- En-tête Verso : Nom, Rareté & Cadenas --}}
