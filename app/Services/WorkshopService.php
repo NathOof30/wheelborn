@@ -113,7 +113,7 @@ class WorkshopService
 
     // --- EFFETS ACTUELS (lus par la génération et l'arène) ---
 
-    /** Aimant à Pouvoirs Rares : points de pourcentage ajoutés aux chances de pouvoirs rares/mythiques (+3 par niveau). */
+    /** Aimant à Pouvoirs Rares : points de pourcentage ajoutés aux chances de pouvoirs mythiques (+3 par niveau). */
     public function rareMagnetBonus(User $user): int
     {
         return $this->upgradesOf($user)->levelOf('rare_magnet') * $this->definition('rare_magnet')['bonus_per_level'];

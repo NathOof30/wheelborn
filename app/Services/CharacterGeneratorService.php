@@ -16,6 +16,10 @@ use Illuminate\Support\Str;
 
 class CharacterGeneratorService
 {
+    public function __construct(private WorkshopService $workshop)
+    {
+    }
+
     public function generate(User $user, bool $isLuckySpin = false): Character
     {
         $race   = $this->weightedChoice(RaceData::all());
@@ -115,6 +119,17 @@ class CharacterGeneratorService
 
     private function selectPower(User $user, bool $isLuckySpin): array
     {
+        return $this->weightedChoice($this->powerPool($user, $isLuckySpin));
+    }
+
+    /**
+     * Pouvoirs que ce joueur peut tirer, avec leurs poids ajustés par l'Aimant à Pouvoirs Rares :
+     * chaque niveau fait passer 3 points de pourcentage des pouvoirs communs (puis rares, au Super Spin
+     * où les communs sont exclus) vers les pouvoirs mythiques. La répartition interne de chaque tier est conservée.
+     * Les poids sont multipliés par 100 pour rester entiers (weightedChoice tire un entier).
+     */
+    public function powerPool(User $user, bool $isLuckySpin = false): array
+    {
         $powers = PowerData::all();
 
         if ($isLuckySpin) {
@@ -122,7 +137,33 @@ class CharacterGeneratorService
             $powers = array_values(array_filter($powers, fn ($p) => $p['tier'] !== 'common'));
         }
 
-        return $this->weightedChoice($powers);
+        $tierTotals = [];
+        foreach ($powers as $power) {
+            $tierTotals[$power['tier']] = ($tierTotals[$power['tier']] ?? 0) + $power['weight'];
+        }
+
+        $bonus = $this->workshop->rareMagnetBonus($user);
+        $toMove = empty($tierTotals['mythic']) ? 0 : array_sum($tierTotals) * $bonus / 100;
+
+        // Facteur appliqué aux poids de chaque tier : on prélève sur les communs, puis sur les rares si besoin
+        $scale = array_fill_keys(array_keys($tierTotals), 1.0);
+        $moved = 0;
+        foreach (['common', 'rare'] as $tier) {
+            if (empty($tierTotals[$tier]) || $moved >= $toMove) {
+                continue;
+            }
+            $taken = min($tierTotals[$tier], $toMove - $moved);
+            $scale[$tier] = ($tierTotals[$tier] - $taken) / $tierTotals[$tier];
+            $moved += $taken;
+        }
+        if ($moved > 0) {
+            $scale['mythic'] = ($tierTotals['mythic'] + $moved) / $tierTotals['mythic'];
+        }
+
+        return array_map(
+            fn ($power) => ['weight' => (int) round($power['weight'] * $scale[$power['tier']] * 100)] + $power,
+            $powers,
+        );
     }
 
     private function rollStats(array $race, array $weapon, array $synergies, ?User $user = null): array
@@ -140,6 +181,13 @@ class CharacterGeneratorService
             $strength += mt_rand(-10, 20);
             $speed += mt_rand(-12, 18);
             $defense += mt_rand(-10, 18);
+        }
+
+        // Forge des Héros : bonus permanent de PV et de Force sur chaque tirage du joueur (les bots n'en ont pas)
+        if ($user) {
+            $forge = $this->workshop->heroForgeBonus($user);
+            $hp += $forge['hp'];
+            $strength += $forge['strength'];
         }
 
         // Bonus passifs des synergies

@@ -289,7 +289,10 @@ class CharacterWheel extends Component
         return array_values(match ($wheel) {
             'race'   => RaceData::all(),
             'weapon' => WeaponData::all(),
-            'power'  => PowerData::all(),
+            // Chances du joueur, Aimant à Pouvoirs Rares compris : la taille des parts suit les vraies probabilités
+            'power'  => auth()->check()
+                ? app(CharacterGeneratorService::class)->powerPool(auth()->user())
+                : PowerData::all(),
         });
     }
 
