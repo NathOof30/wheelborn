@@ -2,7 +2,12 @@
 
 namespace App\Livewire;
 
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
+use App\Data\PowerData;
+use App\Data\RaceData;
+use App\Data\WeaponData;
 use App\Models\Character;
 use App\Models\User;
 use App\Services\CharacterGeneratorService;
@@ -12,6 +17,15 @@ use Illuminate\Support\Facades\DB;
 
 class CharacterWheel extends Component
 {
+    // Roues de tirage : durée de rotation (ms) de chaque roue, décalées pour un arrêt l'une après l'autre
+    private const WHEEL_DURATIONS = ['race' => 3800, 'weapon' => 4600, 'power' => 5400];
+
+    // Tours complets ajoutés avant l'arrêt sur la part gagnante
+    private const WHEEL_EXTRA_TURNS = 5;
+
+    // Champ du personnage lu par chaque roue
+    private const WHEEL_FIELDS = ['race' => 'race_id', 'weapon' => 'weapon_id', 'power' => 'power_id'];
+
     public int $spinCharges = 3;
     public int $maxCharges = 3;
     public int $pityCounter = 0;
@@ -20,7 +34,15 @@ class CharacterWheel extends Component
     public int $elo = 1000;
     public int $nextRegenSeconds = 0;
     public bool $isAdmin = false;
+
+    // Vrai du lancement jusqu'à l'arrêt de la dernière roue : bloque un nouveau tirage et cache le résultat
+    #[Locked]
     public bool $isSpinning = false;
+
+    // Angle cumulé de chaque roue (degrés). Il ne fait que croître pour que la transition CSS tourne toujours dans le même sens
+    #[Locked]
+    public array $wheelRotations = ['race' => 0, 'weapon' => 0, 'power' => 0];
+
     public ?array $revealedCharacter = null;
     public ?string $notification = null;
     public ?string $notificationType = null;
@@ -84,6 +106,9 @@ class CharacterWheel extends Component
             $this->revealedCharacter = $pendings->first()->toArray();
             $this->notify('Tirage en attente récupéré ! Veuillez choisir de le garder ou de le recycler.', 'info');
         }
+
+        // Les roues affichent directement le tirage récupéré, sans animation
+        $this->aimWheels($this->revealedCharacter, 0);
     }
 
     public function refreshState(): void
@@ -140,9 +165,10 @@ class CharacterWheel extends Component
         }
 
         $this->isSpinning = true;
+        $launched = false;
 
         try {
-            DB::transaction(function () use ($userId) {
+            DB::transaction(function () use ($userId, &$launched) {
                 // 1. Verrouillage pessimiste de l'utilisateur pour bloquer toute concurrence
                 $user = User::where('id', $userId)->lockForUpdate()->firstOrFail();
 
@@ -163,6 +189,7 @@ class CharacterWheel extends Component
                             ->update(['pending_reveal' => false]);
                     }
                     $this->revealedCharacter = $latest->toArray();
+                    $this->aimWheels($this->revealedCharacter, 0);
                     $this->notify('Vous avez un tirage non finalisé en attente ! Choisissez de le garder ou de le recycler.', 'warning');
                     return;
                 }
@@ -189,16 +216,140 @@ class CharacterWheel extends Component
                 }
 
                 $this->revealedCharacter = $character->fresh()->toArray();
+                $launched = true;
             });
         } catch (\Throwable $e) {
             report($e);
             $this->notify('Une erreur est survenue lors du tirage. Vos charges ont été préservées.', 'error');
-        } finally {
+            $launched = false;
+        }
+
+        if ($launched) {
+            // Le résultat est déjà enregistré (pending_reveal) : les roues ne font que le mettre en scène.
+            // isSpinning reste vrai jusqu'à finishSpin(), appelé par la vue à l'arrêt de la dernière roue.
+            $this->aimWheels($this->revealedCharacter, self::WHEEL_EXTRA_TURNS);
+        } else {
             $this->isSpinning = false;
         }
 
         $this->refreshState();
         $this->dispatchStatsUpdated();
+    }
+
+    /** Appelé par la vue quand la dernière roue s'est arrêtée : débloque l'interface et révèle le combattant. */
+    public function finishSpin(): void
+    {
+        $this->isSpinning = false;
+    }
+
+    /** Les 3 roues affichées : parts proportionnelles aux chances de tirage, couleurs, angle courant et résultat. */
+    #[Computed]
+    public function wheels(): array
+    {
+        $palettes = [
+            'race'   => ['label' => 'Race',    'colors' => ['#312e81', '#1e1b4b']],
+            'weapon' => ['label' => 'Arme',    'colors' => ['#78350f', '#451a03']],
+            'power'  => ['label' => 'Pouvoir', 'colors' => ['#581c87', '#3b0764']],
+        ];
+
+        $wheels = [];
+        foreach ($palettes as $wheel => $palette) {
+            $resultId = $this->revealedCharacter[self::WHEEL_FIELDS[$wheel]] ?? null;
+
+            $stops = [];
+            $segments = [];
+            foreach ($this->wheelLayout($wheel) as $i => $part) {
+                $color = $palette['colors'][$i % count($palette['colors'])];
+                $stops[] = sprintf('%s %sdeg %sdeg', $color, round($part['start'], 2), round($part['end'], 2));
+                $segments[] = [
+                    'id'     => $part['id'],
+                    'name'   => $part['name'],
+                    'icon'   => $part['icon'],
+                    'angle'  => round($part['center'], 2), // Centre de la part, depuis le haut, sens horaire
+                    'chance' => $part['chance'],
+                    'small'  => $part['end'] - $part['start'] < 20, // Part étroite : icône réduite pour ne pas déborder
+                ];
+            }
+
+            $wheels[$wheel] = [
+                'label'    => $palette['label'],
+                'segments' => $segments,
+                'gradient' => 'conic-gradient(' . implode(', ', $stops) . ')',
+                'rotation' => $this->wheelRotations[$wheel],
+                'duration' => self::WHEEL_DURATIONS[$wheel],
+                'result'   => collect($segments)->firstWhere('id', $resultId),
+            ];
+        }
+
+        return $wheels;
+    }
+
+    private function wheelItems(string $wheel): array
+    {
+        return array_values(match ($wheel) {
+            'race'   => RaceData::all(),
+            'weapon' => WeaponData::all(),
+            'power'  => PowerData::all(),
+        });
+    }
+
+    /**
+     * Découpage d'une roue : chaque part occupe une portion de 360° proportionnelle à son poids de tirage (`weight`),
+     * la taille d'une part correspond donc à sa vraie chance de sortir.
+     */
+    private function wheelLayout(string $wheel): array
+    {
+        $items = $this->wheelItems($wheel);
+        $totalWeight = array_sum(array_column($items, 'weight'));
+
+        $layout = [];
+        $start = 0.0;
+        foreach ($items as $item) {
+            $width = $item['weight'] / $totalWeight * 360;
+            $layout[] = [
+                'id'     => $item['id'],
+                'name'   => $item['name'],
+                'icon'   => $item['icon'],
+                'start'  => $start,
+                'end'    => $start + $width,
+                'center' => $start + $width / 2,
+                'chance' => round($item['weight'] / $totalWeight * 100, 1),
+            ];
+            $start += $width;
+        }
+
+        return $layout;
+    }
+
+    /** Oriente les 3 roues vers la race, l'arme et le pouvoir du personnage tiré. */
+    private function aimWheels(array $character, int $extraTurns): void
+    {
+        foreach (self::WHEEL_FIELDS as $wheel => $field) {
+            $this->wheelRotations[$wheel] = $this->targetRotation($wheel, $character[$field] ?? '', $extraTurns);
+        }
+    }
+
+    /**
+     * Angle final d'une roue pour que la part gagnante s'arrête sous le pointeur (en haut).
+     * Pour amener le centre de la part sous le pointeur, la roue doit tourner de 360 - ce centre (modulo 360).
+     * On repart de l'angle courant, on ajoute des tours complets et un léger décalage aléatoire
+     * (±35 % de la largeur de la part) pour que l'arrêt ne tombe pas toujours pile au centre.
+     */
+    private function targetRotation(string $wheel, string $itemId, int $extraTurns): float
+    {
+        $part = collect($this->wheelLayout($wheel))->firstWhere('id', $itemId);
+        $current = (float) $this->wheelRotations[$wheel];
+
+        if (!$part) {
+            return $current;
+        }
+
+        $width = $part['end'] - $part['start'];
+        $jitter = $extraTurns > 0 ? mt_rand(-35, 35) / 100 * $width : 0;
+        $landing = fmod(360 - $part['center'] + $jitter + 360, 360);
+        $forward = fmod($landing - fmod($current, 360) + 360, 360);
+
+        return round($current + $extraTurns * 360 + $forward, 2);
     }
 
     /**
@@ -207,7 +358,7 @@ class CharacterWheel extends Component
     public function keepCharacter(): void
     {
         $userId = auth()->id();
-        if (!$userId || !$this->revealedCharacter) {
+        if (!$userId || !$this->revealedCharacter || $this->isSpinning) {
             return;
         }
 
@@ -238,7 +389,7 @@ class CharacterWheel extends Component
     public function recycleCharacter(): void
     {
         $user = auth()->user();
-        if (!$user || !$this->revealedCharacter) {
+        if (!$user || !$this->revealedCharacter || $this->isSpinning) {
             return;
         }
 
@@ -354,6 +505,9 @@ class CharacterWheel extends Component
 
     public function render()
     {
-        return view('livewire.character-wheel');
+        return view('livewire.character-wheel', [
+            // Roue qui s'arrête en dernier : c'est elle qui prévient le serveur de la fin du tirage
+            'lastWheel' => array_search(max(self::WHEEL_DURATIONS), self::WHEEL_DURATIONS, true),
+        ]);
     }
 }

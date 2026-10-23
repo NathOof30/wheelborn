@@ -37,6 +37,7 @@ class CharacterWheelTest extends TestCase
             ->call('spin')
             ->assertSet('spinCharges', 2)
             ->assertSet('pityCounter', 1)
+            ->call('finishSpin')
             ->assertSee('Points de Vie')
             ->assertSee('Force')
             ->assertSee('Vitesse')
@@ -55,6 +56,7 @@ class CharacterWheelTest extends TestCase
 
         Livewire::test(CharacterWheel::class)
             ->call('spin')
+            ->call('finishSpin')
             ->call('keepCharacter')
             ->assertSet('revealedCharacter', null);
 
@@ -76,11 +78,98 @@ class CharacterWheelTest extends TestCase
 
         Livewire::test(CharacterWheel::class)
             ->call('spin')
+            ->call('finishSpin')
             ->call('recycleCharacter')
             ->assertSet('revealedCharacter', null);
 
         $user->refresh();
         $this->assertGreaterThan(250, $user->coins);
+    }
+
+    /**
+     * Roue : pendant la rotation, l'interface est verrouillée et le résultat reste caché
+     * jusqu'à ce que la vue signale l'arrêt de la dernière roue (finishSpin).
+     */
+    public function test_spin_locks_interface_until_wheels_stop(): void
+    {
+        $user = User::factory()->create(['spin_charges' => 3]);
+
+        $this->actingAs($user);
+
+        $component = Livewire::test(CharacterWheel::class)
+            ->call('spin')
+            ->assertSet('isSpinning', true)
+            ->assertSee('Les roues tournent')
+            ->assertDontSee('Points de Vie');
+
+        // Garder ou recycler est refusé tant que les roues tournent
+        $component->call('keepCharacter');
+        $this->assertDatabaseHas('characters', ['user_id' => $user->id, 'pending_reveal' => true]);
+
+        // Un second lancement pendant la rotation ne consomme rien
+        $component->call('spin')->assertSet('spinCharges', 2);
+        $this->assertDatabaseCount('characters', 1);
+
+        $component->call('finishSpin')
+            ->assertSet('isSpinning', false)
+            ->assertSee('Points de Vie');
+    }
+
+    /**
+     * Roue : l'angle calculé par le serveur amène la part tirée (race, arme, pouvoir) sous le pointeur,
+     * après plusieurs tours complets.
+     */
+    public function test_wheel_rotation_lands_on_drawn_segments(): void
+    {
+        $user = User::factory()->create(['spin_charges' => 3]);
+
+        $this->actingAs($user);
+
+        $component = Livewire::test(CharacterWheel::class)->call('spin');
+
+        $character = $component->get('revealedCharacter');
+        $rotations = $component->get('wheelRotations');
+
+        $wheels = [
+            'race'   => [\App\Data\RaceData::all(), 'race_id'],
+            'weapon' => [\App\Data\WeaponData::all(), 'weapon_id'],
+            'power'  => [\App\Data\PowerData::all(), 'power_id'],
+        ];
+
+        foreach ($wheels as $wheel => [$items, $field]) {
+            // Parts proportionnelles au poids de tirage : on retrouve le début et la largeur de la part tirée
+            $total = array_sum(array_column($items, 'weight'));
+            $start = 0;
+            $slice = 0;
+            foreach ($items as $item) {
+                $slice = $item['weight'] / $total * 360;
+                if ($item['id'] === $character[$field]) {
+                    break;
+                }
+                $start += $slice;
+            }
+            $center = $start + $slice / 2;
+
+            // Position finale du centre de la part gagnante, ramenée dans ]-180, 180] autour du pointeur (0°)
+            $offset = fmod($center + $rotations[$wheel], 360);
+            if ($offset > 180) {
+                $offset -= 360;
+            }
+
+            $this->assertGreaterThanOrEqual(5 * 360, $rotations[$wheel], "La roue {$wheel} doit faire plusieurs tours.");
+            $this->assertLessThan($slice / 2, abs($offset), "La roue {$wheel} doit s'arrêter sur la part tirée.");
+        }
+
+        // La taille des parts suit le poids : le Feu (poids 30) occupe une part 7,5 fois plus large que la Téléportation (poids 4)
+        $powerSegments = collect($component->instance()->wheels()['power']['segments'])->keyBy('id');
+        $this->assertEqualsWithDelta(30.0, $powerSegments['fire']['chance'], 0.01);
+        $this->assertEqualsWithDelta(4.0, $powerSegments['teleportation']['chance'], 0.01);
+
+        // Un second tirage repart de l'angle courant et continue dans le même sens
+        $component->call('finishSpin')->call('keepCharacter')->call('spin');
+        foreach ($rotations as $wheel => $previous) {
+            $this->assertGreaterThan($previous, $component->get('wheelRotations')[$wheel]);
+        }
     }
 
     /**
