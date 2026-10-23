@@ -11,11 +11,12 @@
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
-        <!-- Email Address -->
+        <!-- Email Address or Username -->
         <div>
-            <label for="email" class="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
-            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                class="block w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-200 px-4 py-3 text-sm placeholder-slate-600 focus:border-gold/50 focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all duration-300" />
+            <label for="email" class="block text-sm font-medium text-slate-400 mb-1.5">Email ou Pseudo</label>
+            <input id="email" type="text" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
+                class="block w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-200 px-4 py-3 text-sm placeholder-slate-600 focus:border-gold/50 focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all duration-300"
+                placeholder="ex: hero@wheelborn.test ou NathOof" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 

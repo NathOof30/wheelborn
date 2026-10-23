@@ -31,9 +31,13 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'unique:'.User::class],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'name.unique' => 'Ce pseudo de combattant est déjà utilisé par un autre joueur.',
+            'name.required' => 'Le pseudo de combattant est requis.',
+            'email.unique' => 'Cette adresse e-mail est déjà associée à un compte.',
         ]);
 
         $user = User::create([

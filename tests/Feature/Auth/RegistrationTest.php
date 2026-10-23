@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,5 +28,23 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_user_cannot_register_with_duplicate_name(): void
+    {
+        User::factory()->create([
+            'name' => 'GuerrierUnique',
+            'email' => 'first@example.com',
+        ]);
+
+        $response = $this->post('/register', [
+            'name' => 'GuerrierUnique',
+            'email' => 'second@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors(['name']);
+        $this->assertGuest();
     }
 }

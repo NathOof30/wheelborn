@@ -26,9 +26,9 @@
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 5 | ⏳ En cours (2/5 - Paper Doll & DA Cosmique ✅) |
-| **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
+| **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 6 | ✅ Terminé (100%) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode & Seeder ✅) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (164 tests ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (166 tests ✅) |
 
 ---
 
@@ -501,6 +501,18 @@
   - [x] Émission automatique avec payload complet (`coins`, `spinCharges`, `elo`) depuis `CharacterWheel` et `CollectionGrid` lors de chaque recyclage ou spin.
   - [x] Régénération automatique de l'énergie de spin dès le chargement du HUD sur n'importe quelle page du site (catalogue, profil, etc.) sans dépendre de la visite préalable sur la roue.
   - [x] Affichage formaté des pièces (`Intl.NumberFormat`) et icône dynamique de ligue.
+
+### [x] T6.6 — Unicité Stricte du Pseudo (`name`), Résolution des Doublons & Connexion Hybride (Email / Pseudo)
+- **Priorité :** 🔴 P0 (Sécurité des comptes, Intégrité BDD & UX)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `database/migrations/2026_10_23_211500_make_name_unique_in_users_table.php`, `app/Http/Controllers/Auth/RegisteredUserController.php`, `app/Http/Requests/ProfileUpdateRequest.php`, `app/Http/Requests/Auth/LoginRequest.php`, `resources/views/auth/login.blade.php`, `tests/Feature/Auth/RegistrationTest.php`, `tests/Feature/Auth/AuthenticationTest.php`
+- **Description :** Empêcher strictement la création de comptes avec des pseudonymes identiques, assainir les doublons existants et permettre la connexion indifféremment via email ou pseudo.
+- **Critères d'acceptation :**
+  - [x] **Migration BDD d'unicité avec auto-résolution :** Script de migration sécurisé qui regroupe les doublons existants par date de création, préserve le compte originel (ex: `NathOof` ID 3) et suffixe automatiquement les doublons (ex: `NathOof_2` ID 4) avant d'appliquer l'index `$table->unique('name')`.
+  - [x] **Validation multi-niveaux à l'inscription et profil :** Règle `unique:users,name` avec messages d'erreur explicites en français ("Ce pseudonyme est déjà pris par un autre joueur. Veuillez en choisir un autre.") dans `RegisteredUserController` et `ProfileUpdateRequest`.
+  - [x] **Connexion hybride (Email ou Pseudo) :** `LoginRequest` détecte automatiquement si l'identifiant saisi est une adresse email (`filter_var(..., FILTER_VALIDATE_EMAIL)`) ou un pseudonyme (`name`) et authentifie le joueur sans nécessiter son email s'il l'a oublié.
+  - [x] **Refonte UX du formulaire de connexion :** Champ `login.blade.php` mis à jour en `Email ou Pseudo` avec placeholder explicite et look glassmorphism néon.
+  - [x] **Tests automatisés :** Ajout de `test_user_cannot_register_with_duplicate_name` et `test_users_can_authenticate_using_their_username` (166 tests passants au total, 100% au vert).
 
 ---
 
