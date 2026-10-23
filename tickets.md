@@ -46,10 +46,10 @@
   - *Responsable :* 👥 Binôme
   - *Fichiers :* `app/Services/CharacterGeneratorService.php`, `app/Services/RecycleService.php`, `app/Services/EnergyManagerService.php`
   - *Détails :* Tirage pondéré, stats dérivées, calcul de la valeur de recyclage en or.
-- [x] **T0.4 [UI] Composant Livewire `CharacterWheel` et Jauge de Pity 10/10**
+- [x] **T0.4 [UI] Composant Livewire `CharacterWheel`, Cadran Céleste & Carte Physique TCG (3D Flip)**
   - *Responsable :* 👥 Binôme
-  - *Fichiers :* `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`
-  - *Détails :* Animation de spin, modale de révélation avec boutons Garder/Recycler, outils Admin de test.
+  - *Fichiers :* `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`, `resources/css/app.css`
+  - *Détails :* Refonte esthétique épurée : titre noble unique, capsules HUD compactes (charges et jauge de chance 10/10), cadran astral central en rotation douce (`animate-spin-slow`) alternant cycliquement entre les 3 disques (Races, Armes, Pouvoirs), bouton d'invocation central "Lancer la Roue", rituel de tirage à 3 roues désynchronisées, et révélation sous forme de vraie carte physique TCG (ratio standard 1:1.52, 440px de haut) avec 3D Flip recto/verso au clic et boutons Garder / Recycler.
 - [ ] **T0.5 [Équilibrage & Game Design] Élimination du Paradoxe "Commun > Légendaire" & Scaling Réel de la Rareté**
   - *Priorité :* 🟡 P1 (Cohérence Gameplay & Rétention)
   - *Responsable :* 👥 Binôme
