@@ -27,6 +27,9 @@
                     <a href="{{ route('leaderboard') }}" class="inline-flex items-center px-1 pt-1 border-b-2 font-medium text-sm leading-5 transition duration-150 {{ request()->routeIs('leaderboard') ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600' }}">
                         🏆 Classement
                     </a>
+                    <a href="{{ route('workshop') }}" class="inline-flex items-center px-1 pt-1 border-b-2 font-medium text-sm leading-5 transition duration-150 {{ request()->routeIs('workshop') ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600' }}">
+                        🏛️ Atelier
+                    </a>
                 </div>
             </div>
 
@@ -96,6 +99,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('leaderboard')" :active="request()->routeIs('leaderboard')" class="text-slate-200">
                 🏆 Classement
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('workshop')" :active="request()->routeIs('workshop')" class="text-slate-200">
+                🏛️ Atelier
             </x-responsive-nav-link>
         </div>
 

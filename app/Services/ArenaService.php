@@ -8,6 +8,7 @@ use App\Data\RaceData;
 use App\Data\SynergyData;
 use App\Data\WeaponData;
 use App\Enums\League;
+use App\Events\ArenaBattleFinished;
 use App\Models\Battle;
 use App\Models\Character;
 use App\Models\User;
@@ -28,6 +29,7 @@ class ArenaService
         private BattleEngineService $engine,
         private BotGeneratorService $bots,
         private EloService $elo,
+        private WorkshopService $workshop,
     ) {
     }
 
@@ -149,6 +151,11 @@ class ArenaService
             default => [$rewards['loss_coins_base'], $rewards['loss_xp']],
         };
 
+        // Coffre de Guerre (Atelier) : multiplie l'or des victoires uniquement
+        if ($won) {
+            $coins = (int) round($coins * $this->workshop->arenaCoinMultiplier($user));
+        }
+
         DB::transaction(function () use ($user, $fighter, $opponent, $outcome, $won, $draw, $oldElo, $newElo, $coins, $xp) {
             Battle::create([
                 'player_id'      => $user->id,
@@ -184,6 +191,9 @@ class ArenaService
                 'has_free_arena_reroll' => true,
             ]);
         });
+
+        // Succès liés à l'arène (« Premier Sang »)
+        ArenaBattleFinished::dispatch($user, $won, $draw);
 
         return [
             'won'       => $won,

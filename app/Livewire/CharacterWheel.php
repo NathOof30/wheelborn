@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\CharacterGeneratorService;
 use App\Services\EnergyManagerService;
 use App\Services\RecycleService;
+use App\Services\WorkshopService;
 use Illuminate\Support\Facades\DB;
 
 class CharacterWheel extends Component
@@ -34,6 +35,10 @@ class CharacterWheel extends Component
     public int $elo = 1000;
     public int $nextRegenSeconds = 0;
     public bool $isAdmin = false;
+
+    // Ticket d'Urgence (affichage uniquement, l'achat est vérifié par WorkshopService)
+    public ?int $emergencyCost = null;
+    public int $emergencyRemaining = 0;
 
     // Vrai du lancement jusqu'à l'arrêt de la dernière roue : bloque un nouveau tirage et cache le résultat
     #[Locked]
@@ -141,6 +146,29 @@ class CharacterWheel extends Component
         $this->coins = $user->coins;
         $this->elo = $user->elo;
         $this->nextRegenSeconds = app(EnergyManagerService::class)->getNextSpinRegenSeconds($user);
+
+        $emergency = app(WorkshopService::class)->emergencySpinStatus($user);
+        $this->emergencyCost = $emergency['next_cost'];
+        $this->emergencyRemaining = $emergency['remaining'];
+    }
+
+    /** T4.3 : Ticket d'Urgence, achat d'une charge de spin quand la réserve est vide. */
+    public function buyEmergencySpin(): void
+    {
+        $user = auth()->user();
+        if (!$user || $this->isAdmin || $this->isSpinning) {
+            return;
+        }
+
+        try {
+            $purchase = app(WorkshopService::class)->buyEmergencySpin($user);
+            $this->notify("🎟️ Ticket d'Urgence utilisé : +1 charge de tirage (-{$purchase['cost']} 🪙) !", 'success');
+        } catch (\DomainException $e) {
+            $this->notify($e->getMessage(), 'error');
+        }
+
+        $this->refreshState();
+        $this->dispatchStatsUpdated();
     }
 
     /**
@@ -289,7 +317,10 @@ class CharacterWheel extends Component
         return array_values(match ($wheel) {
             'race'   => RaceData::all(),
             'weapon' => WeaponData::all(),
-            'power'  => PowerData::all(),
+            // Chances du joueur, Aimant à Pouvoirs Rares compris : la taille des parts suit les vraies probabilités
+            'power'  => auth()->check()
+                ? app(CharacterGeneratorService::class)->powerPool(auth()->user())
+                : PowerData::all(),
         });
     }
 

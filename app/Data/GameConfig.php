@@ -104,7 +104,7 @@ class GameConfig
     {
         return [
             'rare_magnet' => [
-                'name' => 'Aimant à Pouvoirs',
+                'name' => 'Aimant à Pouvoirs Rares',
                 'icon' => '🧲',
                 'max_level' => 5,
                 'costs' => [200, 450, 750, 1100, 1600],
@@ -119,7 +119,7 @@ class GameConfig
                 'bonus_str' => 2,
             ],
             'arena_bonus' => [
-                'name' => 'Prime d\'Arène',
+                'name' => 'Coffre de Guerre',
                 'icon' => '🛡️',
                 'max_level' => 3,
                 'costs' => [300, 600, 1000],
@@ -128,8 +128,7 @@ class GameConfig
             'emergency_spin' => [
                 'name' => 'Jeton d\'Urgence',
                 'icon' => '🎟️',
-                'base_cost' => 120,
-                'cost_multiplier' => 1.6,
+                'costs' => [120, 250], // Prix du 1er puis du 2e achat de la journée (2 achats max par jour)
             ],
         ];
     }
