@@ -29,6 +29,7 @@ class ArenaService
         private BattleEngineService $engine,
         private BotGeneratorService $bots,
         private EloService $elo,
+        private WorkshopService $workshop,
     ) {
     }
 
@@ -149,6 +150,11 @@ class ArenaService
             $won    => [$rewards['win_coins_base'], $rewards['win_xp']],
             default => [$rewards['loss_coins_base'], $rewards['loss_xp']],
         };
+
+        // Coffre de Guerre (Atelier) : multiplie l'or des victoires uniquement
+        if ($won) {
+            $coins = (int) round($coins * $this->workshop->arenaCoinMultiplier($user));
+        }
 
         DB::transaction(function () use ($user, $fighter, $opponent, $outcome, $won, $draw, $oldElo, $newElo, $coins, $xp) {
             Battle::create([
