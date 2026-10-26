@@ -8,45 +8,45 @@ class PaperDollService
      * Alias entre les identifiants en base de données et les noms de fichiers possibles.
      */
     protected static array $raceAliases = [
-        'human'       => ['human', 'humain'],
-        'elf'         => ['elf', 'elfe'],
-        'demon'       => ['demon'],
-        'robot'       => ['robot', 'cyborg'],
-        'mutant'      => ['mutant'],
-        'golem'       => ['golem'],
-        'vampire'     => ['vampire'],
-        'alien'       => ['alien'],
+        'human' => ['human', 'humain'],
+        'elf' => ['elf', 'elfe'],
+        'demon' => ['demon'],
+        'robot' => ['robot', 'cyborg'],
+        'mutant' => ['mutant'],
+        'golem' => ['golem'],
+        'vampire' => ['vampire'],
+        'alien' => ['alien'],
         // Fallbacks au cas où
-        'orc'         => ['orc'],
-        'undead'      => ['undead', 'mort_vivant'],
+        'orc' => ['orc'],
+        'undead' => ['undead', 'mort_vivant'],
     ];
 
     protected static array $weaponAliases = [
-        'sword'    => ['epee', 'sword'],
-        'staff'    => ['baton', 'staff'],
-        'bow'      => ['arc', 'bow'],
-        'hammer'   => ['marteau', 'hammer'],
-        'spear'    => ['lance', 'spear'],
-        'dagger'   => ['dague', 'dagger'],
-        'gun'      => ['pistolet', 'gun'],
+        'sword' => ['epee', 'sword'],
+        'staff' => ['baton', 'staff'],
+        'bow' => ['arc', 'bow'],
+        'hammer' => ['marteau', 'hammer'],
+        'spear' => ['lance', 'spear'],
+        'dagger' => ['dague', 'dagger'],
+        'gun' => ['pistolet', 'gun'],
         'grimoire' => ['grimoire', 'book'],
     ];
 
     protected static array $powerAliases = [
-        'fire'          => ['feu', 'fire'],
-        'poison'        => ['poison'],
-        'ice'           => ['glace', 'ice'],
-        'lightning'     => ['foudre', 'lightning'],
-        'regeneration'  => ['regeneration', 'regen'],
-        'gravity'       => ['gravite', 'gravity'],
+        'fire' => ['feu', 'fire'],
+        'poison' => ['poison'],
+        'ice' => ['glace', 'ice'],
+        'lightning' => ['foudre', 'lightning'],
+        'regeneration' => ['regeneration', 'regen'],
+        'gravity' => ['gravite', 'gravity'],
         'teleportation' => ['teleportation', 'teleport'],
-        'invisibility'  => ['invisibilite', 'invisibility'],
+        'invisibility' => ['invisibilite', 'invisibility'],
         // Fallbacks rétrocompatibles
-        'water'         => ['eau', 'water'],
-        'earth'         => ['terre', 'earth'],
-        'wind'          => ['vent', 'wind'],
-        'dark'          => ['ombre', 'dark', 'shadow'],
-        'light'         => ['lumiere', 'light'],
+        'water' => ['eau', 'water'],
+        'earth' => ['terre', 'earth'],
+        'wind' => ['vent', 'wind'],
+        'dark' => ['ombre', 'dark', 'shadow'],
+        'light' => ['lumiere', 'light'],
     ];
 
     /**
@@ -54,8 +54,10 @@ class PaperDollService
      */
     public static function getRaceAsset(?string $raceId): ?string
     {
-        if (!$raceId) return null;
-        $candidates = self::getNormalizedCandidates(strtolower($raceId), self::$raceAliases);
+        if (!$raceId)
+            return null;
+        $key = strtolower($raceId);
+        $candidates = self::$raceAliases[$key] ?? [$key];
         return self::findFirstAsset('characters/races', $candidates);
     }
 
@@ -64,8 +66,10 @@ class PaperDollService
      */
     public static function getWeaponAsset(?string $weaponId): ?string
     {
-        if (!$weaponId) return null;
-        $candidates = self::getNormalizedCandidates(strtolower($weaponId), self::$weaponAliases);
+        if (!$weaponId)
+            return null;
+        $key = strtolower($weaponId);
+        $candidates = self::$weaponAliases[$key] ?? [$key];
         return self::findFirstAsset('characters/weapons', $candidates);
     }
 
@@ -74,8 +78,10 @@ class PaperDollService
      */
     public static function getPowerAsset(?string $powerId): ?string
     {
-        if (!$powerId) return null;
-        $candidates = self::getNormalizedCandidates(strtolower($powerId), self::$powerAliases);
+        if (!$powerId)
+            return null;
+        $key = strtolower($powerId);
+        $candidates = self::$powerAliases[$key] ?? [$key];
         return self::findFirstAsset('characters/elements', $candidates);
     }
 
@@ -84,7 +90,8 @@ class PaperDollService
      */
     public static function getBackgroundAsset(?string $rarity): ?string
     {
-        if (!$rarity) return null;
+        if (!$rarity)
+            return null;
         $key = strtolower($rarity);
         return self::findFirstAsset('characters/backgrounds', [$key]);
     }
@@ -96,10 +103,14 @@ class PaperDollService
      */
     public static function getAuraAsset(?string $weaponId, ?string $powerId): ?string
     {
-        if (!$weaponId || !$powerId) return null;
+        if (!$weaponId || !$powerId)
+            return null;
 
-        $weaponCandidates = self::getNormalizedCandidates(strtolower($weaponId), self::$weaponAliases);
-        $powerCandidates = self::getNormalizedCandidates(strtolower($powerId), self::$powerAliases);
+        $wKey = strtolower($weaponId);
+        $pKey = strtolower($powerId);
+
+        $weaponCandidates = array_values(array_unique(array_merge([$wKey], self::$weaponAliases[$wKey] ?? [])));
+        $powerCandidates = array_values(array_unique(array_merge([$pKey], self::$powerAliases[$pKey] ?? [])));
 
         $extensions = ['webp', 'png', 'svg', 'jpg'];
 
@@ -139,27 +150,6 @@ class PaperDollService
     }
 
     /**
-     * Résout de manière bidirectionnelle les alias (anglais <-> français <-> id).
-     */
-    protected static function getNormalizedCandidates(string $id, array $aliasMap): array
-    {
-        $candidates = [$id];
-
-        if (isset($aliasMap[$id])) {
-            $candidates = array_merge($candidates, $aliasMap[$id]);
-        }
-
-        foreach ($aliasMap as $canonical => $aliases) {
-            if (in_array($id, $aliases, true)) {
-                $candidates[] = $canonical;
-                $candidates = array_merge($candidates, $aliases);
-            }
-        }
-
-        return array_values(array_unique($candidates));
-    }
-
-    /**
      * Vérifie si le personnage possède au moins un calque visuel disponible (ex: Race, Arme, Pouvoir ou Aura).
      */
     public static function hasVisualLayers(?string $raceId, ?string $weaponId = null, ?string $powerId = null): bool
@@ -177,10 +167,10 @@ class PaperDollService
     {
         return [
             'background' => self::getBackgroundAsset($rarity),
-            'race'       => self::getRaceAsset($raceId),
-            'power'      => self::getPowerAsset($powerId),
-            'weapon'     => self::getWeaponAsset($weaponId),
-            'aura'       => self::getAuraAsset($weaponId, $powerId),
+            'race' => self::getRaceAsset($raceId),
+            'power' => self::getPowerAsset($powerId),
+            'weapon' => self::getWeaponAsset($weaponId),
+            'aura' => self::getAuraAsset($weaponId, $powerId),
         ];
     }
 
