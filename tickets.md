@@ -25,10 +25,10 @@
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
 | **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
-| **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 5 | ⏳ En cours (2/5 - Paper Doll & DA Cosmique ✅) |
+| **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 5 | ⏳ En cours (2/5 - Paper Doll V2 Auras & DA Cosmique ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 6 | ✅ Terminé (100%) |
-| **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode & Seeder ✅) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (166 tests ✅) |
+| **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode Forge Personnalisée & Seeder ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (168 tests, 654 assertions ✅) |
 
 ---
 
@@ -367,25 +367,28 @@
 ## 🎨 Épic 5 — Game Feel, Rendu Visuel & Paper Doll
 > **Responsables :** 👥 Binôme (Nathanaël & Mathéo)
 
-### [x] T5.1 — Système de Rendu Composite "Paper Doll" (Avatar Procédural V1) & Châssis Responsive
+### [x] T5.1 — Système de Rendu Composite "Paper Doll" (Avatar Procédural V2 & Auras d'Armes) & Châssis Responsive
 - **Priorité :** 🟡 P1 (Immersion & Note Soutenance)
 - **Attribué à :** 👥 Binôme
-- **Cible :** `docs/GUIDE_ASSETS_PAPER_DOLL.md`, `app/Services/PaperDollService.php`, `resources/views/components/character-avatar.blade.php`, `resources/views/livewire/collection-grid.blade.php`, `resources/views/livewire/character-wheel.blade.php`, `tests/Feature/PaperDollTest.php`
-- **Description :** Générer une représentation graphique unique de chaque héros par superposition de calques WebP sur un portrait carré (512x512), enveloppé dans un châssis de carte réactif (CSS/Tailwind + SVG).
+- **Cible :** `docs/GUIDE_ASSETS_PAPER_DOLL.md`, `docs/COMPENDIUM_GAME_DESIGN_ARMES_ET_SYNERGIES.md`, `app/Services/PaperDollService.php`, `resources/views/components/character-avatar.blade.php`, `resources/views/livewire/collection-grid.blade.php`, `resources/views/livewire/character-wheel.blade.php`, `tests/Feature/PaperDollTest.php`
+- **Description :** Générer une représentation graphique unique de chaque héros par superposition de calques WebP sur un portrait carré (512x512), enveloppé dans un châssis de carte réactif (CSS/Tailwind + SVG). Évolution V2 : intégration du Calque 4 des Auras Élémentaires d'Armes (`z-index: 40`), strictement affiché au-dessus de l'arme pour un rendu immersif des affinités élémentaires.
 - **Critères d'acceptation :**
   - [x] Spécifications techniques & guide d'export rédigés dans [GUIDE_ASSETS_PAPER_DOLL.md](file:///c:/Users/natha/Documents/PROJET/WHEELBORN_PROJECT/WHEELBORN/docs/GUIDE_ASSETS_PAPER_DOLL.md).
   - [x] Moteur de superposition dynamique `PaperDollService` et composant réutilisable `<x-character-avatar>` avec fallback résilient (affiche uniquement les calques disponibles sans casser le rendu).
-  - [x] **Superposition & Ordre des Calques :** Hiérarchie z-index stricte plaçant l'arme (`z-index: 30`) devant le corps humanoïde (`z-index: 10`) pour une tenue d'équipement réaliste.
+  - [x] **Superposition & Ordre des Calques (Pile à 5 Calques) :**
+    - [ ] *Calque 0 :* Fond d'aura / Décor de rareté (`public/images/characters/backgrounds/` - arborescence prête).
+    - [x] *Calque 1 :* Silhouette / Corps selon la Race (`public/images/characters/races/`, `z-index: 10`, actif pour `human.webp`).
+    - [ ] *Calque 2 :* Effet élémentaire général (`public/images/characters/elements/` - arborescence prête).
+    - [x] *Calque 3 :* Arme tenue selon le gabarit d'alignement (`public/images/characters/weapons/`, `z-index: 30`, actifs : `epee.webp`, `baton.webp`, `arc.webp`, `dague.webp`).
+    - [x] *Calque 4 :* **Aura Élémentaire de l'Arme** (`public/images/characters/weapons/{weapon}_auras/{weapon}_{element}.webp`, `z-index: 40`, strictement au-dessus de l'arme avec micro-mise à l'échelle synchronisée `group-hover/avatar:scale-[1.03]`).
+  - [x] **Auras Actives Intégrées :** Épée élémentaire avec Feu 🔥 (`sword_fire.webp`), Glace ❄️ (`sword_ice.webp`), Foudre ⚡ (`sword_lightning.webp`), Poison 🧪 (`sword_poison.webp`).
+  - [x] **Arborescence Préparatoire Complète :** Dossiers créés pour toutes les armes (`sword_auras`, `bow_auras`, `staff_auras`, `dagger_auras`, `hammer_auras`, `spear_auras`, `gun_auras`, `grimoire_auras`) ainsi que `elements/` et `backgrounds/`.
+  - [x] **Résolution Bilingue & Tolérante :** Méthode `PaperDollService::getNormalizedCandidates()` gérant de manière bidirectionnelle les alias anglais/français (`epee`/`sword`, `feu`/`fire`, `glace`/`ice`, `foudre`/`lightning`, `baton`/`staff`).
   - [x] **Respect Strict du Ratio & Élimination des Distorsions :** Gabarit carré 1:1 (`max-w-[270px] aspect-square w-full`) interdisant tout écrasement ou étirement d'image.
   - [x] **Détourage & Transparence :** Suppression des encadrements debug et badges temporaires pour une intégration directe sur le fond néon de la carte.
   - [x] Intégration sur la face recto des cartes de la Collection et dans la modale de révélation de la Roue.
-  - [x] Boutons de test direct dans la barre Admin pour forcer un tirage avec n'importe quelle arme disponible (Épée, Bâton, Arc, Dague, Marteau).
-  - [x] Calque 1 : Silhouette / Corps selon la Race (intégré pour `human.webp`).
-  - [x] Calque 3 : Arme tenue selon le gabarit d'alignement (actifs : `epee.webp`, `baton.webp`, `arc.webp`, `dague.webp`).
-  - [ ] Calque 0 : Fond d'aura / Décor de rareté (`backgrounds/` - futur).
-  - [ ] Calque 2 : Effet élémentaire / VFX semi-transparent (`elements/` - futur).
   - [x] Châssis de carte responsive (bordure, liserés, halo glow de rareté en pur CSS Tailwind) s'adaptant à n'importe quelle taille de carte sans distorsion.
-  - [x] Tests automatisés unitaires & fonctionnels (`tests/Feature/PaperDollTest.php` - 7 tests validés).
+  - [x] Tests automatisés unitaires & fonctionnels complets (`tests/Feature/PaperDollTest.php` - 6 tests validés, 45 assertions).
 
 ### [x] T5.5 — Direction Artistique "Le Vide et la Roue", Respiration Contemplative & Standardisation du Ratio Carte Physique (TCG 1:1.53)
 - **Priorité :** 🟢 P2 (Direction Artistique & Polish Visuel Majeur)
@@ -532,18 +535,28 @@
     - `admin@wheelborn.test` (Compte Maître, 2300 Élo, atelier maxé, ressources illimitées).
   - [ ] Génère 40 cartes dans l'arène pour avoir un classement complet et des adversaires immédiats.
 
-### [x] T7.2 — Panneau de Débogage / God Mode dans l'Interface (Barre Admin)
+### [x] T7.2 — Panneau de Débogage / God Mode dans l'Interface (Barre Admin & Forge Personnalisée)
 - **Priorité :** 🟡 P1 (Soutenance)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`
-- **Description :** Barre flottante réservée à l'administrateur pour forcer n'importe quel cas de figure en direct pendant le développement et le passage devant le jury.
+- **Cible :** `app/Livewire/CharacterWheel.php`, `resources/views/livewire/character-wheel.blade.php`, `app/Services/CharacterGeneratorService.php`, `tests/Feature/PaperDollTest.php`
+- **Description :** Barre d'administration interactive et outil de Forge Personnalisée réservés aux administrateurs pour forcer, simuler et démontrer n'importe quelle combinaison de carte, d'effet visuel ou de synergie en direct devant le jury.
 - **Critères d'acceptation :**
   - [x] Visible uniquement si `$isAdmin === true`.
-  - [x] Bouton "🌟 Forcer Super Spin (10/10)" (démonstration garantie de l'animation dorée au jury).
-  - [x] Bouton "+50 000 🪙" (pour tester immédiatement le recyclage et les transactions).
-  - [x] Bouton "Reset Pity" (remise à zéro instantanée du compteur de pitié).
-  - [x] Boutons de test Paper Doll direct : "🎨 Test Humain + Épée" et "🎨 Test Humain + Bâton" pour valider la superposition des calques en direct.
-  - [x] Ressources illimitées automatiques pour l'administrateur (charges de roue et tickets d'arène à 999, or à 999 999 🪙).
+  - [x] **Ressources Illimitées (God Mode) :** Charges de roue et tickets d'arène à 999, or à 999 999 🪙.
+  - [x] **Raccourcis Démo Rapides :**
+    - Bouton "🌟 Forcer Super Spin (10/10)" (démonstration garantie de l'animation dorée au jury).
+    - Bouton "+50 000 🪙" (pour tester immédiatement le recyclage et les transactions).
+    - Bouton "Reset Pity" (remise à zéro instantanée du compteur de pitié).
+  - [x] **Outil Avancé "Forge Personnalisée & Simulateur de Roue" (`showAdminForge`) :**
+    - 4 sélecteurs déroulants dynamiques : Race (8 races), Arme (8 armes), Pouvoir Élémentaire (8 pouvoirs), Rareté (Aléatoire ou fixée : Commune, Rare, Épique, Légendaire).
+    - Détection en temps réel des assets Paper Doll avec pastilles d'état (Race ✅, Arme ✅, Aura ✅ Présente ou ⚠️ Absente avec nom de fichier cible attendu).
+    - Détection et affichage en temps réel des synergies d'armes et d'éléments (`SynergyData::all()`).
+    - Prévisualisation live du rendu `<x-character-avatar>` avant invocation.
+    - Deux modes d'invocation :
+      - 🎯 **Révélation Directe (`adminSpawnCustom(false)`)** : invocation instantanée pour tester les calques et visuels sans délai.
+      - 🎡 **Lancer la Roue Synchronisée (`adminSpawnCustom(true)`)** : lance l'animation physique des 3 cadrans de la Roue pour s'arrêter précisément sur les éléments forgés.
+    - Méthode de génération dédiée `CharacterGeneratorService::generateCustom()` instanciant un combattant cohérent (stats calculées selon la race/arme, rareté et valeur de recyclage).
+    - Rétro-compatibilité assurée avec `adminForceTestSpin()`.
 
 ### [x] T7.3 — Seeder de Base de Données Bimodal (Admin Démo & Joueur UX Standard)
 - **Priorité :** 🔴 P0 (Soutenance & Prise en main collaborateur)
@@ -590,7 +603,7 @@
   - [ ] Victoire outsider (1000 vs 1300) : gain élevé (> +24).
   - [ ] L'Élo ne descend jamais en dessous de zéro.
 
-### [x] T8.4 — Tests de Robustesse des Transactions de Recyclage & Collection
+### [x] T8.4 — Tests de Robustesse des Transactions de Recyclage, Collection & Paper Doll
 - **Priorité :** 🟡 P1
 - **Attribué à :** 🧑‍💻 Nathanaël
 - **Cible :** `tests/Feature/CollectionGridTest.php`, `tests/Feature/PaperDollTest.php`
@@ -599,7 +612,8 @@
   - [x] Impossible de recycler la carte d'un autre joueur (sécurité d'appartenance `user_id`).
   - [x] Impossible de recycler une carte verrouillée (`is_locked = true` - exception levée et bouton protégé).
   - [x] Recyclage en masse multi-critères avec transaction atomique et protection des héros verrouillés.
-  - [x] Suite complète validée (60/60 tests passants).
+  - [x] Résolution et superposition dynamique des calques Paper Doll (Race, Arme, Aura d'arme Layer 4 bilingue fr/en, avatar Blade) et invocation Forge Admin (`tests/Feature/PaperDollTest.php` - 6 tests, 45 assertions).
+  - [x] Suite complète validée (100% passante).
 
 ### [x] T8.5 — Tests Unitaires & Feature du Moteur de Combat & BattleArena
 - **Priorité :** 🔴 P0 (Intégrité du jeu & Anti-triche)
