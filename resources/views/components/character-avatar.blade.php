@@ -32,7 +32,7 @@
     }
 
     $layers = \App\Services\PaperDollService::resolveLayers($raceId, $weaponId, $powerId, $rarityKey);
-    $hasVisualLayer = !empty($layers['race']) || !empty($layers['weapon']);
+    $hasVisualLayer = !empty($layers['race']) || !empty($layers['weapon']) || !empty($layers['aura']) || !empty($layers['power']);
 
     $glowColor = match($rarityKey) {
         'legendary' => 'bg-amber-500/25',
@@ -86,13 +86,24 @@
             >
         @endif
 
-        {{-- Layer 3 : Arme tenue (Épée, Bâton, etc.) — STRICTEMENT AU PREMIER PLAN (z-index: 30) --}}
+        {{-- Layer 3 : Arme tenue (Épée, Bâton, etc.) --}}
         @if ($layers['weapon'])
             <img 
                 src="{{ asset($layers['weapon']) }}" 
                 alt="{{ $weaponData['name'] ?? $weaponId }}" 
                 class="pointer-events-none filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-transform duration-300 group-hover/avatar:scale-[1.03]" 
                 style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 30;"
+                loading="lazy"
+            >
+        @endif
+
+        {{-- Layer 4 : Aura Élémentaire de l'Arme — STRICTEMENT AU PREMIER PLAN / AU-DESSUS DE L'ARME (z-index: 40) --}}
+        @if ($layers['aura'])
+            <img 
+                src="{{ asset($layers['aura']) }}" 
+                alt="Aura {{ $powerData['name'] ?? $powerId }}" 
+                class="pointer-events-none transition-transform duration-300 group-hover/avatar:scale-[1.03]" 
+                style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 40;"
                 loading="lazy"
             >
         @endif

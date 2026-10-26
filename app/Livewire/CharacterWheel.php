@@ -476,10 +476,10 @@ class CharacterWheel extends Component
     }
 
     /**
-     * Outil Admin / Test pour injecter directement un tirage de test Paper Doll
-     * (Humain + Épée ou Humain + Bâton).
+     * Commande Admin de Test : Force un tirage instantané avec un ensemble Paper Doll complet
+     * (Humain + Arme + Élément avec Aura éventuelle).
      */
-    public function adminForceTestSpin(string $weaponId = 'sword'): void
+    public function adminForceTestSpin(string $weaponId = 'sword', string $powerId = 'fire'): void
     {
         if (!$this->isAdmin) return;
 
@@ -491,13 +491,15 @@ class CharacterWheel extends Component
 
         $weaponData = \App\Data\WeaponData::find($weaponId);
         $weaponName = $weaponData['name'] ?? ucfirst($weaponId);
+        $powerData = \App\Data\PowerData::find($powerId);
+        $powerName = $powerData['name'] ?? ucfirst($powerId);
 
         $character = Character::create([
             'user_id'           => $user->id,
             'name'              => \App\Data\NameGenerator::generate('human'),
             'race_id'           => 'human',
             'weapon_id'         => $weaponId,
-            'power_id'          => 'fire',
+            'power_id'          => $powerId,
             'power_tier'        => \App\Enums\PowerTier::Common,
             'hp'                => 105,
             'max_hp'            => 105,
@@ -508,14 +510,14 @@ class CharacterWheel extends Component
             'rarity'            => \App\Enums\Rarity::Rare,
             'is_lucky_spin'     => false,
             'is_unstable'       => false,
-            'synergies_data'    => \App\Data\SynergyData::detect('human', $weaponId, 'fire'),
+            'synergies_data'    => \App\Data\SynergyData::detect('human', $weaponId, $powerId),
             'recycle_value'     => 150,
             'is_active_fighter' => false,
             'pending_reveal'    => true,
         ]);
 
         $this->revealedCharacter = $character->toArray();
-        $this->notify("🎯 Tirage de test Paper Doll généré : Humain + {$weaponName} !", 'success');
+        $this->notify("🎯 Tirage de test Paper Doll généré : Humain + {$weaponName} + {$powerName} !", 'success');
     }
 
     public function dispatchStatsUpdated(): void

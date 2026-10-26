@@ -55,8 +55,7 @@ class PaperDollService
     public static function getRaceAsset(?string $raceId): ?string
     {
         if (!$raceId) return null;
-        $key = strtolower($raceId);
-        $candidates = self::$raceAliases[$key] ?? [$key];
+        $candidates = self::getNormalizedCandidates(strtolower($raceId), self::$raceAliases);
         return self::findFirstAsset('characters/races', $candidates);
     }
 
@@ -66,8 +65,7 @@ class PaperDollService
     public static function getWeaponAsset(?string $weaponId): ?string
     {
         if (!$weaponId) return null;
-        $key = strtolower($weaponId);
-        $candidates = self::$weaponAliases[$key] ?? [$key];
+        $candidates = self::getNormalizedCandidates(strtolower($weaponId), self::$weaponAliases);
         return self::findFirstAsset('characters/weapons', $candidates);
     }
 
@@ -77,8 +75,7 @@ class PaperDollService
     public static function getPowerAsset(?string $powerId): ?string
     {
         if (!$powerId) return null;
-        $key = strtolower($powerId);
-        $candidates = self::$powerAliases[$key] ?? [$key];
+        $candidates = self::getNormalizedCandidates(strtolower($powerId), self::$powerAliases);
         return self::findFirstAsset('characters/elements', $candidates);
     }
 
@@ -93,13 +90,84 @@ class PaperDollService
     }
 
     /**
-     * Vérifie si le personnage possède au moins un calque visuel disponible (ex: Race).
+     * Résout le chemin relatif de l'asset pour l'Aura Élémentaire de l'Arme (Calque 4, z-index: 40).
+     * Les auras sont organisées par arme et élément, ex:
+     * public/images/characters/weapons/sword_auras/sword_fire.webp
+     */
+    public static function getAuraAsset(?string $weaponId, ?string $powerId): ?string
+    {
+        if (!$weaponId || !$powerId) return null;
+
+        $weaponCandidates = self::getNormalizedCandidates(strtolower($weaponId), self::$weaponAliases);
+        $powerCandidates = self::getNormalizedCandidates(strtolower($powerId), self::$powerAliases);
+
+        $extensions = ['webp', 'png', 'svg', 'jpg'];
+
+        foreach ($weaponCandidates as $w) {
+            foreach ($powerCandidates as $p) {
+                // Sous-dossiers possibles
+                $dirs = [
+                    "characters/weapons/{$w}_auras",
+                    "characters/weapons/auras/{$w}",
+                    "characters/weapons/auras",
+                    "characters/auras/{$w}",
+                    "characters/auras/{$w}_auras",
+                    "characters/auras",
+                ];
+
+                // Noms de fichiers possibles dans le dossier
+                $fileNames = [
+                    "{$w}_{$p}",
+                    "{$p}",
+                    "{$p}_{$w}",
+                ];
+
+                foreach ($dirs as $dir) {
+                    foreach ($fileNames as $fileName) {
+                        foreach ($extensions as $ext) {
+                            $relative = "images/{$dir}/{$fileName}.{$ext}";
+                            if (file_exists(public_path($relative))) {
+                                return $relative;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Résout de manière bidirectionnelle les alias (anglais <-> français <-> id).
+     */
+    protected static function getNormalizedCandidates(string $id, array $aliasMap): array
+    {
+        $candidates = [$id];
+
+        if (isset($aliasMap[$id])) {
+            $candidates = array_merge($candidates, $aliasMap[$id]);
+        }
+
+        foreach ($aliasMap as $canonical => $aliases) {
+            if (in_array($id, $aliases, true)) {
+                $candidates[] = $canonical;
+                $candidates = array_merge($candidates, $aliases);
+            }
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
+    /**
+     * Vérifie si le personnage possède au moins un calque visuel disponible (ex: Race, Arme, Pouvoir ou Aura).
      */
     public static function hasVisualLayers(?string $raceId, ?string $weaponId = null, ?string $powerId = null): bool
     {
         return self::getRaceAsset($raceId) !== null
             || self::getWeaponAsset($weaponId) !== null
-            || self::getPowerAsset($powerId) !== null;
+            || self::getPowerAsset($powerId) !== null
+            || self::getAuraAsset($weaponId, $powerId) !== null;
     }
 
     /**
@@ -112,6 +180,7 @@ class PaperDollService
             'race'       => self::getRaceAsset($raceId),
             'power'      => self::getPowerAsset($powerId),
             'weapon'     => self::getWeaponAsset($weaponId),
+            'aura'       => self::getAuraAsset($weaponId, $powerId),
         ];
     }
 

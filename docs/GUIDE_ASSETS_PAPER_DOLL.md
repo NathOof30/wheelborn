@@ -21,7 +21,7 @@ Ce guide définit les normes techniques, les dimensions, la hiérarchie des calq
 Le système **Paper Doll** permet de générer des milliers de combinaisons visuelles uniques sans avoir à dessiner chaque carte individuellement. 
 
 Une carte WheelBorn est découpée en **deux sous-systèmes indépendants** :
-1. **L'Illustration (Portrait Paper Doll)** : Une zone carrée au format fixe (512x512 px) composée de calques superposés transparents (Aura, Race, Élément, Arme).
+1. **L'Illustration (Portrait Paper Doll)** : Une zone carrée au format fixe (512x512 px) composée de calques superposés transparents (Fond, Race, Élément/VFX, Arme, Aura Élémentaire d'Arme).
 2. **Le Châssis de Carte (Card Shell & Frame)** : Une structure externe responsive qui entoure l'illustration, s'étire selon l'écran (mobile, desktop, modale de zoom) et affiche le cadre de rareté, le nom, le niveau et les statistiques.
 
 ```
@@ -30,10 +30,11 @@ Une carte WheelBorn est découpée en **deux sous-systèmes indépendants** :
 | +---------------------------------------------+ |      statistiques, modales & redimensionnements.
 | |               PORTRAIT AVATAR               | |
 | |                                             | |  <-- ZONE PAPER DOLL (512x512 Carré Fixe)
-| |  [Layer 0] Aura / Décor Fond                | |      Superposition de calques transparents
-| |  [Layer 1] Corps / Silhouette Race          | |      ne subissant AUCUNE déformation.
-| |  [Layer 2] Effet Élémentaire / VFX          | |
-| |  [Layer 3] Arme Équipée                     | |
+| |  [Layer 4] Aura Élémentaire d'Arme (VFX)    | |      Superposition de calques transparents
+| |  [Layer 3] Arme Équipée                     | |      ne subissant AUCUNE déformation.
+| |  [Layer 2] Effet Élémentaire / VFX Corps    | |      Layer 4 au-dessus de tout.
+| |  [Layer 1] Corps / Silhouette Race          | |
+| |  [Layer 0] Aura / Décor Fond Rareté         | |
 | +---------------------------------------------+ |
 | ATK: 120  |  DEF: 85  |  VIT: 105             |
 | Synergies : [Elfe] [Arc]                      |
@@ -81,24 +82,25 @@ Tous les calques du **Portrait Paper Doll** doivent être dessinés et exportés
 | :--- | :--- | :--- |
 | **Résolution du Canevas** | **512 x 512 px** (Carré 1:1) | Idéal pour le web (compromis optimal netteté / temps de chargement). |
 | **Format d'Export** | **WebP** (avec couche Alpha) | ~30% plus léger que le PNG-24 avec une transparence parfaite. |
-| **Poids Cible par Calque** | **< 35 Ko** par fichier | Permet d'assembler 4 calques en moins de 150 Ko au total. |
-| **Arrière-plan** | **Transparent (Canal Alpha)** | Seul le Layer 0 (Aura) possède un fond texturé. Tous les autres calques (1, 2, 3) doivent avoir un fond 100% transparent. |
+| **Poids Cible par Calque** | **< 35 Ko** par fichier | Permet d'assembler jusqu'à 5 calques en moins de 150 Ko au total. |
+| **Arrière-plan** | **Transparent (Canal Alpha)** | Seul le Layer 0 (Fond Rareté) possède un fond texturé. Tous les autres calques (1, 2, 3, 4) doivent impérativement avoir un fond 100% transparent. |
 | **Espace Colorimétrique** | **sRGB** | Évite les altérations de teinte sur les navigateurs web. |
-| **Point d'Ancrage** | **Centre-Bas (X: 256, Y: 460)** | Tous les personnages posent leurs pieds ou leur base au même repère pour que les armes et effets tombent juste. |
+| **Point d'Ancrage** | **Centre-Bas (X: 256, Y: 460)** | Tous les personnages posent leurs pieds ou leur base au même repère pour que les armes et auras tombent juste. |
 
 ---
 
 ## 4. Hiérarchie & Rôle des Calques (Layer Stack)
 
-L'image finale du personnage est composée de **4 calques superposés** dans le DOM (du fond vers l'avant-plan) :
+L'image finale du personnage est composée de **5 calques superposés** dans le DOM (du fond vers l'avant-plan, l'aura de l'arme étant au-dessus de tout) :
 
 ```
-[AVANT-PLAN]
+[AVANT-PLAN — AU-DESSUS DE TOUT]
    ▲
-   │  Layer 3 : Arme / Équipement  (z-index: 30) -> Main/Attaque
-   │  Layer 2 : Pouvoir Élémentaire (z-index: 20) -> Flammes, éclairs, auras
-   │  Layer 1 : Corps de la Race    (z-index: 10) -> Silhouette du héros
-   │  Layer 0 : Fond d'Aura / Rareté(z-index: 0)  -> Texture magique / Halo
+   │  Layer 4 : Aura Élémentaire de l'Arme (z-index: 40) -> Flammes, givre, foudre sur l'arme
+   │  Layer 3 : Arme tenue / Équipement    (z-index: 30) -> Épée, bâton, arc, marteau...
+   │  Layer 2 : Effet Élémentaire Corporel (z-index: 20) -> Brume, étincelles autour du héros
+   │  Layer 1 : Corps / Silhouette Race    (z-index: 10) -> Silhouette du héros
+   │  Layer 0 : Fond d'Aura / Rareté       (z-index: 0)  -> Texture magique / Halo de rareté
    ▼
 [ARRIÈRE-PLAN]
 ```
@@ -112,8 +114,8 @@ L'image finale du personnage est composée de **4 calques superposés** dans le 
 - **Les 8 Races du jeu** : Humain (`human`), Elfe (`elf`), Démon (`demon`), Robot (`robot`), Mutant (`mutant`), Golem (`golem`), Vampire (`vampire`), Alien (`alien`).
 - **Règle vitale** : Le personnage doit avoir une **pose neutre standardisée** (ex: torse de 3/4 face, main droite légèrement avancée/ouverte pour recevoir l'arme du Layer 3).
 
-### Layer 2 : Effet Élémentaire & Pouvoirs (`elements/`)
-- **Contenu** : Flammes vives, éclairs crépitants, brume empoisonnée, cristaux de glace, particules de soin, distorsion gravitationnelle ou spatiale.
+### Layer 2 : Effet Élémentaire Corporel & Pouvoirs (`elements/`)
+- **Contenu** : Flammes vives, éclairs crépitants, brume empoisonnée, cristaux de glace, particules de soin, distorsion gravitationnelle ou spatiale enveloppant le corps.
 - **Les 8 Pouvoirs du jeu** : Feu (`fire`), Poison (`poison`), Glace (`ice`), Foudre (`lightning`), Régénération (`regeneration`), Gravité (`gravity`), Téléportation (`teleportation`), Invisibilité (`invisibility`).
 - **Règle** : Les effets enveloppent le corps (ex: étincelles sur les épaules, aura autour des poings). Privilégier des zones semi-transparentes ou mix-blend pour laisser transparaître le corps.
 
@@ -121,6 +123,15 @@ L'image finale du personnage est composée de **4 calques superposés** dans le 
 - **Contenu** : Épée, arc, marteau, lance, dague, bâton, pistolet, grimoire.
 - **Les 8 Armes du jeu** : Épée (`sword`), Arc (`bow`), Marteau (`hammer`), Lance (`spear`), Dague (`dagger`), Bâton (`staff`), Pistolet (`gun`), Grimoire (`grimoire`).
 - **Règle vitale** : La poignée de l'arme doit s'aligner **exactement** avec la main droite du gabarit universel du Layer 1 (X: 180 px, Y: 320 px).
+
+### Layer 4 : Aura Élémentaire d'Arme (`weapons/{weapon}_auras/`) — Au-dessus de tout
+- **Contenu** : Effet visuel magique façonné sur mesure pour épouser la silhouette de l'arme (langues de feu léchant la lame, cristal de givre translucide, arcs électriques crépitants).
+- **Positionnement z-index** : **`z-index: 40`** (strictement affiché au-dessus du calque arme et donc au-dessus de tout pour l'instant).
+- **Organisation des dossiers** : `public/images/characters/weapons/{weapon}_auras/{weapon}_{power}.webp`.
+  - Ex: `public/images/characters/weapons/sword_auras/sword_fire.webp`
+  - Ex: `public/images/characters/weapons/sword_auras/sword_ice.webp`
+  - Ex: `public/images/characters/weapons/sword_auras/sword_lightning.webp`
+- **Règle vitale** : Dessiné directement sur le calque de l'arme au format carré 512x512 px avec fond 100% transparent. Grâce à cette superposition exacte, l'aura habille l'arme sans décalage.
 
 ---
 
@@ -153,6 +164,28 @@ Le système supporte le nom français ou anglais (WebP). Voici la liste officiel
 > - `epee.webp`, `baton.webp`, `arc.webp`, `dague.webp` : 4/8 armes déjà créées et parfaitement fonctionnelles.
 > - Reste à créer : `marteau.webp`, `lance.webp`, `pistolet.webp`, `grimoire.webp`.
 > - `hache.webp` et `bouclier.webp` ne sont pas rattachés aux armes de duel du jeu.
+
+---
+
+### 1.1 Auras Élémentaires d'Armes (`public/images/characters/weapons/{weapon}_auras/`) — Layer 4
+Chaque arme possède des auras sur mesure pour chacun des éléments du jeu. Le calque d'aura est affiché au **Layer 4 (`z-index: 40`)**, soit **strictement au-dessus de l'arme (`z-index: 30`)** et donc au-dessus de tout.
+
+#### Structure des Dossiers & Fichiers
+- **Dossier par arme** : `public/images/characters/weapons/{weapon}_auras/` (ex: `sword_auras/`, `bow_auras/`, `staff_auras/`, etc.)
+- **Nom du fichier** : `{weapon}_{power}.webp` (ex: `sword_fire.webp`)
+- **Résolution dynamique & Fallback** : `PaperDollService` résout automatiquement les alias anglais et français (`sword_fire`, `sword_ice`, `sword_lightning`, `epee_feu`, etc.).
+
+| Arme | Dossier Dédié | Élément | Fichier Recommandé | Statut Actuel |
+| :--- | :--- | :--- | :--- | :---: |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Feu** 🔥 | `sword_fire.webp` | ✅ Présent |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Glace** ❄️ | `sword_ice.webp` | ✅ Présent |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Foudre** ⚡ | `sword_lightning.webp` | ✅ Présent |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Poison** 🧪 | `sword_poison.webp` | ⏳ À créer |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Régénération** 💖 | `sword_regeneration.webp` | ⏳ À créer |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Gravité** 🌌 | `sword_gravity.webp` | ⏳ À créer |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Téléportation** 🌀 | `sword_teleportation.webp` | ⏳ À créer |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Invisibilité** 👁️‍🗨️ | `sword_invisibility.webp` | ⏳ À créer |
+| **Autres Armes** 🏹🪄🗡️🔨🔱🔫📖 | `weapons/{weapon}_auras/` | Tous éléments | `{weapon}_{element}.webp` | ⏳ À créer (Dossiers à organiser) |
 
 ---
 
@@ -257,11 +290,11 @@ Dans le projet, le rendu du Paper Doll est entièrement encapsulé dans le compo
         $character->power_id,
         $character->rarity instanceof \App\Enums\Rarity ? $character->rarity->value : $character->rarity
     );
-    $hasVisualLayer = !empty($layers['race']) || !empty($layers['weapon']);
+    $hasVisualLayer = !empty($layers['race']) || !empty($layers['weapon']) || !empty($layers['aura']) || !empty($layers['power']);
 @endphp
 
 @if ($hasVisualLayer)
-    <div class="relative w-full max-w-[270px] aspect-square flex items-center justify-center select-none">
+    <div class="relative w-full max-w-[270px] aspect-square flex items-center justify-center select-none group/avatar">
         
         {{-- Layer 0 : Fond d'aura / Décor de rareté --}}
         @if ($layers['background'])
@@ -279,7 +312,7 @@ Dans le projet, le rendu du Paper Doll est entièrement encapsulé dans le compo
                  loading="lazy">
         @endif
 
-        {{-- Layer 2 : Effet Élémentaire / Pouvoir (VFX) --}}
+        {{-- Layer 2 : Effet Élémentaire / Pouvoir (VFX Corps) --}}
         @if ($layers['power'])
             <img src="{{ asset($layers['power']) }}" 
                  alt="Pouvoir" 
@@ -287,11 +320,19 @@ Dans le projet, le rendu du Paper Doll est entièrement encapsulé dans le compo
                  loading="lazy">
         @endif
 
-        {{-- Layer 3 : Arme tenue (Toujours au premier plan) --}}
+        {{-- Layer 3 : Arme tenue --}}
         @if ($layers['weapon'])
             <img src="{{ asset($layers['weapon']) }}" 
                  alt="Arme" 
                  class="absolute inset-0 w-full h-full object-contain z-30 pointer-events-none filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
+                 loading="lazy">
+        @endif
+
+        {{-- Layer 4 : Aura Élémentaire de l'Arme — STRICTEMENT AU PREMIER PLAN / AU-DESSUS DE L'ARME (z-index: 40) --}}
+        @if ($layers['aura'])
+            <img src="{{ asset($layers['aura']) }}" 
+                 alt="Aura" 
+                 class="absolute inset-0 w-full h-full object-contain z-40 pointer-events-none transition-transform duration-300 group-hover/avatar:scale-[1.03]" 
                  loading="lazy">
         @endif
     </div>
@@ -308,22 +349,33 @@ Dans le projet, le rendu du Paper Doll est entièrement encapsulé dans le compo
 ## 9. Synthèse des Bénéfices de cette Approche
 
 1. **Aucune distorsion visuelle** : Le portrait reste toujours un carré parfait (ratio 1:1), tandis que le châssis s'adapte en hauteur et largeur selon le support.
-2. **Économie de bande passante** : Au lieu de stocker des milliers de cartes générées (plusieurs Go), vous n'avez que ~30 fichiers WebP légers (< 1 Mo pour tout le jeu).
-3. **Plaisir de création** : Vous pouvez enrichir le jeu en ajoutant simplement 1 nouvelle arme ou 1 nouvelle race sans jamais toucher aux autres calques.
+2. **Économie de bande passante** : Au lieu de stocker des milliers de cartes générées (plusieurs Go), vous n'avez que des fichiers WebP légers (< 1 Mo pour tout le jeu).
+3. **Plaisir de création** : Vous pouvez enrichir le jeu en ajoutant simplement 1 nouvelle arme, 1 nouvelle race ou 1 nouvelle aura d'arme sans jamais toucher aux autres calques.
 
 ---
 
-## 10. Checklist Récapitulative des Assets (30 Fichiers Cibles)
+## 10. Checklist Récapitulative des Assets
+
+### Auras Élémentaires d'Armes (Layer 4 — `public/images/characters/weapons/{weapon}_auras/`)
+- [x] `sword_auras/sword_fire.webp` (Épée + Feu 🔥)
+- [x] `sword_auras/sword_ice.webp` (Épée + Glace ❄️)
+- [x] `sword_auras/sword_lightning.webp` (Épée + Foudre ⚡)
+- [ ] `sword_auras/sword_poison.webp` (Épée + Poison 🧪)
+- [ ] `sword_auras/sword_regeneration.webp` (Épée + Régénération 💖)
+- [ ] `sword_auras/sword_gravity.webp` (Épée + Gravité 🌌)
+- [ ] `sword_auras/sword_teleportation.webp` (Épée + Téléportation 🌀)
+- [ ] `sword_auras/sword_invisibility.webp` (Épée + Invisibilité 👁️‍🗨️)
+- [ ] Autres auras d'armes (`bow_auras/`, `staff_auras/`, `dagger_auras/`, `hammer_auras/`, `spear_auras/`, `gun_auras/`, `grimoire_auras/`)
 
 ### Armes (8 fichiers dans `public/images/characters/weapons/`)
 - [x] `epee.webp` (Épée ⚔️)
 - [x] `baton.webp` (Bâton 🪄)
 - [x] `arc.webp` (Arc 🏹)
 - [x] `dague.webp` (Dague 🗡️)
-- [ ] `marteau.webp` (Marteau 🔨)
-- [ ] `lance.webp` (Lance 🔱)
+- [x] `hammer.webp` (Marteau 🔨)
+- [x] `spear.webp` (Lance 🔱)
+- [x] `grimoire.webp` (Grimoire 📖)
 - [ ] `pistolet.webp` (Pistolet 🔫)
-- [ ] `grimoire.webp` (Grimoire 📖)
 - *(Note : `hache.webp` et `bouclier.webp` créés précédemment ne sont pas utilisés dans les 8 armes officielles de combat)*
 
 ### Races (8 fichiers dans `public/images/characters/races/`)
@@ -336,7 +388,7 @@ Dans le projet, le rendu du Paper Doll est entièrement encapsulé dans le compo
 - [ ] `vampire.webp` (Vampire 🧛)
 - [ ] `alien.webp` (Alien 👽)
 
-### Pouvoirs / VFX Élémentaires (8 fichiers dans `public/images/characters/elements/`)
+### Pouvoirs / VFX Élémentaires Corporels (8 fichiers dans `public/images/characters/elements/`)
 - [ ] `feu.webp` (Feu 🔥)
 - [ ] `poison.webp` (Poison 🧪)
 - [ ] `glace.webp` (Glace ❄️)

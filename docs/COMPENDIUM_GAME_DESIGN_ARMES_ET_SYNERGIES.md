@@ -102,6 +102,14 @@ Fichier source : [`app/Data/PowerData.php`](file:///c:/Users/natha/Documents/PRO
 | **Téléportation**| 🌀 | `teleportation`| Mythique | Spatial | **Saut dimensionnel** : **28% de chances d'esquiver** totalement l'attaque | 4 | Alien + Téléport, Golem + Téléport |
 | **Invisibilité** | 👁️‍🗨️| `invisibility` | Mythique | Furtif | **Camouflage optique** : Esquive 100% garantie au Tour 1, +20% esquive globale, critique surprise ×1.6 | 4 | Dague + Invisibilité |
 
+> [!TIP]
+> ### 🎨 Manifestation Visuelle : Les Auras d'Armes Élémentaires (Layer 4)
+> Pour conférer un impact visuel maximal et une lecture instantanée de l'élément en duel et dans la Collection, les pouvoirs s'expriment à présent via des **auras dessinées spécifiquement pour chaque arme** :
+> - **Superposition (Layer 4)** : Affichée à `z-index: 40`, strictement **au-dessus de l'arme** et au premier plan.
+> - **Dossiers d'assets** : `public/images/characters/weapons/{weapon}_auras/{weapon}_{element}.webp`.
+> - **Actifs actuellement** : Épée + Feu (`sword_fire.webp`), Épée + Glace (`sword_ice.webp`), Épée + Foudre (`sword_lightning.webp`).
+> - Détails d'exportation et gabarit disponibles dans le [GUIDE_ASSETS_PAPER_DOLL.md](file:///c:/Users/natha/Documents/PROJET/WHEELBORN_PROJECT/WHEELBORN/docs/GUIDE_ASSETS_PAPER_DOLL.md).
+
 ---
 
 ## 6. Matrice Croisée & Catalogue des 16 Synergies
