@@ -56,8 +56,7 @@ class PaperDollService
     {
         if (!$raceId)
             return null;
-        $key = strtolower($raceId);
-        $candidates = self::$raceAliases[$key] ?? [$key];
+        $candidates = self::getNormalizedCandidates(strtolower($raceId), self::$raceAliases);
         return self::findFirstAsset('characters/races', $candidates);
     }
 
@@ -68,8 +67,7 @@ class PaperDollService
     {
         if (!$weaponId)
             return null;
-        $key = strtolower($weaponId);
-        $candidates = self::$weaponAliases[$key] ?? [$key];
+        $candidates = self::getNormalizedCandidates(strtolower($weaponId), self::$weaponAliases);
         return self::findFirstAsset('characters/weapons', $candidates);
     }
 
@@ -80,8 +78,7 @@ class PaperDollService
     {
         if (!$powerId)
             return null;
-        $key = strtolower($powerId);
-        $candidates = self::$powerAliases[$key] ?? [$key];
+        $candidates = self::getNormalizedCandidates(strtolower($powerId), self::$powerAliases);
         return self::findFirstAsset('characters/elements', $candidates);
     }
 
@@ -106,11 +103,8 @@ class PaperDollService
         if (!$weaponId || !$powerId)
             return null;
 
-        $wKey = strtolower($weaponId);
-        $pKey = strtolower($powerId);
-
-        $weaponCandidates = array_values(array_unique(array_merge([$wKey], self::$weaponAliases[$wKey] ?? [])));
-        $powerCandidates = array_values(array_unique(array_merge([$pKey], self::$powerAliases[$pKey] ?? [])));
+        $weaponCandidates = self::getNormalizedCandidates(strtolower($weaponId), self::$weaponAliases);
+        $powerCandidates = self::getNormalizedCandidates(strtolower($powerId), self::$powerAliases);
 
         $extensions = ['webp', 'png', 'svg', 'jpg'];
 
@@ -147,6 +141,27 @@ class PaperDollService
         }
 
         return null;
+    }
+
+    /**
+     * Résout de manière bidirectionnelle les alias (anglais <-> français <-> id).
+     */
+    protected static function getNormalizedCandidates(string $id, array $aliasMap): array
+    {
+        $candidates = [$id];
+
+        if (isset($aliasMap[$id])) {
+            $candidates = array_merge($candidates, $aliasMap[$id]);
+        }
+
+        foreach ($aliasMap as $canonical => $aliases) {
+            if (in_array($id, $aliases, true)) {
+                $candidates[] = $canonical;
+                $candidates = array_merge($candidates, $aliases);
+            }
+        }
+
+        return array_values(array_unique($candidates));
     }
 
     /**

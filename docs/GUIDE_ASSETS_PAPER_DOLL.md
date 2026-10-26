@@ -185,7 +185,7 @@ Chaque arme possède des auras sur mesure pour chacun des éléments du jeu. Le 
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Gravité** 🌌 | `sword_gravity.webp` | ⏳ À créer |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Téléportation** 🌀 | `sword_teleportation.webp` | ⏳ À créer |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Invisibilité** 👁️‍🗨️ | `sword_invisibility.webp` | ⏳ À créer |
-| **Autres Armes** 🏹🪄🗡️🔨🔱🔫📖 | `weapons/{weapon}_auras/` | Tous éléments | `{weapon}_{element}.webp` | ⏳ À créer (Dossiers à organiser) |
+| **Autres Armes** 🏹🪄🗡️🔨🔱🔫📖 | `weapons/{weapon}_auras/` | Tous éléments | `{weapon}_{element}.webp` | 📁 Dossiers créés, WebP à dessiner |
 
 ---
 
