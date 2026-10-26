@@ -11,7 +11,8 @@
 
     {{-- Admin Dev Toolbar if Admin --}}
     @if ($isAdmin)
-        <div class="bg-gradient-to-r from-purple-950/80 via-slate-900 to-indigo-950/80 border border-purple-500/40 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 backdrop-blur-md shadow-xl">
+        <div class="space-y-4">
+            <div class="bg-gradient-to-r from-purple-950/80 via-slate-900 to-indigo-950/80 border border-purple-500/40 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 backdrop-blur-md shadow-xl">
             <div class="flex items-center gap-3">
                 <span class="text-2xl filter drop-shadow">👑</span>
                 <div>
@@ -32,35 +33,156 @@
                 <button wire:click="adminResetPity" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition">
                     Reset Pity
                 </button>
-                <button wire:click="adminForceTestSpin('sword', 'fire')" class="px-2.5 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Épée + Aura Feu (sword_fire.webp)">
-                    <span>⚔️🔥</span>
-                    <span>Aura Feu</span>
-                </button>
-                <button wire:click="adminForceTestSpin('sword', 'ice')" class="px-2.5 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Épée + Aura Glace (sword_ice.webp)">
-                    <span>⚔️❄️</span>
-                    <span>Aura Glace</span>
-                </button>
-                <button wire:click="adminForceTestSpin('sword', 'lightning')" class="px-2.5 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Épée + Aura Foudre (sword_lightning.webp)">
-                    <span>⚔️⚡</span>
-                    <span>Aura Foudre</span>
-                </button>
-                <button wire:click="adminForceTestSpin('staff')" class="px-2.5 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Bâton">
-                    <span>🪄</span>
-                    <span>Bâton</span>
-                </button>
-                <button wire:click="adminForceTestSpin('bow')" class="px-2.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Arc">
-                    <span>🏹</span>
-                    <span>Arc</span>
-                </button>
-                <button wire:click="adminForceTestSpin('dagger')" class="px-2.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Dague">
-                    <span>🗡️</span>
-                    <span>Dague</span>
-                </button>
-                <button wire:click="adminForceTestSpin('hammer')" class="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition hover:scale-105 active:scale-95 flex items-center gap-1" title="Tester le Paper Doll avec Humain + Marteau">
-                    <span>🔨</span>
-                    <span>Marteau</span>
+                <button wire:click="toggleAdminForge" class="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-lg text-xs shadow-lg shadow-purple-600/30 transition hover:scale-105 active:scale-95 flex items-center gap-1.5 border border-purple-400/30">
+                    <span>🧪</span>
+                    <span>Forge Personnalisée</span>
+                    <span class="text-[10px] bg-purple-900/60 px-1.5 py-0.5 rounded font-mono">{{ $showAdminForge ? '▲ Fermer' : '▼ Ouvrir' }}</span>
                 </button>
             </div>
+        </div>
+
+        {{-- Panneau Déroulant : Forge de Combattants & Simulateur de Roue Admin --}}
+        @if ($showAdminForge)
+            <div class="bg-slate-950/95 border-2 border-purple-500/50 rounded-2xl p-5 shadow-2xl backdrop-blur-xl relative overflow-hidden transition-all duration-300">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🧪</span>
+                        <div>
+                            <h4 class="text-sm font-black text-white tracking-tight flex items-center gap-2">
+                                <span>Forge Personnalisée & Simulateur de Roue</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">Test Paper Doll & Auras</span>
+                            </h4>
+                            <p class="text-xs text-slate-400">Composez n'importe quelle combinaison (Race, Arme, Pouvoir, Rareté) pour tester instantanément le Paper Doll et la Roue.</p>
+                        </div>
+                    </div>
+                    <button wire:click="toggleAdminForge" class="text-slate-400 hover:text-white text-lg p-1">&times;</button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                    {{-- Colonne Gauche : 4 Sélecteurs (Race, Arme, Pouvoir, Rareté) --}}
+                    <div class="lg:col-span-8 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                            {{-- 1. Rouleau Race --}}
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <label class="block text-[11px] font-bold text-indigo-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    <span>👤</span>
+                                    <span>Rouleau 1 : Race</span>
+                                </label>
+                                <select wire:model.live="adminSelectedRace" class="w-full bg-slate-950 text-white text-xs rounded-lg border border-slate-700 p-2 focus:ring-2 focus:ring-indigo-500">
+                                    @foreach ($this->adminAllRaces as $r)
+                                        <option value="{{ $r['id'] }}">{{ $r['icon'] }} {{ $r['name'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- 2. Rouleau Arme --}}
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <label class="block text-[11px] font-bold text-amber-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    <span>⚔️</span>
+                                    <span>Rouleau 2 : Arme</span>
+                                </label>
+                                <select wire:model.live="adminSelectedWeapon" class="w-full bg-slate-950 text-white text-xs rounded-lg border border-slate-700 p-2 focus:ring-2 focus:ring-amber-500">
+                                    @foreach ($this->adminAllWeapons as $w)
+                                        <option value="{{ $w['id'] }}">{{ $w['icon'] }} {{ $w['name'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- 3. Rouleau Pouvoir --}}
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <label class="block text-[11px] font-bold text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    <span>🔮</span>
+                                    <span>Rouleau 3 : Pouvoir</span>
+                                </label>
+                                <select wire:model.live="adminSelectedPower" class="w-full bg-slate-950 text-white text-xs rounded-lg border border-slate-700 p-2 focus:ring-2 focus:ring-purple-500">
+                                    @foreach ($this->adminAllPowers as $p)
+                                        <option value="{{ $p['id'] }}">{{ $p['icon'] }} {{ $p['name'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- 4. Rareté --}}
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <label class="block text-[11px] font-bold text-emerald-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    <span>⭐</span>
+                                    <span>Palier Rareté</span>
+                                </label>
+                                <select wire:model.live="adminSelectedRarity" class="w-full bg-slate-950 text-white text-xs rounded-lg border border-slate-700 p-2 focus:ring-2 focus:ring-emerald-500">
+                                    @foreach (\App\Enums\Rarity::cases() as $rarity)
+                                        <option value="{{ $rarity->value }}">{{ $rarity->label() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        {{-- Diagnostic des Assets & Synergies --}}
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                            {{-- Statut des calques détectés --}}
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <span class="text-slate-400 font-semibold">Calques détectés :</span>
+                                <span class="px-2 py-0.5 rounded text-[11px] font-mono {{ $this->adminAssetStatus['race'] ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400' }}">
+                                    Race: {{ $this->adminAssetStatus['race'] ? '✅' : '⏳' }}
+                                </span>
+                                <span class="px-2 py-0.5 rounded text-[11px] font-mono {{ $this->adminAssetStatus['weapon'] ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400' }}">
+                                    Arme: {{ $this->adminAssetStatus['weapon'] ? '✅' : '⏳' }}
+                                </span>
+                                <span class="px-2 py-0.5 rounded text-[11px] font-mono {{ $this->adminAssetStatus['aura'] ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400' }}">
+                                    Aura: {{ $this->adminAssetStatus['aura'] ? '✅ Présente' : '⏳ Aucune' }}
+                                </span>
+                            </div>
+
+                            {{-- Synergies détectées --}}
+                            <div class="flex items-center gap-2">
+                                @if (count($this->adminDetectedSynergies) > 0)
+                                    @foreach ($this->adminDetectedSynergies as $syn)
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 border border-purple-500/40 text-purple-200" title="{{ $syn['description'] ?? '' }}">
+                                            {{ $syn['icon'] ?? '' }} {{ $syn['name'] }}
+                                        </span>
+                                    @endforeach
+                                @else
+                                    <span class="text-slate-500 text-[11px] italic">Aucune synergie directe</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Boutons d'Action --}}
+                        <div class="flex flex-wrap items-center gap-3 pt-1">
+                            <button 
+                                wire:click="adminSpawnCustom(false)" 
+                                class="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-95"
+                            >
+                                <span>🎯</span>
+                                <span>Révélation Directe (Sans Attente)</span>
+                            </button>
+                            <button 
+                                wire:click="adminSpawnCustom(true)" 
+                                class="flex-1 py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-95"
+                            >
+                                <span>🎡</span>
+                                <span>Lancer la Roue Synchronisée</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Colonne Droite : Mini Aperçu Live Paper Doll --}}
+                    <div class="lg:col-span-4 bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex flex-col items-center justify-center">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Aperçu Live Paper Doll</span>
+                        <div class="w-full flex items-center justify-center">
+                            <x-character-avatar 
+                                :raceId="$adminSelectedRace" 
+                                :weaponId="$adminSelectedWeapon" 
+                                :powerId="$adminSelectedPower" 
+                                :rarity="$adminSelectedRarity" 
+                                class="max-w-[150px]" 
+                            />
+                        </div>
+                        <span class="text-[10px] text-slate-500 mt-2 font-mono">
+                            {{ ucfirst($adminSelectedRace) }} • {{ ucfirst($adminSelectedWeapon) }} • {{ ucfirst($adminSelectedPower) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        @endif
         </div>
     @endif
 

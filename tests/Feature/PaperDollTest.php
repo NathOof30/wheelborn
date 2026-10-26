@@ -32,14 +32,16 @@ class PaperDollTest extends TestCase
         // 3. Armes non dessinées (pistolet / gun) renvoient null
         $this->assertNull(PaperDollService::getWeaponAsset('gun'));
 
-        // 4. Auras élémentaires d'armes (Épée + Feu, Glace, Foudre)
+        // 4. Auras élémentaires d'armes (Épée + Feu, Glace, Foudre, Poison)
         $this->assertEquals('images/characters/weapons/sword_auras/sword_fire.webp', PaperDollService::getAuraAsset('sword', 'fire'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_ice.webp', PaperDollService::getAuraAsset('sword', 'ice'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_lightning.webp', PaperDollService::getAuraAsset('sword', 'lightning'));
+        $this->assertEquals('images/characters/weapons/sword_auras/sword_poison.webp', PaperDollService::getAuraAsset('sword', 'poison'));
         // Alias français testés
         $this->assertEquals('images/characters/weapons/sword_auras/sword_fire.webp', PaperDollService::getAuraAsset('epee', 'feu'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_ice.webp', PaperDollService::getAuraAsset('epee', 'glace'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_lightning.webp', PaperDollService::getAuraAsset('epee', 'foudre'));
+        $this->assertEquals('images/characters/weapons/sword_auras/sword_poison.webp', PaperDollService::getAuraAsset('epee', 'poison'));
         // Auras non encore dessinées renvoient null
         $this->assertNull(PaperDollService::getAuraAsset('sword', 'gravity'));
         $this->assertNull(PaperDollService::getAuraAsset('bow', 'fire'));
@@ -201,6 +203,41 @@ class PaperDollTest extends TestCase
             ->assertSee('images/characters/weapons/sword_auras/sword_ice.webp')
             ->call('keepCharacter')
             ->call('adminForceTestSpin', 'sword', 'lightning')
+            ->assertSee('images/characters/weapons/sword_auras/sword_lightning.webp');
+    }
+
+    public function test_admin_can_use_custom_forge_to_select_and_spawn_character(): void
+    {
+        $admin = User::factory()->create([
+            'email' => 'admin@wheelborn.test',
+            'is_admin' => true,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(CharacterWheel::class)
+            // 1. Ouvrir la Forge
+            ->call('toggleAdminForge')
+            ->assertSet('showAdminForge', true)
+            ->assertSee('Forge Personnalisée')
+            // 2. Configurer une combinaison personnalisée (Humain + Épée + Glace + Légendaire)
+            ->set('adminSelectedRace', 'human')
+            ->set('adminSelectedWeapon', 'sword')
+            ->set('adminSelectedPower', 'ice')
+            ->set('adminSelectedRarity', 'legendary')
+            // 3. Spawner en mode révélation directe
+            ->call('adminSpawnCustom', false)
+            ->assertSet('showAdminForge', false)
+            ->assertSee('images/characters/races/human.webp')
+            ->assertSee('images/characters/weapons/epee.webp')
+            ->assertSee('images/characters/weapons/sword_auras/sword_ice.webp')
+            ->call('keepCharacter')
+            // 4. Tester avec animation de roue
+            ->set('adminSelectedRace', 'human')
+            ->set('adminSelectedWeapon', 'sword')
+            ->set('adminSelectedPower', 'lightning')
+            ->call('adminSpawnCustom', true)
+            ->assertSet('isSpinning', true)
+            ->call('finishSpin')
             ->assertSee('images/characters/weapons/sword_auras/sword_lightning.webp');
     }
 }

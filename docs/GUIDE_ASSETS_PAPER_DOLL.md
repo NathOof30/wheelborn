@@ -180,7 +180,7 @@ Chaque arme possède des auras sur mesure pour chacun des éléments du jeu. Le 
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Feu** 🔥 | `sword_fire.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Glace** ❄️ | `sword_ice.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Foudre** ⚡ | `sword_lightning.webp` | ✅ Présent |
-| **Épée** ⚔️ | `weapons/sword_auras/` | **Poison** 🧪 | `sword_poison.webp` | ⏳ À créer |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Poison** 🧪 | `sword_poison.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Régénération** 💖 | `sword_regeneration.webp` | ⏳ À créer |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Gravité** 🌌 | `sword_gravity.webp` | ⏳ À créer |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Téléportation** 🌀 | `sword_teleportation.webp` | ⏳ À créer |
@@ -360,7 +360,7 @@ Dans le projet, le rendu du Paper Doll est entièrement encapsulé dans le compo
 - [x] `sword_auras/sword_fire.webp` (Épée + Feu 🔥)
 - [x] `sword_auras/sword_ice.webp` (Épée + Glace ❄️)
 - [x] `sword_auras/sword_lightning.webp` (Épée + Foudre ⚡)
-- [ ] `sword_auras/sword_poison.webp` (Épée + Poison 🧪)
+- [x] `sword_auras/sword_poison.webp` (Épée + Poison 🧪)
 - [ ] `sword_auras/sword_regeneration.webp` (Épée + Régénération 💖)
 - [ ] `sword_auras/sword_gravity.webp` (Épée + Gravité 🌌)
 - [ ] `sword_auras/sword_teleportation.webp` (Épée + Téléportation 🌀)

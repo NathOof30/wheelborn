@@ -35,6 +35,11 @@ class CharacterWheel extends Component
     public int $elo = 1000;
     public int $nextRegenSeconds = 0;
     public bool $isAdmin = false;
+    public bool $showAdminForge = false;
+    public string $adminSelectedRace = 'human';
+    public string $adminSelectedWeapon = 'sword';
+    public string $adminSelectedPower = 'fire';
+    public string $adminSelectedRarity = 'rare';
 
     // Ticket d'Urgence (affichage uniquement, l'achat est vérifié par WorkshopService)
     public ?int $emergencyCost = null;
@@ -476,48 +481,103 @@ class CharacterWheel extends Component
     }
 
     /**
-     * Commande Admin de Test : Force un tirage instantané avec un ensemble Paper Doll complet
-     * (Humain + Arme + Élément avec Aura éventuelle).
+     * Bascule l'affichage du panneau de la Forge de Personnages Admin.
      */
-    public function adminForceTestSpin(string $weaponId = 'sword', string $powerId = 'fire'): void
+    public function toggleAdminForge(): void
+    {
+        if (!$this->isAdmin) return;
+        $this->showAdminForge = !$this->showAdminForge;
+    }
+
+    /**
+     * Invoque un combattant personnalisé selon les choix de la Forge Admin.
+     * $withAnimation = true anime les roues physiques jusqu'aux 3 positions choisies.
+     * $withAnimation = false révèle directement la carte sans délai d'attente.
+     */
+    public function adminSpawnCustom(bool $withAnimation = false): void
     {
         if (!$this->isAdmin) return;
 
         $user = auth()->user();
-        if ($this->revealedCharacter) {
+        if ($this->isSpinning || $this->revealedCharacter) {
             $this->notify('Veuillez d\'abord finaliser votre tirage en cours.', 'warning');
             return;
         }
 
-        $weaponData = \App\Data\WeaponData::find($weaponId);
-        $weaponName = $weaponData['name'] ?? ucfirst($weaponId);
-        $powerData = \App\Data\PowerData::find($powerId);
-        $powerName = $powerData['name'] ?? ucfirst($powerId);
+        $rarityEnum = \App\Enums\Rarity::tryFrom($this->adminSelectedRarity) ?? \App\Enums\Rarity::Rare;
 
-        $character = Character::create([
-            'user_id'           => $user->id,
-            'name'              => \App\Data\NameGenerator::generate('human'),
-            'race_id'           => 'human',
-            'weapon_id'         => $weaponId,
-            'power_id'          => $powerId,
-            'power_tier'        => \App\Enums\PowerTier::Common,
-            'hp'                => 105,
-            'max_hp'            => 105,
-            'strength'          => 55,
-            'speed'             => 48,
-            'defense'           => 42,
-            'power_score'       => 250,
-            'rarity'            => \App\Enums\Rarity::Rare,
-            'is_lucky_spin'     => false,
-            'is_unstable'       => false,
-            'synergies_data'    => \App\Data\SynergyData::detect('human', $weaponId, $powerId),
-            'recycle_value'     => 150,
-            'is_active_fighter' => false,
-            'pending_reveal'    => true,
-        ]);
+        $character = app(\App\Services\CharacterGeneratorService::class)->generateCustom(
+            $user,
+            $this->adminSelectedRace,
+            $this->adminSelectedWeapon,
+            $this->adminSelectedPower,
+            $rarityEnum
+        );
 
         $this->revealedCharacter = $character->toArray();
-        $this->notify("🎯 Tirage de test Paper Doll généré : Humain + {$weaponName} + {$powerName} !", 'success');
+        $this->showAdminForge = false;
+
+        if ($withAnimation) {
+            $this->isSpinning = true;
+            $this->previousRotations = $this->wheelRotations;
+            $this->aimWheels($this->revealedCharacter, self::WHEEL_EXTRA_TURNS);
+            $this->notify("🎡 Tirage personnalisé lancé sur la Roue : {$character->name} !", 'info');
+        } else {
+            $this->notify("🎯 Combattant personnalisé forgé : {$character->name} !", 'success');
+        }
+
+        $this->refreshState();
+        $this->dispatchStatsUpdated();
+    }
+
+    /**
+     * Commande Admin de Test rétrocompatible : Force un tirage instantané.
+     */
+    public function adminForceTestSpin(string $weaponId = 'sword', string $powerId = 'fire'): void
+    {
+        $this->adminSelectedRace = 'human';
+        $this->adminSelectedWeapon = $weaponId;
+        $this->adminSelectedPower = $powerId;
+        $this->adminSelectedRarity = 'rare';
+        $this->adminSpawnCustom(false);
+    }
+
+    #[Computed]
+    public function adminAllRaces(): array
+    {
+        return \App\Data\RaceData::all();
+    }
+
+    #[Computed]
+    public function adminAllWeapons(): array
+    {
+        return \App\Data\WeaponData::all();
+    }
+
+    #[Computed]
+    public function adminAllPowers(): array
+    {
+        return \App\Data\PowerData::all();
+    }
+
+    #[Computed]
+    public function adminDetectedSynergies(): array
+    {
+        return \App\Data\SynergyData::detect(
+            $this->adminSelectedRace,
+            $this->adminSelectedWeapon,
+            $this->adminSelectedPower
+        );
+    }
+
+    #[Computed]
+    public function adminAssetStatus(): array
+    {
+        return [
+            'race'   => \App\Services\PaperDollService::getRaceAsset($this->adminSelectedRace),
+            'weapon' => \App\Services\PaperDollService::getWeaponAsset($this->adminSelectedWeapon),
+            'aura'   => \App\Services\PaperDollService::getAuraAsset($this->adminSelectedWeapon, $this->adminSelectedPower),
+        ];
     }
 
     public function dispatchStatsUpdated(): void

@@ -107,7 +107,7 @@ Fichier source : [`app/Data/PowerData.php`](file:///c:/Users/natha/Documents/PRO
 > Pour conférer un impact visuel maximal et une lecture instantanée de l'élément en duel et dans la Collection, les pouvoirs s'expriment à présent via des **auras dessinées spécifiquement pour chaque arme** :
 > - **Superposition (Layer 4)** : Affichée à `z-index: 40`, strictement **au-dessus de l'arme** et au premier plan.
 > - **Dossiers d'assets** : `public/images/characters/weapons/{weapon}_auras/{weapon}_{element}.webp`.
-> - **Actifs actuellement** : Épée + Feu (`sword_fire.webp`), Épée + Glace (`sword_ice.webp`), Épée + Foudre (`sword_lightning.webp`).
+> - **Actifs actuellement** : Épée + Feu (`sword_fire.webp`), Épée + Glace (`sword_ice.webp`), Épée + Foudre (`sword_lightning.webp`), Épée + Poison (`sword_poison.webp`).
 > - Détails d'exportation et gabarit disponibles dans le [GUIDE_ASSETS_PAPER_DOLL.md](file:///c:/Users/natha/Documents/PROJET/WHEELBORN_PROJECT/WHEELBORN/docs/GUIDE_ASSETS_PAPER_DOLL.md).
 
 ---

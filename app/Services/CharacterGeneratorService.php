@@ -65,6 +65,56 @@ class CharacterGeneratorService
     }
 
     /**
+     * Génère un combattant sur mesure avec les éléments choisis (Outil Admin / Tests).
+     */
+    public function generateCustom(
+        User $user,
+        string $raceId,
+        string $weaponId,
+        string $powerId,
+        ?Rarity $rarity = null
+    ): Character {
+        $race = RaceData::find($raceId) ?? RaceData::all()[0];
+        $weapon = WeaponData::find($weaponId) ?? WeaponData::all()[0];
+        $power = PowerData::find($powerId) ?? PowerData::all()[0];
+
+        $synergies = SynergyData::detect($race['id'], $weapon['id'], $power['id']);
+        $stats = $this->rollStats($race, $weapon, $synergies, $user);
+
+        $isUnstable = collect($synergies)->contains('is_unstable', true);
+        $powerScore = $this->calculatePowerScore($stats, $synergies, $isUnstable);
+        $rarity = $rarity ?? $this->determineRarity(false, $powerScore, count($synergies));
+
+        $recycleValue = $this->calculateRecycleValue($powerScore, count($synergies), $rarity);
+
+        $character = Character::create([
+            'user_id'           => $user->id,
+            'name'              => NameGenerator::generate($race['id']),
+            'race_id'           => $race['id'],
+            'weapon_id'         => $weapon['id'],
+            'power_id'          => $power['id'],
+            'power_tier'        => PowerTier::from($power['tier']),
+            'hp'                => $stats['hp'],
+            'max_hp'            => $stats['hp'],
+            'strength'          => $stats['strength'],
+            'speed'             => $stats['speed'],
+            'defense'           => $stats['defense'],
+            'power_score'       => $powerScore,
+            'rarity'            => $rarity,
+            'is_lucky_spin'     => false,
+            'is_unstable'       => $isUnstable,
+            'synergies_data'    => $synergies,
+            'recycle_value'     => $recycleValue,
+            'is_active_fighter' => false,
+            'pending_reveal'    => true,
+        ]);
+
+        CharacterGenerated::dispatch($user, $character);
+
+        return $character;
+    }
+
+    /**
      * Génère un combattant bot d'arène (non persisté), au format attendu par BattleEngineService.
      * $statBonus ajuste la difficulté en décalant Force, Vitesse, Défense et PV.
      */
