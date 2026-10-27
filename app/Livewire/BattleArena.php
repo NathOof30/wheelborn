@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Data\GameConfig;
+use App\Models\Battle;
 use App\Models\Character;
+use App\Models\User;
 use App\Services\ArenaService;
 use App\Services\EnergyManagerService;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +41,10 @@ class BattleArena extends Component
     public string $search = '';
     public string $rarityFilter = '';
     public string $sortBy = 'power_desc';
+
+    // Modale d'inspection du rival
+    public bool $showOpponentModal = false;
+    public ?array $inspectedRival = null;
 
     public function mount(): void
     {
@@ -107,6 +113,79 @@ class BattleArena extends Component
         $this->search = '';
         $this->rarityFilter = '';
         $this->sortBy = 'power_desc';
+    }
+
+    /**
+     * Ouvre la modale d'inspection rapide du rival (vrai joueur ou bot).
+     */
+    public function inspectOpponent(): void
+    {
+        if (!$this->opponent) {
+            return;
+        }
+
+        if (($this->opponent['kind'] ?? '') === 'player') {
+            $user = User::where('name', $this->opponent['owner'] ?? '')->first();
+            if ($user) {
+                $progress = $user->currentLevelProgress();
+                $league = $user->getLeague();
+                $stats = $user->battleStats();
+                $battles = $stats['total'];
+                $wins = $stats['wins'];
+                $winrate = $stats['winrate'];
+                $favorites = $user->favoriteCharacters()->get()->map(fn ($c) => [
+                    'id'          => (string) $c->id,
+                    'name'        => $c->name,
+                    'rarity'      => $c->rarity->label(),
+                    'rarity_key'  => $c->rarity->value,
+                    'power_score' => $c->power_score,
+                    'race'        => $c->race_label,
+                    'weapon'      => $c->weapon_label,
+                ])->all();
+
+                $this->inspectedRival = [
+                    'kind'        => 'player',
+                    'name'        => $user->name,
+                    'elo'         => $user->elo,
+                    'league'      => [
+                        'name'  => $league->name,
+                        'icon'  => $league->icon(),
+                        'color' => $league->color(),
+                    ],
+                    'level'       => $progress['level'],
+                    'title'       => $progress['title'],
+                    'battles'     => $battles,
+                    'wins'        => $wins,
+                    'winrate'     => $winrate,
+                    'favorites'   => $favorites,
+                    'profile_url' => route('player.profile', $user->name),
+                ];
+            } else {
+                $this->inspectedRival = [
+                    'kind' => 'player',
+                    'name' => $this->opponent['owner'] ?? 'Inconnu',
+                    'elo'  => $this->opponent['elo'] ?? 1000,
+                ];
+            }
+        } else {
+            $this->inspectedRival = [
+                'kind'        => 'ghost',
+                'name'        => $this->opponent['name'] ?? 'Fantôme Céleste',
+                'elo'         => $this->opponent['elo'] ?? 1000,
+                'power_score' => $this->opponent['power_score'] ?? 50,
+                'race_id'     => $this->opponent['race_id'] ?? null,
+                'weapon_id'   => $this->opponent['weapon_id'] ?? null,
+                'power_id'    => $this->opponent['power_id'] ?? null,
+            ];
+        }
+
+        $this->showOpponentModal = true;
+    }
+
+    public function closeOpponentModal(): void
+    {
+        $this->showOpponentModal = false;
+        $this->inspectedRival = null;
     }
 
     #[Computed]

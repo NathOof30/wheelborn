@@ -33,6 +33,10 @@ class RecycleService
                 throw new DomainException("Ce combattant est verrouillé ! Déverrouillez-le avant de pouvoir le recycler.");
             }
 
+            if ($character->is_favorite) {
+                throw new DomainException("Ce combattant fait partie de vos favoris (vitrine de profil) et ne peut pas être recyclé.");
+            }
+
             if ($character->is_active_fighter) {
                 throw new DomainException("Ce combattant est actuellement déployé dans l'arène et ne peut pas être recyclé.");
             }
@@ -83,6 +87,7 @@ class RecycleService
         $query = Character::where('user_id', $user->id)
             ->where('pending_reveal', false)
             ->where('is_locked', false)
+            ->where('is_favorite', false)
             ->where('is_active_fighter', false)
             ->whereNull('recycled_at');
 

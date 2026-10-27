@@ -851,4 +851,157 @@ class CollectionGridTest extends TestCase
         $hero->refresh();
         $this->assertNotNull($hero->recycled_at);
     }
+
+    public function test_character_can_be_favorited_and_unfavorited(): void
+    {
+        $user = User::factory()->create();
+        $hero = Character::create([
+            'user_id' => $user->id,
+            'name' => 'Étoile d\'Argent',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 50,
+            'speed' => 50,
+            'defense' => 50,
+            'power_score' => 70,
+            'rarity' => Rarity::Rare,
+            'recycle_value' => 100,
+            'is_locked' => false,
+            'is_favorite' => false,
+            'pending_reveal' => false,
+        ]);
+
+        $this->actingAs($user);
+
+        // 1. Mise en favori
+        Livewire::test(CollectionGrid::class)
+            ->call('toggleFavorite', $hero->id)
+            ->assertSee('ajouté à tes favoris');
+
+        $hero->refresh();
+        $this->assertTrue($hero->is_favorite);
+
+        // 2. Retrait des favoris
+        Livewire::test(CollectionGrid::class)
+            ->call('toggleFavorite', $hero->id)
+            ->assertSee('retiré de tes favoris');
+
+        $hero->refresh();
+        $this->assertFalse($hero->is_favorite);
+    }
+
+    public function test_favorite_quota_enforces_maximum_three_characters(): void
+    {
+        $user = User::factory()->create();
+
+        // Créer 3 cartes déjà en favoris
+        for ($i = 1; $i <= 3; $i++) {
+            Character::create([
+                'user_id' => $user->id,
+                'name' => "Favori {$i}",
+                'race_id' => 'human',
+                'weapon_id' => 'sword',
+                'power_id' => 'fire',
+                'power_tier' => PowerTier::Common,
+                'hp' => 100,
+                'max_hp' => 100,
+                'strength' => 50,
+                'speed' => 50,
+                'defense' => 50,
+                'power_score' => 60,
+                'rarity' => Rarity::Rare,
+                'recycle_value' => 100,
+                'is_locked' => false,
+                'is_favorite' => true,
+                'pending_reveal' => false,
+            ]);
+        }
+
+        // Créer une 4e carte non-favorite
+        $fourthHero = Character::create([
+            'user_id' => $user->id,
+            'name' => 'Candidat 4',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 50,
+            'speed' => 50,
+            'defense' => 50,
+            'power_score' => 60,
+            'rarity' => Rarity::Rare,
+            'recycle_value' => 100,
+            'is_locked' => false,
+            'is_favorite' => false,
+            'pending_reveal' => false,
+        ]);
+
+        $this->actingAs($user);
+
+        // Tentative d'ajouter une 4e carte en favori -> doit être refusée
+        Livewire::test(CollectionGrid::class)
+            ->call('toggleFavorite', $fourthHero->id)
+            ->assertSee('Vitrine pleine');
+
+        $fourthHero->refresh();
+        $this->assertFalse($fourthHero->is_favorite);
+    }
+
+    public function test_collection_grid_can_filter_by_favorites(): void
+    {
+        $user = User::factory()->create();
+
+        $favorite = Character::create([
+            'user_id' => $user->id,
+            'name' => 'Champion Favori',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 50,
+            'speed' => 50,
+            'defense' => 50,
+            'power_score' => 80,
+            'rarity' => Rarity::Rare,
+            'recycle_value' => 100,
+            'is_locked' => false,
+            'is_favorite' => true,
+            'pending_reveal' => false,
+        ]);
+
+        $regular = Character::create([
+            'user_id' => $user->id,
+            'name' => 'Combattant Ordinaire',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 50,
+            'speed' => 50,
+            'defense' => 50,
+            'power_score' => 50,
+            'rarity' => Rarity::Common,
+            'recycle_value' => 50,
+            'is_locked' => false,
+            'is_favorite' => false,
+            'pending_reveal' => false,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(CollectionGrid::class)
+            ->call('toggleOnlyFavorites')
+            ->assertSee('Champion Favori')
+            ->assertDontSee('Combattant Ordinaire');
+    }
 }

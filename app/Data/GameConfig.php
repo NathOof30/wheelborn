@@ -132,4 +132,23 @@ class GameConfig
             ],
         ];
     }
+
+    public static function leveling(): array
+    {
+        return [
+            'base_step_xp' => 100,
+            'increment_xp' => 50,
+            'titles' => [
+                1  => 'Néophyte des Étoiles',
+                3  => 'Voyageur Stellaire',
+                5  => 'Adepte de la Roue',
+                8  => 'Combattant Arcanique',
+                10 => 'Vétéran de l\'Arène',
+                15 => 'Seigneur de Guerre',
+                20 => 'Maître du Destin',
+                30 => 'Élu Cosmique',
+                50 => 'Légende Immortelle',
+            ],
+        ];
+    }
 }

@@ -20,19 +20,26 @@ class PaperDollTest extends TestCase
         // 1. Race Humain existe
         $this->assertEquals('images/characters/races/human.webp', PaperDollService::getRaceAsset('human'));
 
-        // 2. Armes existantes (Épée, Bâton, Arc, Dague, Marteau, Lance, Grimoire)
-        $this->assertEquals('images/characters/weapons/epee.webp', PaperDollService::getWeaponAsset('sword'));
-        $this->assertEquals('images/characters/weapons/baton.webp', PaperDollService::getWeaponAsset('staff'));
-        $this->assertEquals('images/characters/weapons/arc.webp', PaperDollService::getWeaponAsset('bow'));
-        $this->assertEquals('images/characters/weapons/dague.webp', PaperDollService::getWeaponAsset('dagger'));
+        // 2. Armes existantes (Sword, Staff, Bow, Dagger, Hammer, Spear, Grimoire)
+        $this->assertEquals('images/characters/weapons/sword.webp', PaperDollService::getWeaponAsset('sword'));
+        $this->assertEquals('images/characters/weapons/staff.webp', PaperDollService::getWeaponAsset('staff'));
+        $this->assertEquals('images/characters/weapons/bow.webp', PaperDollService::getWeaponAsset('bow'));
+        $this->assertEquals('images/characters/weapons/dagger.webp', PaperDollService::getWeaponAsset('dagger'));
         $this->assertEquals('images/characters/weapons/hammer.webp', PaperDollService::getWeaponAsset('hammer'));
         $this->assertEquals('images/characters/weapons/spear.webp', PaperDollService::getWeaponAsset('spear'));
         $this->assertEquals('images/characters/weapons/grimoire.webp', PaperDollService::getWeaponAsset('grimoire'));
 
-        // 3. Armes non dessinées (pistolet / gun) renvoient null
-        $this->assertNull(PaperDollService::getWeaponAsset('gun'));
+        // Résolution tolérante : les alias français résolvent vers les assets anglais
+        $this->assertEquals('images/characters/weapons/sword.webp', PaperDollService::getWeaponAsset('epee'));
+        $this->assertEquals('images/characters/weapons/staff.webp', PaperDollService::getWeaponAsset('baton'));
+        $this->assertEquals('images/characters/weapons/bow.webp', PaperDollService::getWeaponAsset('arc'));
+        $this->assertEquals('images/characters/weapons/dagger.webp', PaperDollService::getWeaponAsset('dague'));
 
-        // 4. Auras élémentaires d'armes (Les 8 auras de l'Épée existent : Feu, Glace, Foudre, Poison, Gravité, Régénération, Téléportation, Invisibilité)
+        // 3. Armes non dessinées (gun / pistolet) renvoient null
+        $this->assertNull(PaperDollService::getWeaponAsset('gun'));
+        $this->assertNull(PaperDollService::getWeaponAsset('pistolet'));
+
+        // 4. Auras élémentaires d'armes (Les 8 auras de l'Épée existent : Fire, Ice, Lightning, Poison, Gravity, Regeneration, Teleportation, Invisibility)
         $this->assertEquals('images/characters/weapons/sword_auras/sword_fire.webp', PaperDollService::getAuraAsset('sword', 'fire'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_ice.webp', PaperDollService::getAuraAsset('sword', 'ice'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_lightning.webp', PaperDollService::getAuraAsset('sword', 'lightning'));
@@ -42,7 +49,7 @@ class PaperDollTest extends TestCase
         $this->assertEquals('images/characters/weapons/sword_auras/sword_teleportation.webp', PaperDollService::getAuraAsset('sword', 'teleportation'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_invisibility.webp', PaperDollService::getAuraAsset('sword', 'invisibility'));
 
-        // Alias français testés
+        // Alias français résolus vers les assets anglais
         $this->assertEquals('images/characters/weapons/sword_auras/sword_fire.webp', PaperDollService::getAuraAsset('epee', 'feu'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_ice.webp', PaperDollService::getAuraAsset('epee', 'glace'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_lightning.webp', PaperDollService::getAuraAsset('epee', 'foudre'));
@@ -51,6 +58,11 @@ class PaperDollTest extends TestCase
         $this->assertEquals('images/characters/weapons/sword_auras/sword_regeneration.webp', PaperDollService::getAuraAsset('epee', 'regeneration'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_teleportation.webp', PaperDollService::getAuraAsset('epee', 'teleportation'));
         $this->assertEquals('images/characters/weapons/sword_auras/sword_invisibility.webp', PaperDollService::getAuraAsset('epee', 'invisibilite'));
+
+        // Auras du Bâton (Staff)
+        $this->assertEquals('images/characters/weapons/staff_auras/staff_fire.webp', PaperDollService::getAuraAsset('staff', 'fire'));
+        $this->assertEquals('images/characters/weapons/staff_auras/staff_ice.webp', PaperDollService::getAuraAsset('staff', 'ice'));
+        $this->assertEquals('images/characters/weapons/staff_auras/staff_fire.webp', PaperDollService::getAuraAsset('baton', 'feu'));
 
         // Auras non encore dessinées renvoient null (ex: bow + fire)
         $this->assertNull(PaperDollService::getAuraAsset('bow', 'fire'));
@@ -94,7 +106,7 @@ class PaperDollTest extends TestCase
         Livewire::actingAs($user)
             ->test(CollectionGrid::class)
             ->assertSee('images/characters/races/human.webp')
-            ->assertSee('images/characters/weapons/epee.webp')
+            ->assertSee('images/characters/weapons/sword.webp')
             ->assertSee('images/characters/weapons/sword_auras/sword_fire.webp')
             ->assertDontSee('Artwork en attente');
     }
@@ -205,7 +217,7 @@ class PaperDollTest extends TestCase
             ->test(CharacterWheel::class)
             ->call('adminForceTestSpin', 'sword', 'fire')
             ->assertSee('images/characters/races/human.webp')
-            ->assertSee('images/characters/weapons/epee.webp')
+            ->assertSee('images/characters/weapons/sword.webp')
             ->assertSee('images/characters/weapons/sword_auras/sword_fire.webp')
             ->assertDontSee('Artwork en attente')
             ->call('keepCharacter')
@@ -238,7 +250,7 @@ class PaperDollTest extends TestCase
             ->call('adminSpawnCustom', false)
             ->assertSet('showAdminForge', false)
             ->assertSee('images/characters/races/human.webp')
-            ->assertSee('images/characters/weapons/epee.webp')
+            ->assertSee('images/characters/weapons/sword.webp')
             ->assertSee('images/characters/weapons/sword_auras/sword_ice.webp')
             ->call('keepCharacter')
             // 4. Tester avec animation de roue
@@ -258,7 +270,7 @@ class PaperDollTest extends TestCase
         // 1. Test direct de PaperDollService::resolveLayers :
         // Pour l'Épée avec Feu : l'arme de base et l'aura sont toutes deux présentes
         $layersFire = PaperDollService::resolveLayers('human', 'sword', 'fire', 'rare');
-        $this->assertEquals('images/characters/weapons/epee.webp', $layersFire['weapon']);
+        $this->assertEquals('images/characters/weapons/sword.webp', $layersFire['weapon']);
         $this->assertEquals('images/characters/weapons/sword_auras/sword_fire.webp', $layersFire['aura']);
 
         // Pour l'Épée avec Invisibilité : l'arme de base est STRICTEMENT masquée (null) car l'aura reprend l'outline
@@ -306,7 +318,7 @@ class PaperDollTest extends TestCase
             ->test(CollectionGrid::class)
             ->assertSee('images/characters/races/human.webp')
             ->assertSee('images/characters/weapons/sword_auras/sword_invisibility.webp')
-            ->assertDontSee('images/characters/weapons/epee.webp')
+            ->assertDontSee('images/characters/weapons/sword.webp')
             ->assertDontSee('Artwork en attente');
     }
 }

@@ -27,6 +27,7 @@ class CollectionGrid extends Component
     public string $weapon = '';
     public bool $onlySynergies = false;
     public bool $onlyLocked = false;
+    public bool $onlyFavorites = false;
     public string $sortBy = 'power_desc';
 
     // --- Modale de Recyclage en Masse Avancé (Ticket T1.4) ---
@@ -50,6 +51,7 @@ class CollectionGrid extends Component
     public function updatedWeapon(): void { $this->resetPage(); }
     public function updatedOnlySynergies(): void { $this->resetPage(); }
     public function updatedOnlyLocked(): void { $this->resetPage(); }
+    public function updatedOnlyFavorites(): void { $this->resetPage(); }
     public function updatedSortBy(): void { $this->resetPage(); }
 
     /**
@@ -63,6 +65,7 @@ class CollectionGrid extends Component
         $this->weapon = '';
         $this->onlySynergies = false;
         $this->onlyLocked = false;
+        $this->onlyFavorites = false;
         $this->sortBy = 'power_desc';
         $this->resetPage();
     }
@@ -78,6 +81,7 @@ class CollectionGrid extends Component
             || !empty($this->weapon)
             || $this->onlySynergies
             || $this->onlyLocked
+            || $this->onlyFavorites
             || $this->sortBy !== 'power_desc';
     }
 
@@ -106,6 +110,58 @@ class CollectionGrid extends Component
     {
         $this->onlyLocked = !$this->onlyLocked;
         $this->resetPage();
+    }
+
+    /**
+     * Bascule le filtre des favoris (vitrine de profil).
+     */
+    public function toggleOnlyFavorites(): void
+    {
+        $this->onlyFavorites = !$this->onlyFavorites;
+        $this->resetPage();
+    }
+
+    /**
+     * Bascule l'état favori d'une carte (Quota maximum : 3 cartes favorites).
+     */
+    public function toggleFavorite(string $characterId): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return;
+        }
+
+        DB::transaction(function () use ($user, $characterId) {
+            $character = Character::where('id', $characterId)
+                ->where('user_id', $user->id)
+                ->whereNull('recycled_at')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$character) {
+                $this->notify("Combattant introuvable.", 'error');
+                return;
+            }
+
+            if (!$character->is_favorite) {
+                // Contrôle strict du quota de 3 cartes favorites
+                $currentFavoritesCount = Character::where('user_id', $user->id)
+                    ->whereNull('recycled_at')
+                    ->where('is_favorite', true)
+                    ->count();
+
+                if ($currentFavoritesCount >= 3) {
+                    $this->notify("Vitrine pleine ! Tu as déjà 3 héros favoris sélectionnés. Retire une étoile pour en ajouter un nouveau.", 'warning');
+                    return;
+                }
+
+                $character->update(['is_favorite' => true]);
+                $this->notify("⭐ {$character->name} a été ajouté à tes favoris (vitrine de profil) !", 'success');
+            } else {
+                $character->update(['is_favorite' => false]);
+                $this->notify("☆ {$character->name} a été retiré de tes favoris.", 'info');
+            }
+        });
     }
 
     /**
@@ -280,6 +336,7 @@ class CollectionGrid extends Component
                 'totalCount'    => 0,
                 'filteredCount' => 0,
                 'lockedCount'   => 0,
+                'favoriteCount' => 0,
                 'rarityCounts'  => [],
                 'maxPowerScore' => 0,
                 'races'         => RaceData::all(),
@@ -296,6 +353,7 @@ class CollectionGrid extends Component
         // Statistiques globales de collection pour les badges du HUD
         $totalCount = (clone $baseQuery)->count();
         $lockedCount = (clone $baseQuery)->where('is_locked', true)->count();
+        $favoriteCount = (clone $baseQuery)->where('is_favorite', true)->count();
         $maxPowerScore = (clone $baseQuery)->max('power_score') ?? 0;
         
         $rarityCounts = [
@@ -334,6 +392,10 @@ class CollectionGrid extends Component
 
         if ($this->onlyLocked) {
             $filteredQuery->where('is_locked', true);
+        }
+
+        if ($this->onlyFavorites) {
+            $filteredQuery->where('is_favorite', true);
         }
 
         $filteredCount = (clone $filteredQuery)->count();
@@ -384,6 +446,7 @@ class CollectionGrid extends Component
             'totalCount'         => $totalCount,
             'filteredCount'      => $filteredCount,
             'lockedCount'        => $lockedCount,
+            'favoriteCount'      => $favoriteCount,
             'rarityCounts'       => $rarityCounts,
             'maxPowerScore'      => $maxPowerScore,
             'races'              => RaceData::all(),

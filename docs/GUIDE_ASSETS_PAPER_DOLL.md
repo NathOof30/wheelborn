@@ -150,23 +150,23 @@ L'image finale du personnage est composée de **5 calques superposés** dans le 
 Emplacement des dossiers dans le projet : `public/images/characters/`
 
 ### 1. Armes (`public/images/characters/weapons/`)
-Le système supporte le nom français ou anglais (WebP). Voici la liste officielle des 8 armes du jeu :
+Tous les fichiers sont nommés strictement en anglais (WebP). Le système supporte aussi les alias français pour la compatibilité :
 
-| Arme | Emoji | ID BDD (`weapon_id`) | Type | Fichier Recommandé | Alias Acceptés par le Jeu | Statut Actuel |
+| Arme | Emoji | ID BDD (`weapon_id`) | Type | Fichier Officiel (Anglais) | Alias FR Tolérés | Statut Actuel |
 | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
-| **Épée** | ⚔️ | `sword` | Mêlée équilibrée | `epee.webp` | `sword.webp` | ✅ Présent |
-| **Bâton** | 🪄 | `staff` | Magique | `baton.webp` | `staff.webp` | ✅ Présent |
-| **Arc** | 🏹 | `bow` | Distance | `arc.webp` | `bow.webp` | ✅ Présent |
-| **Dague** | 🗡️ | `dagger` | Assassinat rapide | `dague.webp` | `dagger.webp` | ✅ Présent |
-| **Marteau** | 🔨 | `hammer` | Mêlée lourde / Étourdissement | `marteau.webp` | `hammer.webp` | ⏳ À créer |
-| **Lance** | 🔱 | `spear` | Allonge / Perforant | `lance.webp` | `spear.webp` | ⏳ À créer |
-| **Pistolet** | 🔫 | `gun` | Distance / Balistique | `pistolet.webp` | `gun.webp` | ⏳ À créer |
-| **Grimoire** | 📖 | `grimoire` | Sorts élémentaires | `grimoire.webp` | `book.webp` | ⏳ À créer |
+| **Épée** | ⚔️ | `sword` | Mêlée équilibrée | `sword.webp` | `epee.webp` | ✅ Présent |
+| **Bâton** | 🪄 | `staff` | Magique | `staff.webp` | `baton.webp` | ✅ Présent |
+| **Arc** | 🏹 | `bow` | Distance | `bow.webp` | `arc.webp` | ✅ Présent |
+| **Dague** | 🗡️ | `dagger` | Assassinat rapide | `dagger.webp` | `dague.webp` | ✅ Présent |
+| **Marteau** | 🔨 | `hammer` | Mêlée lourde / Étourdissement | `hammer.webp` | `marteau.webp` | ✅ Présent |
+| **Lance** | 🔱 | `spear` | Allonge / Perforant | `spear.webp` | `lance.webp` | ✅ Présent |
+| **Pistolet** | 🔫 | `gun` | Distance / Balistique | `gun.webp` | `pistolet.webp` | ⏳ À créer |
+| **Grimoire** | 📖 | `grimoire` | Sorts élémentaires | `grimoire.webp` | `book.webp` | ✅ Présent |
 
 > **Synthèse d'avancement des armes :**
-> - `epee.webp`, `baton.webp`, `arc.webp`, `dague.webp` : 4/8 armes déjà créées et parfaitement fonctionnelles.
-> - Reste à créer : `marteau.webp`, `lance.webp`, `pistolet.webp`, `grimoire.webp`.
-> - `hache.webp` et `bouclier.webp` ne sont pas rattachés aux armes de duel du jeu.
+> - 7/8 armes déjà créées et fonctionnelles (`sword.webp`, `staff.webp`, `bow.webp`, `dagger.webp`, `hammer.webp`, `spear.webp`, `grimoire.webp`).
+> - Reste à créer : `gun.webp`.
+> - `axe.webp` (`hache`) et `shield.webp` (`bouclier`) ne font pas partie des 8 armes officielles de combat.
 
 ---
 
@@ -175,12 +175,12 @@ Chaque arme possède des auras sur mesure pour chacun des éléments du jeu. Le 
 
 #### Structure des Dossiers & Fichiers
 - **Dossier par arme** : `public/images/characters/weapons/{weapon}_auras/` (ex: `sword_auras/`, `bow_auras/`, `staff_auras/`, etc.)
-- **Nom du fichier** : `{weapon}_{power}.webp` (ex: `sword_fire.webp`)
-- **Résolution dynamique & Fallback** : `PaperDollService` résout automatiquement les alias anglais et français (`sword_fire`, `sword_ice`, `sword_lightning`, `epee_feu`, etc.).
+- **Nom du fichier** : `{weapon}_{power}.webp` en anglais (ex: `sword_fire.webp`, `staff_ice.webp`)
+- **Résolution dynamique & Tolérance** : `PaperDollService` résout automatiquement les alias anglais et français (`sword_fire`, `epee_feu`, etc.) vers les fichiers anglais.
 
-| Arme | Dossier Dédié | Élément | Fichier Recommandé | Statut Actuel |
+| Arme | Dossier Dédié | Élément | Fichier Officiel (Anglais) | Statut Actuel |
 | :--- | :--- | :--- | :--- | :---: |
-| **Épée** ⚔️ | `weapons/sword_auras/` | **Feu** 🔥 | `sword_fire.webp` | ✅ Présent |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Feu** 🔥 | `sword_fire.webp` | ✅ Présent (8/8) |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Glace** ❄️ | `sword_ice.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Foudre** ⚡ | `sword_lightning.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Poison** 🧪 | `sword_poison.webp` | ✅ Présent |
@@ -188,7 +188,8 @@ Chaque arme possède des auras sur mesure pour chacun des éléments du jeu. Le 
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Gravité** 🌌 | `sword_gravity.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Téléportation** 🌀 | `sword_teleportation.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Invisibilité** 👁️‍🗨️ | `sword_invisibility.webp` *(Outline sans arme de base)* | ✅ Présent |
-| **Autres Armes** 🏹🪄🗡️🔨🔱🔫📖 | `weapons/{weapon}_auras/` | Tous éléments | `{weapon}_{element}.webp` | 📁 Dossiers créés, WebP à dessiner |
+| **Bâton** 🪄 | `weapons/staff_auras/` | **Tous éléments (8/8)** | `staff_{element}.webp` | ✅ Présent (8/8) |
+| **Autres Armes** 🏹🗡️🔨🔱🔫📖 | `weapons/{weapon}_auras/` | Tous éléments | `{weapon}_{element}.webp` | 📁 Dossiers créés, WebP à dessiner |
 
 ---
 
