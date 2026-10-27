@@ -28,7 +28,8 @@
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 5 | ⏳ En cours (2/5 - Paper Doll V2 Auras & DA Cosmique ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 6 | ✅ Terminé (100%) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode Forge Personnalisée & Seeder ✅) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (168 tests, 654 assertions ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (169 tests, 685 assertions ✅) |
+| **Épic 9 : Profil Joueur, Vitrine & Social** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (5/5 - 100% ✅) |
 
 ---
 
@@ -379,9 +380,11 @@
     - [ ] *Calque 0 :* Fond d'aura / Décor de rareté (`public/images/characters/backgrounds/` - arborescence prête).
     - [x] *Calque 1 :* Silhouette / Corps selon la Race (`public/images/characters/races/`, `z-index: 10`, actif pour `human.webp`).
     - [ ] *Calque 2 :* Effet élémentaire général (`public/images/characters/elements/` - arborescence prête).
-    - [x] *Calque 3 :* Arme tenue selon le gabarit d'alignement (`public/images/characters/weapons/`, `z-index: 30`, actifs : `epee.webp`, `baton.webp`, `arc.webp`, `dague.webp`).
+    - [x] *Calque 3 :* Arme tenue selon le gabarit d'alignement (`public/images/characters/weapons/`, `z-index: 30`, actifs en anglais : `sword.webp`, `staff.webp`, `bow.webp`, `dagger.webp`, `hammer.webp`, `spear.webp`, `grimoire.webp`).
     - [x] *Calque 4 :* **Aura Élémentaire de l'Arme** (`public/images/characters/weapons/{weapon}_auras/{weapon}_{element}.webp`, `z-index: 40`, strictement au-dessus de l'arme avec micro-mise à l'échelle synchronisée `group-hover/avatar:scale-[1.03]`).
-  - [x] **Auras Actives Intégrées (8/8 pour l'Épée) :** Épée élémentaire avec Feu 🔥 (`sword_fire.webp`), Glace ❄️ (`sword_ice.webp`), Foudre ⚡ (`sword_lightning.webp`), Poison 🧪 (`sword_poison.webp`), Gravité 🌌 (`sword_gravity.webp`), Régénération 💖 (`sword_regeneration.webp`), Téléportation 🌀 (`sword_teleportation.webp`), Invisibilité 👁️‍🗨️ (`sword_invisibility.webp`).
+  - [x] **Auras Actives Intégrées (8/8 Épée & 8/8 Bâton) :**
+    - Épée élémentaire (8/8) : Feu 🔥 (`sword_fire.webp`), Glace ❄️ (`sword_ice.webp`), Foudre ⚡ (`sword_lightning.webp`), Poison 🧪 (`sword_poison.webp`), Gravité 🌌 (`sword_gravity.webp`), Régénération 💖 (`sword_regeneration.webp`), Téléportation 🌀 (`sword_teleportation.webp`), Invisibilité 👁️‍🗨️ (`sword_invisibility.webp`).
+    - Bâton élémentaire (8/8) : Feu 🔥 (`staff_fire.webp`), Glace ❄️ (`staff_ice.webp`), Foudre ⚡ (`staff_lightning.webp`), Poison 🧪 (`staff_poison.webp`), Gravité 🌌 (`staff_gravity.webp`), Régénération 💖 (`staff_regeneration.webp`), Téléportation 🌀 (`staff_teleportation.webp`), Invisibilité 👁️‍🗨️ (`staff_invisibility.webp`).
   - [x] **Règle Spécifique d'Invisibilité Universelle :** L'aura d'invisibilité reproduisant l'outline sans couleurs, le calque de base de l'arme (Layer 3) est masqué automatiquement pour toutes les armes lorsque cet effet est actif afin de préserver l'effet translucide.
   - [x] **Arborescence Préparatoire Complète :** Dossiers créés pour toutes les armes (`sword_auras`, `bow_auras`, `staff_auras`, `dagger_auras`, `hammer_auras`, `spear_auras`, `gun_auras`, `grimoire_auras`) ainsi que `elements/` et `backgrounds/`.
   - [x] **Résolution Bilingue & Tolérante :** Méthode `PaperDollService::getNormalizedCandidates()` gérant de manière bidirectionnelle les alias anglais/français (`epee`/`sword`, `feu`/`fire`, `glace`/`ice`, `foudre`/`lightning`, `baton`/`staff`).
@@ -389,7 +392,7 @@
   - [x] **Détourage & Transparence :** Suppression des encadrements debug et badges temporaires pour une intégration directe sur le fond néon de la carte.
   - [x] Intégration sur la face recto des cartes de la Collection et dans la modale de révélation de la Roue.
   - [x] Châssis de carte responsive (bordure, liserés, halo glow de rareté en pur CSS Tailwind) s'adaptant à n'importe quelle taille de carte sans distorsion.
-  - [x] Tests automatisés unitaires & fonctionnels complets (`tests/Feature/PaperDollTest.php` - 7 tests validés, 68 assertions ; suite globale 169 tests, 677 assertions ✅).
+  - [x] Tests automatisés unitaires & fonctionnels complets (`tests/Feature/PaperDollTest.php` - 7 tests validés, 76 assertions ; suite globale 169 tests, 685 assertions ✅).
 
 ### [x] T5.5 — Direction Artistique "Le Vide et la Roue", Respiration Contemplative & Standardisation du Ratio Carte Physique (TCG 1:1.53)
 - **Priorité :** 🟢 P2 (Direction Artistique & Polish Visuel Majeur)
@@ -631,6 +634,81 @@
 
 ---
 
+## 🛡️ Épic 9 — Profil Joueur, Niveaux, Vitrine & Social (`UserProfile`)
+> **Responsable principal :** 🧑‍💻 Nathanaël
+
+### [x] T9.1 — Système de Niveaux, Formule d'XP & Migration des Favoris (⭐)
+- **Priorité :** 🔴 P0 (Fondation de Profil)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `database/migrations/2026_10_27_170000_add_is_favorite_to_characters_table.php`, `app/Models/User.php`, `app/Models/Character.php`, `app/Data/GameConfig.php`, `tests/Feature/LevelProgressionTest.php`
+- **Description :** Établir la formule mathématique du niveau joueur selon son XP, et ajouter le champ `is_favorite` pour le système de cartes phares (top 3 vitrine).
+- **Critères d'acceptation :**
+  - [x] Migration BDD : colonne `is_favorite` (booléen, défaut `false`, indexé) sur la table `characters`.
+  - [x] Méthode sur `User` : `$user->currentLevelProgress()` calculant le niveau actuel, l'XP du palier en cours, le seuil suivant et le pourcentage de progression (ex: 50%).
+  - [x] Formule de paliers définie : Seuil $\text{XP}(N) = 25 \times (N-1) \times (N+2)$ avec paliers progressifs de +50 XP par niveau (100, 150, 200, 250...).
+  - [x] Méthode `$user->addXp(int $amount)` centralisant le gain d'XP, calculant le niveau et détectant le level-up.
+  - [x] Protection des cartes favorites dans `RecycleService` (rejet unitaire et exclusion stricte du recyclage en masse).
+  - [x] Relation `$user->favoriteCharacters()` plafonnée à 3 cartes.
+  - [x] Suite de tests validée (`tests/Feature/LevelProgressionTest.php` - 6 tests, 38 assertions).
+
+### [x] T9.2 — Gestion des Favoris dans `CollectionGrid` (Quota de 3 Max)
+- **Priorité :** 🔴 P0 (Cohérence Collection)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `app/Livewire/CollectionGrid.php`, `resources/views/livewire/collection-grid.blade.php`, `app/Services/RecycleService.php`, `tests/Feature/CollectionGridTest.php`
+- **Description :** Permettre au joueur d'étoiler jusqu'à 3 cartes favorites directement depuis sa collection pour constituer sa vitrine de profil.
+- **Critères d'acceptation :**
+  - [x] Bouton interactif étoile (⭐/☆) sur chaque carte de la collection (recto badge, verso bouton) et dans l'inspecteur.
+  - [x] Règle métier stricte : 3 cartes favorites maximum simultanées par utilisateur.
+  - [x] Notification explicite si tentative d'ajouter une 4e carte ("Vitrine pleine ! Tu as déjà 3 héros favoris sélectionnés").
+  - [x] Protection anti-recyclage inviolable : une carte en favori ne peut pas être recyclée (bouton transformé en badge sécurisé `⭐ Favori`).
+  - [x] Filtre rapide "⭐ Favoris (X/3)" dans la barre d'outils de la grille de collection.
+  - [x] Suite de tests automatisés validant la bascule, le quota de 3 et le filtre (`tests/Feature/CollectionGridTest.php` - 20 tests passants).
+
+### [x] T9.3 — Refonte Majeure de la Page Profil (`/profile`) en Deux Onglets
+- **Priorité :** 🔴 P0 (Expérience Utilisateur Majeure)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `app/Livewire/UserProfile.php`, `resources/views/livewire/user-profile.blade.php`, `resources/views/profile/edit.blade.php`, `routes/web.php`
+- **Description :** Remplacer la page brute de réglages Breeze par une véritable Fiche de Destinée & Palmarès complète avec onglet de paramètres de compte.
+- **Critères d'acceptation :**
+  - [x] **Bannière Joueur Noble (Hero Header) :**
+    - Blason animé de Ligue FIDE (Bronze, Argent, Or, Platine, Maître).
+    - Pseudo, Titre honorifique sélectionnable parmi les succès débloqués (ex: « Élu des Dieux »).
+    - Jauge d'XP animée avec niveau, texte explicite ("160 / 228 XP") et pourcentage.
+    - Élo FIDE, Solde d'or, Date d'inscription et nombre total de héros en collection.
+  - [x] **Vitrine des 3 Combattants Phares :**
+    - Affichage des 3 cartes favorites au format physique TCG avec rendu Paper Doll V2, halos de rareté et 3D Flip au clic.
+    - État vide incitatif ("Emplacement libre — Étoile un héros dans ta collection").
+  - [x] **Section Statistiques de Carrière :**
+    - Arène : Total duels, Victoires, Défaites, Matchs nuls, Taux de victoire (Winrate %).
+    - Collection & Roue : Total cartes tirées, Cartes Légendaires obtenues, Synergies découvertes (X/16).
+    - Économie : Total d'or amassé, Cartes recyclées, Niveau de l'Atelier.
+  - [x] **Galerie des Trophées & Succès :**
+    - Grille des succès (`Achievement::DEFINITIONS`). Badges colorés dorés pour les succès obtenus avec date, cartes grisées avec cadenas pour les succès verrouillés.
+  - [x] **Onglet Paramètres de Compte Intégré :**
+    - Onglet séparé fluide permettant de modifier ses identifiants (pseudo, email), son mot de passe ou supprimer son compte (formulaires Breeze intégrés dans le style cosmique).
+
+### [x] T9.4 — Page Profil Public (`/players/{name}`) & Modale d'Inspection Rival
+- **Priorité :** 🟡 P1 (Fonctionnalité Sociale & Immersion)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `app/Livewire/PublicPlayerProfile.php`, `resources/views/livewire/public-player-profile.blade.php`, `resources/views/livewire/battle-arena.blade.php`, `resources/views/livewire/leaderboard.blade.php`, `routes/web.php`
+- **Description :** Permettre de consulter le profil d'un autre joueur en mode lecture seule ou via une modale rapide depuis l'Arène et le Classement.
+- **Critères d'acceptation :**
+  - [x] Route dédiée `/players/{user:name}` affichant le profil public d'un joueur (bannière, niveau, 3 cartes favorites, stats et succès) sans accès aux paramètres de compte.
+  - [x] Modale d'inspection rival dans l'Arène : clic sur le pseudo de l'adversaire (vrai joueur ou bot) ouvre une carte d'identité popup affichant son palmarès, sa ligue et ses héros de prédilection.
+  - [x] Clic sur une ligne du Classement (`Leaderboard`) permettant d'inspecter le profil du joueur rival.
+
+### [x] T9.5 — Tests Automatisés & Validation QA du Profil
+- **Priorité :** 🟡 P1 (Qualité)
+- **Attribué à :** 🧑‍💻 Nathanaël
+- **Cible :** `tests/Feature/UserProfileTest.php`, `tests/Feature/FavoriteCharacterTest.php`
+- **Critères d'acceptation :**
+  - [x] Test de limitation stricte à 3 cartes favorites (rejet ou blocage de la 4e).
+  - [x] Test de la progression de niveau et calcul d'XP.
+  - [x] Test d'accès au profil personnel et redirection/affichage du profil public.
+  - [x] Test de protection des cartes favorites contre le recyclage.
+
+---
+
 ## 🗺️ Ordre de Développement Conseillé (Roadmap Étape par Étape)
 
 ```mermaid
@@ -641,6 +719,7 @@ graph TD
     B --> E[Nathanaël : Épic 6 - Robustesse & Pending Reveal]
     C --> F[Mathéo : Épic 4 - Atelier & Économie d'Or]
     B & C --> G[Binôme : Épic 5 - Paper Doll & Polish Visuel]
-    E & F --> H[Nathanaël : Épic 7 - Démo Soutenance & God Mode]
+    B & D --> J[Nathanaël : Épic 9 - Profil Joueur, Niveaux & Vitrine]
+    E & F & J --> H[Nathanaël : Épic 7 - Démo Soutenance & God Mode]
     H --> I[Binôme : Épic 8 - Validation Suite de Tests PHPUnit]
 ```

@@ -184,10 +184,14 @@ class ArenaService
                 $fighter->increment($won ? 'wins' : 'losses');
             }
 
+            $newXp = $user->xp + $xp;
+            $newLevel = User::calculateLevelForXp($newXp);
+
             $user->update([
                 'elo' => $newElo,
                 'coins' => $user->coins + $coins,
-                'xp' => $user->xp + $xp,
+                'xp' => $newXp,
+                'level' => $newLevel,
                 'has_free_arena_reroll' => true,
             ]);
         });

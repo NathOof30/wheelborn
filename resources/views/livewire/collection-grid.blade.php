@@ -197,9 +197,22 @@
                     class="px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-1.5 transition-all duration-150 {{ $onlyLocked ? 'bg-amber-500/25 border-amber-500 text-amber-300 ring-1 ring-amber-400/40 shadow-[0_0_10px_rgba(251,191,36,0.3)]' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' }}"
                 >
                     <span>🔒</span>
-                    <span>Verrouillés uniquement</span>
+                    <span>Verrouillés</span>
                     @if ($onlyLocked)
                         <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    @endif
+                </button>
+
+                {{-- Toggle Favoris (Vitrine Top 3) (T9.2) --}}
+                <button
+                    wire:click="toggleOnlyFavorites"
+                    class="px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-1.5 transition-all duration-150 {{ $onlyFavorites ? 'bg-amber-400/25 border-amber-400 text-amber-300 ring-1 ring-amber-400/40 shadow-[0_0_10px_rgba(251,191,36,0.3)]' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' }}"
+                    title="Afficher les combattants de ta vitrine de profil"
+                >
+                    <span>⭐</span>
+                    <span>Favoris ({{ $favoriteCount }}/3)</span>
+                    @if ($onlyFavorites)
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></span>
                     @endif
                 </button>
 
@@ -329,7 +342,12 @@
                                     {{ $character->rarity->label() }}
                                 </span>
 
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-1.5">
+                                    @if ($character->is_favorite)
+                                        <span class="text-amber-300 text-xs bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-400/50 shadow-[0_0_8px_rgba(251,191,36,0.3)] font-bold flex items-center gap-0.5" title="Héros favori (vitrine de profil)">
+                                            ⭐ <span class="hidden sm:inline">Vitrine</span>
+                                        </span>
+                                    @endif
                                     @if ($character->is_locked)
                                         <span class="text-amber-400 text-xs bg-slate-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 shadow-sm" title="Protégé contre le recyclage">
                                             🔒 Verrouillé
@@ -388,6 +406,17 @@
                                         </h4>
                                     </div>
                                     <div class="flex items-center gap-1 shrink-0">
+                                        {{-- Bouton Favori / Vitrine (T9.2) --}}
+                                        <button
+                                            type="button"
+                                            wire:click.stop="toggleFavorite('{{ $character->id }}')"
+                                            wire:loading.attr="disabled"
+                                            class="p-1 rounded-lg text-xs transition-all duration-150 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed {{ $character->is_favorite ? 'bg-amber-400/20 text-amber-300 border border-amber-400/50 shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-amber-400' }}"
+                                            title="{{ $character->is_favorite ? 'Favori (cliquer pour retirer de la vitrine)' : 'Ajouter aux favoris (vitrine de profil)' }}"
+                                        >
+                                            {{ $character->is_favorite ? '⭐' : '☆' }}
+                                        </button>
+
                                         {{-- Bouton Cadenas (T1.3 / T6.2) --}}
                                         <button
                                             type="button"
@@ -493,9 +522,9 @@
                                     🏆 {{ $character->wins }}V - {{ $character->losses }}D
                                 </span>
 
-                                @if ($character->is_locked)
-                                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed select-none">
-                                        🔒 Protégé
+                                @if ($character->is_locked || $character->is_favorite)
+                                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed select-none" title="{{ $character->is_favorite ? 'Protégé (carte favorite de profil)' : 'Protégé contre le recyclage' }}">
+                                        {{ $character->is_favorite ? '⭐ Favori' : '🔒 Protégé' }}
                                     </span>
                                 @else
                                     <button
@@ -527,407 +556,7 @@
     {{-- ========================================================================= --}}
     {{-- MODALE GRAND FORMAT D'INSPECTION DÉTAILLÉE DE COMBATTANT (T1.5)           --}}
     {{-- ========================================================================= --}}
-    @if ($inspectedCharacter)
-        @php
-            $iRarityKey = $inspectedCharacter->rarity instanceof \App\Enums\Rarity ? $inspectedCharacter->rarity->value : $inspectedCharacter->rarity;
-            $iBorderStyles = match($iRarityKey) {
-                'legendary' => 'border-amber-400/80 shadow-[0_0_40px_rgba(251,191,36,0.3)]',
-                'epic'      => 'border-purple-500/80 shadow-[0_0_35px_rgba(192,132,252,0.25)]',
-                'rare'      => 'border-cyan-400/80 shadow-[0_0_30px_rgba(56,189,248,0.25)]',
-                default     => 'border-slate-700',
-            };
-            $iCardBorderStyles = match($iRarityKey) {
-                'legendary' => 'border-amber-400/80 bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950 shadow-[0_0_25px_rgba(251,191,36,0.25)] hover:shadow-[0_0_35px_rgba(251,191,36,0.4)]',
-                'epic'      => 'border-purple-500/70 bg-gradient-to-b from-purple-950/30 via-slate-900 to-slate-950 shadow-[0_0_20px_rgba(192,132,252,0.2)] hover:shadow-[0_0_30px_rgba(192,132,252,0.35)]',
-                'rare'      => 'border-cyan-400/60 bg-gradient-to-b from-cyan-950/30 via-slate-900 to-slate-950 shadow-[0_0_20px_rgba(56,189,248,0.18)] hover:shadow-[0_0_30px_rgba(56,189,248,0.3)]',
-                default     => 'border-slate-800 bg-slate-900/90 hover:border-slate-700',
-            };
-            $iBadgeStyle = match($iRarityKey) {
-                'legendary' => 'bg-amber-400 text-slate-950 font-black shadow-[0_0_12px_rgba(251,191,36,0.6)]',
-                'epic'      => 'bg-purple-500 text-white font-bold',
-                'rare'      => 'bg-cyan-500 text-slate-950 font-bold',
-                default     => 'bg-slate-700 text-slate-200 font-medium',
-            };
-            $iStars = match($iRarityKey) {
-                'legendary' => 5,
-                'epic'      => 4,
-                'rare'      => 3,
-                default     => 2,
-            };
-        @endphp
-
-        <div class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <div
-                class="bg-slate-900 border {{ $iBorderStyles }} rounded-3xl max-w-4xl w-full p-4 sm:p-5 shadow-2xl relative my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-                @click.away="$wire.closeInspector()"
-            >
-                {{-- En-tête Compact de la Fiche Détaillée --}}
-                <div class="flex items-center justify-between pb-3 mb-3.5 border-b border-slate-800/80">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider shrink-0 {{ $iBadgeStyle }}">
-                            {{ $inspectedCharacter->rarity->label() }}
-                        </span>
-                        <h3 class="text-base sm:text-lg font-black text-white tracking-tight truncate">
-                            {{ $inspectedCharacter->name }}
-                        </h3>
-                        <span class="text-xs text-slate-400 font-medium hidden sm:inline truncate">
-                            — {{ $inspectedCharacter->race_data['name'] ?? ucfirst($inspectedCharacter->race_id) }} • {{ $inspectedCharacter->weapon_data['name'] ?? ucfirst($inspectedCharacter->weapon_id) }} <span class="text-indigo-400">({{ $inspectedCharacter->power_data['name'] ?? ucfirst($inspectedCharacter->power_id) }})</span>
-                        </span>
-                    </div>
-
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button
-                            type="button"
-                            wire:click="closeInspector"
-                            class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition"
-                            title="Fermer la fiche"
-                        >
-                            <span class="text-sm px-1 font-bold">✕</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-                    {{-- ========================================================================= --}}
-                    {{-- COLONNE GAUCHE : LA CARTE AUTHENTIQUE & FIGÉE (RECTO & VERSO AU SURVOL)    --}}
-                    {{-- ========================================================================= --}}
-                    <div class="lg:col-span-5 flex flex-col items-center justify-center">
-                        <div
-                            x-data="{ flipped: false }"
-                            @mouseenter="flipped = true"
-                            @mouseleave="flipped = false"
-                            class="perspective-1000 w-full max-w-[290px] group select-none transition-transform duration-300 hover:scale-[1.02]"
-                            style="height: 440px; min-height: 440px;"
-                        >
-                            <div
-                                class="relative w-full h-full preserve-3d card-flip-transition"
-                                :class="{ 'rotate-y-180': flipped }"
-                                style="height: 440px; min-height: 440px;"
-                            >
-                                {{-- ========================================================================= --}}
-                                {{-- FACE RECTO : ARTWORK HERO & PAPER DOLL COMPOSITE (EN GRAND)               --}}
-                                {{-- ========================================================================= --}}
-                                <div
-                                    class="absolute inset-0 w-full h-full rounded-3xl border {{ $iCardBorderStyles }} overflow-hidden p-3.5 flex flex-col justify-between backface-hidden shadow-2xl"
-                                    :class="{ 'pointer-events-none': flipped }"
-                                    style="height: 440px; min-height: 440px;"
-                                >
-                                {{-- En-tête Recto --}}
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider {{ $iBadgeStyle }}">
-                                        {{ $inspectedCharacter->rarity->label() }}
-                                    </span>
-
-                                    <div class="flex items-center gap-2">
-                                        @if ($inspectedCharacter->is_locked)
-                                            <span class="text-amber-400 text-xs bg-slate-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 shadow-sm" title="Protégé contre le recyclage">
-                                                🔒 Verrouillé
-                                            </span>
-                                        @endif
-                                        <div class="flex items-center gap-1 bg-slate-950/80 px-2.5 py-0.5 rounded-lg border border-slate-800">
-                                            <span class="text-xs text-amber-400">⚡</span>
-                                            <span class="font-extrabold text-sm text-white font-mono">{{ $inspectedCharacter->power_score }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {{-- Scène Visuelle : Avatar Composite Paper Doll --}}
-                                <div class="flex-1 my-1 flex items-center justify-center overflow-hidden">
-                                    <x-character-avatar :character="$inspectedCharacter" />
-                                </div>
-
-                                {{-- Pied de carte Recto : Titre & Décoration --}}
-                                <div class="text-center pt-2 border-t border-slate-800/80">
-                                    {{-- Étoiles de Rareté --}}
-                                    <div class="flex items-center justify-center gap-1 mb-1">
-                                        @for ($s = 1; $s <= 5; $s++)
-                                            <span class="text-xs {{ $s <= $iStars ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]' : 'text-slate-800' }}">
-                                                ★
-                                            </span>
-                                        @endfor
-                                    </div>
-                                    <h3 class="text-sm font-black text-white truncate tracking-tight group-hover:text-amber-300 transition-colors">
-                                        {{ $inspectedCharacter->name }}
-                                    </h3>
-                                    <p class="text-[11px] text-slate-400 truncate mt-0.5 font-medium">
-                                        {{ $inspectedCharacter->race_data['name'] ?? ucfirst($inspectedCharacter->race_id) }} • {{ $inspectedCharacter->weapon_data['name'] ?? ucfirst($inspectedCharacter->weapon_id) }}
-                                        <span class="text-indigo-400 font-semibold">({{ $inspectedCharacter->power_data['name'] ?? ucfirst($inspectedCharacter->power_id) }})</span>
-                                    </p>
-                                </div>
-                            </div>
-
-                                {{-- ========================================================================= --}}
-                                {{-- FACE VERSO : RÉVÉLÉE AU FLIP (INFOS RAPIDES & ACTIONS)                   --}}
-                                {{-- ========================================================================= --}}
-                                <div
-                                    class="absolute inset-0 w-full h-full rounded-3xl border {{ $iCardBorderStyles }} bg-slate-950/95 backdrop-blur-md overflow-hidden p-3.5 flex flex-col justify-between backface-hidden rotate-y-180 shadow-2xl"
-                                    :class="{ 'pointer-events-auto': flipped, 'pointer-events-none': !flipped }"
-                                    style="height: 440px; min-height: 440px;"
-                                >
-                                <div>
-                                    {{-- En-tête Verso : Nom, Rareté & Cadenas --}}
-                                    <div class="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800">
-                                        <div class="flex items-center gap-1.5 min-w-0">
-                                            <span class="px-2 py-0.5 rounded text-[9px] uppercase tracking-wider {{ $iBadgeStyle }} shrink-0">
-                                                {{ $inspectedCharacter->rarity->label() }}
-                                            </span>
-                                            <h4 class="text-xs font-black text-white truncate" title="{{ $inspectedCharacter->name }}">
-                                                {{ $inspectedCharacter->name }}
-                                            </h4>
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            wire:click.stop="toggleLock('{{ $inspectedCharacter->id }}')"
-                                            class="p-1 rounded-lg text-xs transition {{ $inspectedCharacter->is_locked ? 'text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/30' : 'text-slate-500 hover:text-slate-300 bg-slate-800/80 border border-slate-700' }}"
-                                            title="{{ $inspectedCharacter->is_locked ? 'Carte verrouillée' : 'Verrouiller' }}"
-                                        >
-                                            {{ $inspectedCharacter->is_locked ? '🔒' : '🔓' }}
-                                        </button>
-                                    </div>
-
-                                    {{-- Résumé des 3 slots en icônes --}}
-                                    <div class="grid grid-cols-3 gap-1 mb-2.5 text-center bg-slate-900/80 p-2 rounded-xl border border-slate-800">
-                                        <div>
-                                            <span class="text-sm block">{{ $inspectedCharacter->race_data['icon'] ?? '👤' }}</span>
-                                            <span class="text-[9px] text-slate-300 font-bold truncate block">{{ $inspectedCharacter->race_data['name'] ?? ucfirst($inspectedCharacter->race_id) }}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-sm block">{{ $inspectedCharacter->weapon_data['icon'] ?? '⚔️' }}</span>
-                                            <span class="text-[9px] text-slate-400 truncate block">{{ $inspectedCharacter->weapon_data['name'] ?? ucfirst($inspectedCharacter->weapon_id) }}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-sm block">{{ $inspectedCharacter->power_data['icon'] ?? '🔮' }}</span>
-                                            <span class="text-[9px] text-indigo-300 truncate block">{{ $inspectedCharacter->power_data['name'] ?? ucfirst($inspectedCharacter->power_id) }}</span>
-                                        </div>
-                                    </div>
-
-                                    {{-- Barres de stats techniques --}}
-                                    <div class="space-y-1 mb-2.5 bg-slate-900/60 p-2 rounded-xl border border-slate-800/50 text-[10px]">
-                                        <div>
-                                            <div class="flex justify-between mb-0.5">
-                                                <span class="text-rose-400 font-semibold">❤️ PV</span>
-                                                <span class="font-mono text-white">{{ $inspectedCharacter->hp }}</span>
-                                            </div>
-                                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                <div class="bg-rose-500 h-full rounded-full" style="width: {{ min(100, ($inspectedCharacter->hp / 140) * 100) }}%"></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between mb-0.5">
-                                                <span class="text-amber-400 font-semibold">⚔️ Force</span>
-                                                <span class="font-mono text-white">{{ $inspectedCharacter->strength }}</span>
-                                            </div>
-                                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                <div class="bg-amber-500 h-full rounded-full" style="width: {{ min(100, ($inspectedCharacter->strength / 100) * 100) }}%"></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between mb-0.5">
-                                                <span class="text-cyan-400 font-semibold">⚡ Vitesse</span>
-                                                <span class="font-mono text-white">{{ $inspectedCharacter->speed }}</span>
-                                            </div>
-                                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                <div class="bg-cyan-500 h-full rounded-full" style="width: {{ min(100, ($inspectedCharacter->speed / 100) * 100) }}%"></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between mb-0.5">
-                                                <span class="text-emerald-400 font-semibold">🛡️ Défense</span>
-                                                <span class="font-mono text-white">{{ $inspectedCharacter->defense }}</span>
-                                            </div>
-                                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                <div class="bg-emerald-500 h-full rounded-full" style="width: {{ min(100, ($inspectedCharacter->defense / 100) * 100) }}%"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- Synergies actives --}}
-                                    @if (!empty($inspectedCharacter->synergies_data))
-                                        <div class="mb-2 space-y-1">
-                                            @foreach ($inspectedCharacter->synergies_data as $syn)
-                                                <div class="px-2 py-0.5 rounded text-[10px] font-bold border flex items-center justify-between {{ !empty($syn['is_unstable']) ? 'bg-amber-950/60 border-amber-600/70 text-amber-200' : 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200' }}">
-                                                    <span>{{ $syn['icon'] ?? '✨' }} {{ $syn['name'] }}</span>
-                                                    @if (!empty($syn['is_unstable']))
-                                                        <span class="text-[9px] text-amber-400 font-mono">Instable</span>
-                                                    @endif
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <div class="mb-2 px-2 py-1 rounded bg-slate-900/50 border border-slate-800/40 text-center">
-                                            <span class="text-[10px] text-slate-500 italic">Aucune synergie active</span>
-                                        </div>
-                                    @endif
-                                </div>
-
-                                {{-- Pied de carte Verso : Palmarès & Recyclage --}}
-                                <div class="pt-2 border-t border-slate-800">
-                                    <div class="flex items-center justify-between gap-1 text-[11px]">
-                                        <span class="text-slate-400 font-mono" title="Palmarès arène">
-                                            🏆 {{ $inspectedCharacter->wins }}V - {{ $inspectedCharacter->losses }}D
-                                        </span>
-
-                                        @if ($inspectedCharacter->is_locked)
-                                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed select-none">
-                                                🔒 Protégé
-                                            </span>
-                                        @else
-                                            <button
-                                                type="button"
-                                                wire:click.stop="recycleCharacter('{{ $inspectedCharacter->id }}')"
-                                                wire:loading.attr="disabled"
-                                                wire:confirm="Voulez-vous vraiment recycler {{ $inspectedCharacter->name }} pour +{{ $inspectedCharacter->recycle_value }} 🪙 ?"
-                                                class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title="Recycler"
-                                            >
-                                                <span>🪙</span>
-                                                <span>+{{ $inspectedCharacter->recycle_value }}</span>
-                                            </button>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    </div>
-
-                    {{-- ========================================================================= --}}
-                    {{-- COLONNE DROITE : FICHE TECHNIQUE COMPLÈTE & PASSIFS COMPACTS              --}}
-                    {{-- ========================================================================= --}}
-                    <div class="lg:col-span-7 flex flex-col justify-between space-y-3.5">
-                        {{-- 1. Détail des 3 Composants (Race, Arme, Pouvoir) & Leurs Passifs en Grille 3 Colonnes --}}
-                        <div class="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800">
-                            <span class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider block mb-2.5">
-                                📜 Composants & Passifs Innés
-                            </span>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                                {{-- Passif de Race --}}
-                                <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-2">
-                                    <div>
-                                        <div class="flex items-center gap-1.5 mb-1.5">
-                                            <span class="text-base">{{ $inspectedCharacter->race_data['icon'] ?? '👤' }}</span>
-                                            <span class="font-black text-white text-xs truncate">{{ $inspectedCharacter->race_data['name'] ?? ucfirst($inspectedCharacter->race_id) }}</span>
-                                        </div>
-                                        <span class="text-[10px] text-amber-400 bg-amber-950/40 px-1.5 py-0.5 rounded font-mono border border-amber-600/30 inline-block mb-1">
-                                            Passif : {{ $inspectedCharacter->race_data['passive'] ?? 'Adaptabilité' }}
-                                        </span>
-                                    </div>
-                                    <p class="text-[11px] text-slate-400 leading-snug">
-                                        {{ $inspectedCharacter->race_data['passive_desc'] ?? 'Bonus universel équilibré sur toutes les statistiques.' }}
-                                    </p>
-                                </div>
-
-                                {{-- Passif d'Arme --}}
-                                <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-2">
-                                    <div>
-                                        <div class="flex items-center gap-1.5 mb-1.5">
-                                            <span class="text-base">{{ $inspectedCharacter->weapon_data['icon'] ?? '⚔️' }}</span>
-                                            <span class="font-black text-white text-xs truncate">{{ $inspectedCharacter->weapon_data['name'] ?? ucfirst($inspectedCharacter->weapon_id) }}</span>
-                                        </div>
-                                        <span class="text-[10px] text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded font-mono border border-cyan-600/30 inline-block mb-1">
-                                            {{ $inspectedCharacter->weapon_data['passive'] ?? 'Tranchant' }}
-                                        </span>
-                                    </div>
-                                    <p class="text-[11px] text-slate-400 leading-snug">
-                                        {{ $inspectedCharacter->weapon_data['passive_desc'] ?? $inspectedCharacter->weapon_data['description'] ?? 'Modifie la cadence et la force des attaques.' }}
-                                    </p>
-                                </div>
-
-                                {{-- Pouvoir Élémentaire --}}
-                                <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-2">
-                                    <div>
-                                        <div class="flex items-center gap-1.5 mb-1.5">
-                                            <span class="text-base">{{ $inspectedCharacter->power_data['icon'] ?? '🔮' }}</span>
-                                            <span class="font-black text-white text-xs truncate">{{ $inspectedCharacter->power_data['name'] ?? ucfirst($inspectedCharacter->power_id) }}</span>
-                                        </div>
-                                        <span class="text-[10px] text-indigo-400 bg-indigo-950/40 px-1.5 py-0.5 rounded font-mono border border-indigo-600/30 inline-block mb-1">
-                                            Tier {{ ucfirst($inspectedCharacter->power_data['tier'] ?? 'Commun') }}
-                                        </span>
-                                    </div>
-                                    <p class="text-[11px] text-slate-400 leading-snug">
-                                        {{ $inspectedCharacter->power_data['description'] ?? 'Inflige des altérations d\'état élémentaires en combat.' }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- 2. Synergies Actives en Détail & Description Complète --}}
-                        <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 text-xs">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">✨ Synergies Actives</span>
-                                <span class="text-[10px] font-mono text-amber-400">{{ !empty($inspectedCharacter->synergies_data) ? count($inspectedCharacter->synergies_data) : 0 }} active(s)</span>
-                            </div>
-
-                            @if (!empty($inspectedCharacter->synergies_data))
-                                <div class="space-y-2">
-                                    @foreach ($inspectedCharacter->synergies_data as $syn)
-                                        <div class="p-2.5 rounded-xl border flex items-start justify-between gap-2.5 {{ !empty($syn['is_unstable']) ? 'bg-amber-950/40 border-amber-500/50 text-amber-200' : 'bg-indigo-950/40 border-indigo-500/40 text-indigo-200' }}">
-                                            <div class="flex items-start gap-2.5 min-w-0 flex-1">
-                                                <span class="text-base shrink-0 mt-0.5">{{ $syn['icon'] ?? '✨' }}</span>
-                                                <div class="min-w-0 flex-1">
-                                                    <span class="font-bold text-xs block leading-tight">{{ $syn['name'] }}</span>
-                                                    <p class="text-[11px] text-slate-300 leading-relaxed mt-0.5 whitespace-normal break-words">{{ $syn['description'] ?? 'Confère des bonus majeurs de combat.' }}</p>
-                                                </div>
-                                            </div>
-                                            @if (!empty($syn['is_unstable']))
-                                                <span class="text-[9px] text-amber-400 font-mono bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-600/50 shrink-0 mt-0.5">Instable</span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="py-2 px-3 rounded-xl bg-slate-900/40 border border-slate-800/40 text-[11px] text-slate-500 italic">
-                                    Aucune synergie active sur cette combinaison d'éléments.
-                                </div>
-                            @endif
-                        </div>
-
-                        {{-- 3. Barre Inférieure Intégrée : Historique d'Arène & Actions Rapides --}}
-                        <div class="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-wrap items-center justify-between gap-2.5 text-xs">
-                            {{-- Palmarès de Combat --}}
-                            <div class="flex items-center gap-2">
-                                <span class="text-slate-400 font-medium text-[11px]">🏆 Arène :</span>
-                                <span class="font-mono text-white font-bold text-[11px]">{{ $inspectedCharacter->wins }}V - {{ $inspectedCharacter->losses }}D</span>
-                                <span class="text-[10px] text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 font-bold" title="Taux de victoire">
-                                    {{ $inspectedCharacter->winrate }}%
-                                </span>
-                            </div>
-
-                            {{-- Actions de Gestion --}}
-                            <div class="flex items-center gap-2 ml-auto">
-                                <button
-                                    type="button"
-                                    wire:click="toggleLock('{{ $inspectedCharacter->id }}')"
-                                    wire:loading.attr="disabled"
-                                    class="px-2.5 py-1.5 rounded-xl border text-[11px] font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50 {{ $inspectedCharacter->is_locked ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700 hover:text-white' }}"
-                                    title="{{ $inspectedCharacter->is_locked ? 'Déverrouiller la carte' : 'Verrouiller la carte' }}"
-                                >
-                                    <span>{{ $inspectedCharacter->is_locked ? '🔒' : '🔓' }}</span>
-                                    <span>{{ $inspectedCharacter->is_locked ? 'Verrouillée' : 'Verrouiller' }}</span>
-                                </button>
-
-                                @if (!$inspectedCharacter->is_locked)
-                                    <button
-                                        type="button"
-                                        wire:click="recycleCharacter('{{ $inspectedCharacter->id }}')"
-                                        wire:loading.attr="disabled"
-                                        wire:confirm="Recycler définitivement {{ $inspectedCharacter->name }} pour +{{ $inspectedCharacter->recycle_value }} 🪙 ?"
-                                        class="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                                        title="Recycler cette carte"
-                                    >
-                                        <span>🪙</span>
-                                        <span>Recycler (+{{ $inspectedCharacter->recycle_value }})</span>
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
+    <x-character-modal :character="$inspectedCharacter" />
 
     {{-- MODALE COMPLÈTE & AVANCÉE DE RECYCLAGE EN MASSE (T1.4) --}}
     @if ($showBatchModal)

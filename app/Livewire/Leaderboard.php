@@ -3,6 +3,8 @@
 namespace App\Livewire;
 
 use App\Enums\League;
+use App\Models\Battle;
+use App\Models\User;
 use App\Services\LeaderboardService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
@@ -21,9 +23,64 @@ class Leaderboard extends Component
     #[Url]
     public string $league = 'all';
 
+    public ?array $inspectedPlayer = null;
+    public bool $showInspectorModal = false;
+
     public function setLeague(string $league): void
     {
         $this->league = ($league === 'all' || League::tryFrom($league)) ? $league : 'all';
+    }
+
+    /**
+     * Ouvre la modale d'inspection d'un rival depuis le classement.
+     */
+    public function inspectPlayer(int $userId): void
+    {
+        $user = User::find($userId);
+        if (!$user) {
+            return;
+        }
+
+        $progress = $user->currentLevelProgress();
+        $league = $user->getLeague();
+        $stats = $user->battleStats();
+        $battles = $stats['total'];
+        $wins = $stats['wins'];
+        $winrate = $stats['winrate'];
+        $favorites = $user->favoriteCharacters()->get()->map(fn ($c) => [
+            'id'          => (string) $c->id,
+            'name'        => $c->name,
+            'rarity'      => $c->rarity->label(),
+            'rarity_key'  => $c->rarity->value,
+            'power_score' => $c->power_score,
+            'race'        => $c->race_label,
+            'weapon'      => $c->weapon_label,
+        ])->all();
+
+        $this->inspectedPlayer = [
+            'id'          => $user->id,
+            'name'        => $user->name,
+            'elo'         => $user->elo,
+            'league'      => [
+                'name'  => $league->name,
+                'icon'  => $league->icon(),
+                'color' => $league->color(),
+            ],
+            'level'       => $progress['level'],
+            'title'       => $progress['title'],
+            'battles'     => $battles,
+            'wins'        => $wins,
+            'winrate'     => $winrate,
+            'favorites'   => $favorites,
+            'profile_url' => route('player.profile', $user->name),
+        ];
+        $this->showInspectorModal = true;
+    }
+
+    public function closeInspector(): void
+    {
+        $this->showInspectorModal = false;
+        $this->inspectedPlayer = null;
     }
 
     /** Onglets : "Tous" puis les ligues de la plus haute à la plus basse. */

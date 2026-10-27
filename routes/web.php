@@ -27,6 +27,10 @@ Route::get('/workshop', function () {
     return view('workshop');
 })->middleware(['auth', 'verified'])->name('workshop');
 
+Route::get('/players/{user:name}', function (\App\Models\User $user) {
+    return view('player-profile', ['user' => $user]);
+})->middleware(['auth', 'verified'])->name('player.profile');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

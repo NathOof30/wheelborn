@@ -38,6 +38,7 @@ class Character extends Model
         'losses',
         'is_active_fighter',
         'is_locked',
+        'is_favorite',
         'pending_reveal',
         'recycled_at',
     ];
@@ -50,6 +51,7 @@ class Character extends Model
         'is_unstable'       => 'boolean',
         'is_active_fighter' => 'boolean',
         'is_locked'         => 'boolean',
+        'is_favorite'       => 'boolean',
         'pending_reveal'    => 'boolean',
         'recycled_at'       => 'datetime',
         'hp'                => 'integer',

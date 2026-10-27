@@ -75,10 +75,16 @@
                                         {{ $card['label'] }}
                                     </span>
                                 @else
-                                    <span class="font-extrabold text-rose-400 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                                    <button
+                                        type="button"
+                                        wire:click="inspectOpponent"
+                                        class="font-extrabold text-rose-400 hover:text-rose-300 flex items-center gap-1.5 uppercase tracking-wider text-[11px] group cursor-pointer transition text-left"
+                                        title="Cliquer pour inspecter le profil de l'adversaire"
+                                    >
                                         <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
-                                        {{ $card['label'] }}
-                                    </span>
+                                        <span class="group-hover:underline">{{ $card['label'] }}</span>
+                                        <span class="text-xs opacity-75">🔍</span>
+                                    </button>
                                     <button
                                         type="button"
                                         wire:click="rerollOpponent"
@@ -858,5 +864,143 @@
                 </div>
             </div>
         @endif
+    @endif
+
+    {{-- ========================================================================= --}}
+    {{-- MODALE D'INSPECTION RIVAL (PROFIL ADVERSAIRE DE DUEL)                       --}}
+    {{-- ========================================================================= --}}
+    @if ($showOpponentModal && $inspectedRival)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-fade-in">
+            <div class="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+                <button
+                    type="button"
+                    wire:click="closeOpponentModal"
+                    class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center font-bold text-sm transition cursor-pointer"
+                >
+                    ✕
+                </button>
+
+                @if ($inspectedRival['kind'] === 'player')
+                    {{-- En-tête Joueur Rival --}}
+                    <div class="flex items-center gap-4">
+                        <div 
+                            class="w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 bg-slate-950 shadow-lg shrink-0"
+                            style="border-color: {{ $inspectedRival['league']['color'] ?? '#6366f1' }}"
+                        >
+                            <span class="text-2xl">{{ $inspectedRival['league']['icon'] ?? '🛡️' }}</span>
+                            <span class="text-[8px] uppercase font-bold text-amber-300">{{ $inspectedRival['league']['name'] ?? 'Ligue' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase font-extrabold tracking-wider text-rose-400">Rival d'Arène</span>
+                            <h3 class="text-xl font-black text-white font-display">
+                                {{ $inspectedRival['name'] }}
+                            </h3>
+                            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-950 border border-amber-400/30 text-amber-300 text-[10px] font-semibold mt-1">
+                                <span>⚡ Niveau {{ $inspectedRival['level'] }}</span>
+                                <span>·</span>
+                                <span>« {{ $inspectedRival['title'] }} »</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Stats Palmarès Rapides --}}
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
+                        <div>
+                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Élo</span>
+                            <span class="font-mono font-bold text-amber-300">{{ $inspectedRival['elo'] }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Duels</span>
+                            <span class="font-mono font-bold text-white">{{ $inspectedRival['battles'] }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Winrate</span>
+                            <span class="font-mono font-bold text-emerald-400">{{ $inspectedRival['winrate'] }}%</span>
+                        </div>
+                    </div>
+
+                    {{-- Héros favoris en vitrine --}}
+                    <div class="space-y-2">
+                        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <span>⭐</span>
+                            <span>Champions de prédilection</span>
+                        </span>
+                        @if (!empty($inspectedRival['favorites']))
+                            <div class="space-y-1.5">
+                                @foreach ($inspectedRival['favorites'] as $fav)
+                                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/80 text-xs">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-amber-400 font-bold font-mono">⚡ {{ $fav['power_score'] }}</span>
+                                            <span class="font-bold text-white">{{ $fav['name'] }}</span>
+                                        </div>
+                                        <span class="text-[10px] font-semibold text-slate-400">
+                                            {{ $fav['race'] }} · {{ $fav['weapon'] }}
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-xs text-slate-500 italic p-3 rounded-xl bg-slate-950/40 border border-slate-800/50 text-center">
+                                Aucun favori exposé actuellement.
+                            </p>
+                        @endif
+                    </div>
+
+                    {{-- Bouton vers Profil Public Complet --}}
+                    <div class="pt-3 border-t border-slate-800 flex items-center justify-between gap-3">
+                        <button
+                            type="button"
+                            wire:click="closeOpponentModal"
+                            class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer"
+                        >
+                            Fermer
+                        </button>
+                        <a
+                            href="{{ $inspectedRival['profile_url'] }}"
+                            class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-xs font-bold transition shadow-lg shadow-indigo-600/30"
+                        >
+                            <span>Voir le profil complet</span>
+                            <span>➔</span>
+                        </a>
+                    </div>
+                @else
+                    {{-- Profil Fantôme Céleste (Bot d'arène) --}}
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center border-2 border-indigo-500/40 bg-indigo-950/40 shadow-lg text-3xl shrink-0">
+                            🤖
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase font-extrabold tracking-wider text-indigo-400">Entité Astrale</span>
+                            <h3 class="text-xl font-black text-white font-display">
+                                {{ $inspectedRival['name'] }}
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                Fantôme invoqué par l'Arène
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 space-y-2 text-xs">
+                        <p class="text-slate-300 leading-relaxed">
+                            Ce combattant est une projection astrale générée par la Roue pour éprouver votre valeur tactique. Ses attributs sont équilibrés selon votre division.
+                        </p>
+                        <div class="flex justify-between pt-2 border-t border-indigo-900/40 text-slate-400">
+                            <span>Élo estimé : <strong class="text-amber-300 font-mono">{{ $inspectedRival['elo'] }}</strong></span>
+                            <span>Puissance : <strong class="text-amber-400 font-mono">⚡ {{ $inspectedRival['power_score'] }}</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800 flex justify-end">
+                        <button
+                            type="button"
+                            wire:click="closeOpponentModal"
+                            class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition cursor-pointer"
+                        >
+                            Compris
+                        </button>
+                    </div>
+                @endif
+            </div>
+        </div>
     @endif
 </div>

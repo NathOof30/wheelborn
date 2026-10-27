@@ -16,37 +16,37 @@ class PaperDollService
         'golem' => ['golem'],
         'vampire' => ['vampire'],
         'alien' => ['alien'],
-        // Fallbacks au cas où
         'orc' => ['orc'],
         'undead' => ['undead', 'mort_vivant'],
     ];
 
     protected static array $weaponAliases = [
-        'sword' => ['epee', 'sword'],
-        'staff' => ['baton', 'staff'],
-        'bow' => ['arc', 'bow'],
-        'hammer' => ['marteau', 'hammer'],
-        'spear' => ['lance', 'spear'],
-        'dagger' => ['dague', 'dagger'],
-        'gun' => ['pistolet', 'gun'],
+        'sword' => ['sword', 'epee'],
+        'staff' => ['staff', 'baton'],
+        'bow' => ['bow', 'arc'],
+        'hammer' => ['hammer', 'marteau'],
+        'spear' => ['spear', 'lance'],
+        'dagger' => ['dagger', 'dague'],
+        'gun' => ['gun', 'pistolet'],
         'grimoire' => ['grimoire', 'book'],
+        'axe' => ['axe', 'hache'],
+        'shield' => ['shield', 'bouclier'],
     ];
 
     protected static array $powerAliases = [
-        'fire' => ['feu', 'fire'],
+        'fire' => ['fire', 'feu'],
         'poison' => ['poison'],
-        'ice' => ['glace', 'ice'],
-        'lightning' => ['foudre', 'lightning'],
+        'ice' => ['ice', 'glace'],
+        'lightning' => ['lightning', 'foudre'],
         'regeneration' => ['regeneration', 'regen'],
-        'gravity' => ['gravite', 'gravity'],
+        'gravity' => ['gravity', 'gravite'],
         'teleportation' => ['teleportation', 'teleport'],
-        'invisibility' => ['invisibilite', 'invisibility'],
-        // Fallbacks rétrocompatibles
-        'water' => ['eau', 'water'],
-        'earth' => ['terre', 'earth'],
-        'wind' => ['vent', 'wind'],
-        'dark' => ['ombre', 'dark', 'shadow'],
-        'light' => ['lumiere', 'light'],
+        'invisibility' => ['invisibility', 'invisibilite'],
+        'water' => ['water', 'eau'],
+        'earth' => ['earth', 'terre'],
+        'wind' => ['wind', 'vent'],
+        'dark' => ['dark', 'shadow', 'ombre'],
+        'light' => ['light', 'lumiere'],
     ];
 
     /**
@@ -110,21 +110,13 @@ class PaperDollService
 
         foreach ($weaponCandidates as $w) {
             foreach ($powerCandidates as $p) {
-                // Sous-dossiers possibles
                 $dirs = [
                     "characters/weapons/{$w}_auras",
-                    "characters/weapons/auras/{$w}",
-                    "characters/weapons/auras",
-                    "characters/auras/{$w}",
-                    "characters/auras/{$w}_auras",
-                    "characters/auras",
                 ];
 
-                // Noms de fichiers possibles dans le dossier
                 $fileNames = [
                     "{$w}_{$p}",
                     "{$p}",
-                    "{$p}_{$w}",
                 ];
 
                 foreach ($dirs as $dir) {
@@ -145,21 +137,24 @@ class PaperDollService
 
     /**
      * Résout de manière bidirectionnelle les alias (anglais <-> français <-> id).
+     * Place toujours le nom canonique anglais en premier.
      */
     protected static function getNormalizedCandidates(string $id, array $aliasMap): array
     {
-        $candidates = [$id];
-
-        if (isset($aliasMap[$id])) {
-            $candidates = array_merge($candidates, $aliasMap[$id]);
-        }
+        $id = strtolower($id);
+        $candidates = [];
 
         foreach ($aliasMap as $canonical => $aliases) {
-            if (in_array($id, $aliases, true)) {
+            if ($id === $canonical || in_array($id, $aliases, true)) {
                 $candidates[] = $canonical;
-                $candidates = array_merge($candidates, $aliases);
+                foreach ($aliases as $alias) {
+                    $candidates[] = $alias;
+                }
+                break;
             }
         }
+
+        $candidates[] = $id;
 
         return array_values(array_unique($candidates));
     }
