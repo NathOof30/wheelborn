@@ -107,7 +107,8 @@ Fichier source : [`app/Data/PowerData.php`](file:///c:/Users/natha/Documents/PRO
 > Pour conférer un impact visuel maximal et une lecture instantanée de l'élément en duel et dans la Collection, les pouvoirs s'expriment à présent via des **auras dessinées spécifiquement pour chaque arme** :
 > - **Superposition (Layer 4)** : Affichée à `z-index: 40`, strictement **au-dessus de l'arme** et au premier plan.
 > - **Dossiers d'assets** : `public/images/characters/weapons/{weapon}_auras/{weapon}_{element}.webp`.
-> - **Actifs actuellement** : Épée + Feu (`sword_fire.webp`), Épée + Glace (`sword_ice.webp`), Épée + Foudre (`sword_lightning.webp`), Épée + Poison (`sword_poison.webp`).
+> - **Les 8 auras de l'Épée actives** : Feu (`sword_fire.webp`), Glace (`sword_ice.webp`), Foudre (`sword_lightning.webp`), Poison (`sword_poison.webp`), Gravité (`sword_gravity.webp`), Régénération (`sword_regeneration.webp`), Téléportation (`sword_teleportation.webp`), Invisibilité (`sword_invisibility.webp`).
+> - **Règle Spécifique de l'Aura d'Invisibilité (Toutes Armes)** : L'aura d'invisibilité reprend l'**outline (tracé au trait sans couleur)** de l'arme. Le moteur Paper Doll (`PaperDollService`) **masque automatiquement l'arme de base (Layer 3)** uniquement pour cet effet, évitant que les couleurs pleines de l'arme ne recouvrent la translucidité du tracé invisible.
 > - Détails d'exportation et gabarit disponibles dans le [GUIDE_ASSETS_PAPER_DOLL.md](file:///c:/Users/natha/Documents/PROJET/WHEELBORN_PROJECT/WHEELBORN/docs/GUIDE_ASSETS_PAPER_DOLL.md).
 
 ---

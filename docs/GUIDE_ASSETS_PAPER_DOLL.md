@@ -130,8 +130,11 @@ L'image finale du personnage est composée de **5 calques superposés** dans le 
 - **Organisation des dossiers** : `public/images/characters/weapons/{weapon}_auras/{weapon}_{power}.webp`.
   - Ex: `public/images/characters/weapons/sword_auras/sword_fire.webp`
   - Ex: `public/images/characters/weapons/sword_auras/sword_ice.webp`
-  - Ex: `public/images/characters/weapons/sword_auras/sword_lightning.webp`
+  - Ex: `public/images/characters/weapons/sword_auras/sword_invisibility.webp`
 - **Règle vitale** : Dessiné directement sur le calque de l'arme au format carré 512x512 px avec fond 100% transparent. Grâce à cette superposition exacte, l'aura habille l'arme sans décalage.
+- **👁️‍🗨️ Règle Spécifique — Aura d'Invisibilité (Toutes les Armes)** :
+  L'aura d'invisibilité est un calque particulier qui reprend l'**outline (tracé au trait noir / contour transparent)** de l'arme, sans aucun remplissage ni couleur pleine.  
+  Par conséquent, lors de la composition Paper Doll (`PaperDollService::resolveLayers`), **le calque de l'arme de base (Layer 3) est automatiquement masqué (`weapon => null`) uniquement pour cet effet**, afin que les couleurs solides de l'arme sous-jacente ne viennent pas ruiner l'impression de transparence et de dématérialisation. Cette règle est universelle et s'applique dynamiquement à **toutes les armes du jeu**.
 
 ---
 
@@ -181,10 +184,10 @@ Chaque arme possède des auras sur mesure pour chacun des éléments du jeu. Le 
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Glace** ❄️ | `sword_ice.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Foudre** ⚡ | `sword_lightning.webp` | ✅ Présent |
 | **Épée** ⚔️ | `weapons/sword_auras/` | **Poison** 🧪 | `sword_poison.webp` | ✅ Présent |
-| **Épée** ⚔️ | `weapons/sword_auras/` | **Régénération** 💖 | `sword_regeneration.webp` | ⏳ À créer |
-| **Épée** ⚔️ | `weapons/sword_auras/` | **Gravité** 🌌 | `sword_gravity.webp` | ⏳ À créer |
-| **Épée** ⚔️ | `weapons/sword_auras/` | **Téléportation** 🌀 | `sword_teleportation.webp` | ⏳ À créer |
-| **Épée** ⚔️ | `weapons/sword_auras/` | **Invisibilité** 👁️‍🗨️ | `sword_invisibility.webp` | ⏳ À créer |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Régénération** 💖 | `sword_regeneration.webp` | ✅ Présent |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Gravité** 🌌 | `sword_gravity.webp` | ✅ Présent |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Téléportation** 🌀 | `sword_teleportation.webp` | ✅ Présent |
+| **Épée** ⚔️ | `weapons/sword_auras/` | **Invisibilité** 👁️‍🗨️ | `sword_invisibility.webp` *(Outline sans arme de base)* | ✅ Présent |
 | **Autres Armes** 🏹🪄🗡️🔨🔱🔫📖 | `weapons/{weapon}_auras/` | Tous éléments | `{weapon}_{element}.webp` | 📁 Dossiers créés, WebP à dessiner |
 
 ---
@@ -361,10 +364,10 @@ Dans le projet, le rendu du Paper Doll est entièrement encapsulé dans le compo
 - [x] `sword_auras/sword_ice.webp` (Épée + Glace ❄️)
 - [x] `sword_auras/sword_lightning.webp` (Épée + Foudre ⚡)
 - [x] `sword_auras/sword_poison.webp` (Épée + Poison 🧪)
-- [ ] `sword_auras/sword_regeneration.webp` (Épée + Régénération 💖)
-- [ ] `sword_auras/sword_gravity.webp` (Épée + Gravité 🌌)
-- [ ] `sword_auras/sword_teleportation.webp` (Épée + Téléportation 🌀)
-- [ ] `sword_auras/sword_invisibility.webp` (Épée + Invisibilité 👁️‍🗨️)
+- [x] `sword_auras/sword_regeneration.webp` (Épée + Régénération 💖)
+- [x] `sword_auras/sword_gravity.webp` (Épée + Gravité 🌌)
+- [x] `sword_auras/sword_teleportation.webp` (Épée + Téléportation 🌀)
+- [x] `sword_auras/sword_invisibility.webp` (Épée + Invisibilité 👁️‍🗨️ — masque l'arme de base)
 - [ ] Autres auras d'armes (`bow_auras/`, `staff_auras/`, `dagger_auras/`, `hammer_auras/`, `spear_auras/`, `gun_auras/`, `grimoire_auras/`)
 
 ### Armes (8 fichiers dans `public/images/characters/weapons/`)

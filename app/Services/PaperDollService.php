@@ -165,6 +165,34 @@ class PaperDollService
     }
 
     /**
+     * Détermine si un identifiant de pouvoir correspond à l'invisibilité (id canonique ou alias).
+     */
+    public static function isInvisibilityPower(?string $powerId): bool
+    {
+        if (!$powerId) {
+            return false;
+        }
+
+        $candidates = self::getNormalizedCandidates('invisibility', self::$powerAliases);
+        return in_array(strtolower($powerId), $candidates, true);
+    }
+
+    /**
+     * Détermine si une aura correspond à l'aura d'invisibilité (via son chemin ou l'id du pouvoir).
+     */
+    public static function isInvisibilityAura(?string $powerId, ?string $auraPath = null): bool
+    {
+        if ($auraPath !== null) {
+            $normalized = strtolower(str_replace('\\', '/', $auraPath));
+            if (str_contains($normalized, 'invisibility') || str_contains($normalized, 'invisibilite')) {
+                return true;
+            }
+        }
+
+        return self::isInvisibilityPower($powerId);
+    }
+
+    /**
      * Vérifie si le personnage possède au moins un calque visuel disponible (ex: Race, Arme, Pouvoir ou Aura).
      */
     public static function hasVisualLayers(?string $raceId, ?string $weaponId = null, ?string $powerId = null): bool
@@ -177,15 +205,27 @@ class PaperDollService
 
     /**
      * Retourne l'ensemble des calques résolus pour un personnage.
+     * Pour toutes les armes, si l'aura d'invisibilité est active, le calque de base de l'arme
+     * n'est pas affiché car l'aura reprend l'outline sans les couleurs.
      */
     public static function resolveLayers(?string $raceId, ?string $weaponId, ?string $powerId, ?string $rarity): array
     {
+        $aura = self::getAuraAsset($weaponId, $powerId);
+        $weapon = self::getWeaponAsset($weaponId);
+
+        // Cas particulier de l'Invisibilité : L'aura d'invisibilité reprend l'outline
+        // de l'arme sans ses couleurs. Pour toutes les armes, lorsque cette aura est active,
+        // on n'affiche pas l'arme de base pour ne pas écraser l'effet translucide.
+        if ($aura && self::isInvisibilityAura($powerId, $aura)) {
+            $weapon = null;
+        }
+
         return [
             'background' => self::getBackgroundAsset($rarity),
             'race' => self::getRaceAsset($raceId),
             'power' => self::getPowerAsset($powerId),
-            'weapon' => self::getWeaponAsset($weaponId),
-            'aura' => self::getAuraAsset($weaponId, $powerId),
+            'weapon' => $weapon,
+            'aura' => $aura,
         ];
     }
 

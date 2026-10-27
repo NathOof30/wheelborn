@@ -381,14 +381,15 @@
     - [ ] *Calque 2 :* Effet élémentaire général (`public/images/characters/elements/` - arborescence prête).
     - [x] *Calque 3 :* Arme tenue selon le gabarit d'alignement (`public/images/characters/weapons/`, `z-index: 30`, actifs : `epee.webp`, `baton.webp`, `arc.webp`, `dague.webp`).
     - [x] *Calque 4 :* **Aura Élémentaire de l'Arme** (`public/images/characters/weapons/{weapon}_auras/{weapon}_{element}.webp`, `z-index: 40`, strictement au-dessus de l'arme avec micro-mise à l'échelle synchronisée `group-hover/avatar:scale-[1.03]`).
-  - [x] **Auras Actives Intégrées :** Épée élémentaire avec Feu 🔥 (`sword_fire.webp`), Glace ❄️ (`sword_ice.webp`), Foudre ⚡ (`sword_lightning.webp`), Poison 🧪 (`sword_poison.webp`).
+  - [x] **Auras Actives Intégrées (8/8 pour l'Épée) :** Épée élémentaire avec Feu 🔥 (`sword_fire.webp`), Glace ❄️ (`sword_ice.webp`), Foudre ⚡ (`sword_lightning.webp`), Poison 🧪 (`sword_poison.webp`), Gravité 🌌 (`sword_gravity.webp`), Régénération 💖 (`sword_regeneration.webp`), Téléportation 🌀 (`sword_teleportation.webp`), Invisibilité 👁️‍🗨️ (`sword_invisibility.webp`).
+  - [x] **Règle Spécifique d'Invisibilité Universelle :** L'aura d'invisibilité reproduisant l'outline sans couleurs, le calque de base de l'arme (Layer 3) est masqué automatiquement pour toutes les armes lorsque cet effet est actif afin de préserver l'effet translucide.
   - [x] **Arborescence Préparatoire Complète :** Dossiers créés pour toutes les armes (`sword_auras`, `bow_auras`, `staff_auras`, `dagger_auras`, `hammer_auras`, `spear_auras`, `gun_auras`, `grimoire_auras`) ainsi que `elements/` et `backgrounds/`.
   - [x] **Résolution Bilingue & Tolérante :** Méthode `PaperDollService::getNormalizedCandidates()` gérant de manière bidirectionnelle les alias anglais/français (`epee`/`sword`, `feu`/`fire`, `glace`/`ice`, `foudre`/`lightning`, `baton`/`staff`).
   - [x] **Respect Strict du Ratio & Élimination des Distorsions :** Gabarit carré 1:1 (`max-w-[270px] aspect-square w-full`) interdisant tout écrasement ou étirement d'image.
   - [x] **Détourage & Transparence :** Suppression des encadrements debug et badges temporaires pour une intégration directe sur le fond néon de la carte.
   - [x] Intégration sur la face recto des cartes de la Collection et dans la modale de révélation de la Roue.
   - [x] Châssis de carte responsive (bordure, liserés, halo glow de rareté en pur CSS Tailwind) s'adaptant à n'importe quelle taille de carte sans distorsion.
-  - [x] Tests automatisés unitaires & fonctionnels complets (`tests/Feature/PaperDollTest.php` - 6 tests validés, 45 assertions).
+  - [x] Tests automatisés unitaires & fonctionnels complets (`tests/Feature/PaperDollTest.php` - 7 tests validés, 68 assertions ; suite globale 169 tests, 677 assertions ✅).
 
 ### [x] T5.5 — Direction Artistique "Le Vide et la Roue", Respiration Contemplative & Standardisation du Ratio Carte Physique (TCG 1:1.53)
 - **Priorité :** 🟢 P2 (Direction Artistique & Polish Visuel Majeur)
