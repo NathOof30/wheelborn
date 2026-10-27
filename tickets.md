@@ -24,11 +24,11 @@
 | **Épic 1 : Collection & Gestion d'Inventaire** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (100%) |
 | **Épic 2 : Moteur de Combat & Arène 1v1** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
 | **Épic 3 : Système d'Élo FIDE & Classement** | 🔴 P0 | 🧑‍💻 Mathéo | 6 | ✅ Terminé (100%) |
-| **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ⏳ À démarrer (0/5) |
+| **Épic 4 : Atelier & Économie Circulaire** | 🟡 P1 | 🧑‍💻 Mathéo | 5 | ✅ Terminé (100% - 5/5 ✅) |
 | **Épic 5 : Game Feel, Rendu Visuel & Paper Doll** | 🟡 P1 | 👥 Binôme | 5 | ⏳ En cours (2/5 - Paper Doll V2 Auras & DA Cosmique ✅) |
 | **Épic 6 : Robustesse, Concurrence & Edge Cases** | 🔴 P0 | 🧑‍💻 Nathanaël | 6 | ✅ Terminé (100%) |
 | **Épic 7 : Outils Soutenance, Admin & Démo** | 🔴 P0 | 🧑‍💻 Nathanaël | 3 | ⏳ Partiel (2/3 - God Mode Forge Personnalisée & Seeder ✅) |
-| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (169 tests, 685 assertions ✅) |
+| **Épic 8 : Tests Automatisés & QA** | 🟡 P1 | 👥 Binôme (réparti) | 5 | ✅ Validé (189 tests, 784 assertions, 100% vert ✅) |
 | **Épic 9 : Profil Joueur, Vitrine & Social** | 🔴 P0 | 🧑‍💻 Nathanaël | 5 | ✅ Terminé (5/5 - 100% ✅) |
 
 ---
@@ -310,58 +310,63 @@
 ## 🏛️ Épic 4 — Économie Circulaire & Atelier (`Workshop`)
 > **Responsable principal :** 🧑‍💻 Mathéo
 
-### [ ] T4.1 — Modèle, Migration & Service `WorkshopService`
+### [x] T4.1 — Modèle, Migration & Service `WorkshopService`
 - **Priorité :** 🔴 P0 (Boucle de rétention V2)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/WorkshopService.php`, `app/Models/WorkshopUpgrade.php`
+- **Cible :** `app/Services/WorkshopService.php`, `app/Models/WorkshopUpgrade.php`, `tests/Feature/WorkshopServiceTest.php`
 - **Description :** Logique d'achat d'améliorations passives permanentes financées par l'or du recyclage et des victoires.
 - **Critères d'acceptation :**
-  - [ ] Définition des améliorations :
+  - [x] Définition des améliorations :
     1. *Aimant à Pouvoirs Rares* (Niveaux 1 à 5 : +3% par niveau de chance de pouvoirs épiques/mythiques).
     2. *Forge des Héros* (Niveaux 1 à 5 : +2 Force et +3 PV constants sur les futurs tirages).
     3. *Coffre de Guerre* (Niveaux 1 à 3 : +25%, +50%, +100% d'or par victoire d'arène).
-  - [ ] Vérification stricte du solde de pièces avant achat et déduction sécurisée.
-  - [ ] Sauvegarde du niveau de chaque amélioration par utilisateur.
+  - [x] Vérification stricte du solde de pièces avant achat et déduction sécurisée.
+  - [x] Sauvegarde du niveau de chaque amélioration par utilisateur.
+  - [x] Validé par `tests/Feature/WorkshopServiceTest.php` (tests passants).
 
-### [ ] T4.2 — Intégration des bonus de l'Atelier dans le Moteur de Génération
+### [x] T4.2 — Intégration des bonus de l'Atelier dans le Moteur de Génération
 - **Priorité :** 🔴 P0 (Cohérence Gameplay)
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/CharacterGeneratorService.php`
+- **Cible :** `app/Services/CharacterGeneratorService.php`, `tests/Feature/CharacterGeneratorWorkshopTest.php`
 - **Description :** Faire en sorte que les améliorations achetées affectent réellement les prochains tirages de roue.
 - **Critères d'acceptation :**
-  - [ ] Injection du niveau de l'Aimant à Pouvoirs pour modifier les probabilités de `PowerData`.
-  - [ ] Injection du niveau de la Forge des Héros pour ajouter les points de stats bonus lors de la création du personnage.
+  - [x] Injection du niveau de l'Aimant à Pouvoirs pour modifier les probabilités de `PowerData`.
+  - [x] Injection du niveau de la Forge des Héros pour ajouter les points de stats bonus lors de la création du personnage.
+  - [x] Validé par `tests/Feature/CharacterGeneratorWorkshopTest.php` (tests passants).
 
-### [ ] T4.3 — Ticket d'Urgence (Achat de tirage immédiat)
+### [x] T4.3 — Ticket d'Urgence (Achat de tirage immédiat)
 - **Priorité :** 🟡 P1
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Services/WorkshopService.php`, `app/Livewire/CharacterWheel.php`
+- **Cible :** `app/Services/WorkshopService.php`, `app/Livewire/CharacterWheel.php`, `tests/Feature/EmergencySpinTest.php`
 - **Description :** Donner une utilité immédiate à l'or quand le joueur a vidé ses charges de roue et veut continuer sa session.
 - **Critères d'acceptation :**
-  - [ ] Achat d'une charge de spin pour 120 pièces d'or.
-  - [ ] Limitation : maximum 2 achats par tranche de 24 heures (ou prix croissant 120 🪙 $\rightarrow$ 250 🪙 $\rightarrow$ 500 🪙).
+  - [x] Achat d'une charge de spin pour 120 pièces d'or.
+  - [x] Limitation : maximum 2 achats par tranche de 24 heures (coût progressif 120 🪙 $\rightarrow$ 250 🪙 $\rightarrow$ blocage).
+  - [x] Validé par `tests/Feature/EmergencySpinTest.php` (tests passants).
 
-### [ ] T4.4 — Composant Livewire `Workshop`
+### [x] T4.4 — Composant Livewire `Workshop`
 - **Priorité :** 🟡 P1
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Livewire/Workshop.php`, `resources/views/livewire/workshop.blade.php`
+- **Cible :** `app/Livewire/Workshop.php`, `resources/views/livewire/workshop.blade.php`, `tests/Feature/WorkshopPageTest.php`
 - **Description :** Interface moderne de l'Atelier avec arbre de cartes d'améliorations.
 - **Critères d'acceptation :**
-  - [ ] Cartes d'améliorations avec barres de progression de niveau (ex: Niv. 2/5).
-  - [ ] Bouton d'achat dynamique affichant le coût du niveau suivant.
-  - [ ] Feedback visuel en cas de fonds insuffisants.
-  - [ ] Animation de déblocage avec notification de succès.
+  - [x] Cartes d'améliorations avec barres de progression de niveau (ex: Niv. 2/5).
+  - [x] Bouton d'achat dynamique affichant le coût du niveau suivant.
+  - [x] Feedback visuel en cas de fonds insuffisants.
+  - [x] Animation de déblocage avec notification de succès.
+  - [x] Validé par `tests/Feature/WorkshopPageTest.php` (tests passants).
 
-### [ ] T4.5 — Succès & Déblocages Spéciaux (`Achievements`)
+### [x] T4.5 — Succès & Déblocages Spéciaux (`Achievements`)
 - **Priorité :** 🟢 P2
 - **Attribué à :** 🧑‍💻 Mathéo
-- **Cible :** `app/Models/Achievement.php`, `app/Listeners/ProcessAchievements.php`
+- **Cible :** `app/Models/Achievement.php`, `app/Listeners/ProcessAchievements.php`, `tests/Feature/AchievementTest.php`
 - **Description :** Récompenser les accomplissements des joueurs avec des titres et des bourses de pièces.
 - **Critères d'acceptation :**
-  - [ ] Succès "Premier Sang" (1ère victoire en arène).
-  - [ ] Succès "Maître Alchimiste" (Recycler 10 cartes).
-  - [ ] Succès "Bénédiction Divine" (Obtenir une carte Légendaire).
-  - [ ] Succès "Combinaison Instable" (Tirer une synergie à risque).
+  - [x] Succès "Premier Sang" (1ère victoire en arène).
+  - [x] Succès "Maître Alchimiste" (Recycler 10 cartes).
+  - [x] Succès "Bénédiction Divine" (Obtenir une carte Légendaire).
+  - [x] Succès "Combinaison Instable" (Tirer une synergie à risque).
+  - [x] Validé par `tests/Feature/AchievementTest.php` (tests passants).
 
 ---
 
@@ -598,14 +603,16 @@
   - [ ] Tester que le score Power calculé correspond bien à la formule du GDD.
   - [ ] Valider la détection des synergies selon la table de correspondance.
 
-### [ ] T8.3 — Tests Unitaires de la Formule d'Élo FIDE
+### [x] T8.3 — Tests Unitaires de la Formule d'Élo FIDE
 - **Priorité :** 🔴 P0
 - **Attribué à :** 🧑‍💻 Mathéo
 - **Cible :** `tests/Unit/EloServiceTest.php`
+- **Statut :** ✅ Validé (10 tests passants).
 - **Critères d'acceptation :**
-  - [ ] Élo égal (1000 vs 1000) : gain de +16 en victoire, perte de -16 en défaite.
-  - [ ] Victoire outsider (1000 vs 1300) : gain élevé (> +24).
-  - [ ] L'Élo ne descend jamais en dessous de zéro.
+  - [x] Élo égal (1000 vs 1000) : gain de +16 en victoire, perte de -16 en défaite.
+  - [x] Victoire outsider (1000 vs 1300) : gain élevé (> +24).
+  - [x] L'Élo ne descend jamais en dessous de zéro.
+  - [x] Pondération par ratio de puissance (anti-farm & valorisation outsider).
 
 ### [x] T8.4 — Tests de Robustesse des Transactions de Recyclage, Collection & Paper Doll
 - **Priorité :** 🟡 P1
@@ -667,21 +674,27 @@
 ### [x] T9.3 — Refonte Majeure de la Page Profil (`/profile`) en Deux Onglets
 - **Priorité :** 🔴 P0 (Expérience Utilisateur Majeure)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `app/Livewire/UserProfile.php`, `resources/views/livewire/user-profile.blade.php`, `resources/views/profile/edit.blade.php`, `routes/web.php`
-- **Description :** Remplacer la page brute de réglages Breeze par une véritable Fiche de Destinée & Palmarès complète avec onglet de paramètres de compte.
+- **Cible :** `app/Livewire/UserProfile.php`, `resources/views/livewire/user-profile.blade.php`, `resources/views/profile/edit.blade.php`, `resources/views/components/character-modal.blade.php`, `routes/web.php`
+- **Description :** Remplacer la page brute de réglages Breeze par une véritable Fiche de Destinée & Palmarès complète avec onglet de paramètres de compte et composant d'inspection de héros unifié.
 - **Critères d'acceptation :**
   - [x] **Bannière Joueur Noble (Hero Header) :**
     - Blason animé de Ligue FIDE (Bronze, Argent, Or, Platine, Maître).
     - Pseudo, Titre honorifique sélectionnable parmi les succès débloqués (ex: « Élu des Dieux »).
     - Jauge d'XP animée avec niveau, texte explicite ("160 / 228 XP") et pourcentage.
     - Élo FIDE, Solde d'or, Date d'inscription et nombre total de héros en collection.
-  - [x] **Vitrine des 3 Combattants Phares :**
-    - Affichage des 3 cartes favorites au format physique TCG avec rendu Paper Doll V2, halos de rareté et 3D Flip au clic.
+  - [x] **Vitrine des 3 Combattants Phares & 3D Flip Bidirectionnel :**
+    - Affichage des 3 cartes favorites au format physique TCG avec rendu Paper Doll V2 et halos de rareté.
+    - Animation de retournement 3D fluide et bidirectionnelle au clic (recto $\leftrightarrow$ verso au clic sur le corps de carte ou bouton `🔄`, sans conflit avec les boutons d'action).
     - État vide incitatif ("Emplacement libre — Étoile un héros dans ta collection").
-  - [x] **Section Statistiques de Carrière :**
-    - Arène : Total duels, Victoires, Défaites, Matchs nuls, Taux de victoire (Winrate %).
+  - [x] **Section Statistiques de Carrière & Calcul Centralisé des Duels :**
+    - Centralisation du calcul des statistiques de duels via `$user->battleStats()` dans `User.php` : résout les incohérences de comparaison d'UUID `winner_id` et garantit un calcul exact du total de duels, victoires réelles, défaites, matchs nuls et taux de victoire (Winrate %) partagé entre Arène, Profil, Profil Public et Classement.
     - Collection & Roue : Total cartes tirées, Cartes Légendaires obtenues, Synergies découvertes (X/16).
     - Économie : Total d'or amassé, Cartes recyclées, Niveau de l'Atelier.
+  - [x] **Composant Partagé d'Inspection de Carte `<x-character-modal />` :**
+    - Extraction d'un composant Blade réutilisable factorisant ~425 lignes de code dupliqué, partagé entre `collection-grid`, `user-profile` et `public-player-profile`.
+    - Colonne gauche : carte physique TCG (440px) avec Paper Doll composite, 3D flip (recto/verso), jauges de stats et synergies actives.
+    - Colonne droite : passifs innés détaillés des 3 composants (Race, Arme, Pouvoir) avec icônes et effets, liste complète des synergies élémentaires actives sans coupure, et historique d'arène (V/D, winrate).
+    - Actions contextuelles en bas de modale : bascule favori (⭐), verrouillage (🔒), recyclage avec confirmation en mode propriétaire, ou vue consultation pure (`readOnly`).
   - [x] **Galerie des Trophées & Succès :**
     - Grille des succès (`Achievement::DEFINITIONS`). Badges colorés dorés pour les succès obtenus avec date, cartes grisées avec cadenas pour les succès verrouillés.
   - [x] **Onglet Paramètres de Compte Intégré :**
@@ -696,16 +709,21 @@
   - [x] Route dédiée `/players/{user:name}` affichant le profil public d'un joueur (bannière, niveau, 3 cartes favorites, stats et succès) sans accès aux paramètres de compte.
   - [x] Modale d'inspection rival dans l'Arène : clic sur le pseudo de l'adversaire (vrai joueur ou bot) ouvre une carte d'identité popup affichant son palmarès, sa ligue et ses héros de prédilection.
   - [x] Clic sur une ligne du Classement (`Leaderboard`) permettant d'inspecter le profil du joueur rival.
+  - [x] Réutilisation du composant unifié `<x-character-modal :read-only="true" />` pour inspecter les héros du rival en toute sécurité.
 
 ### [x] T9.5 — Tests Automatisés & Validation QA du Profil
 - **Priorité :** 🟡 P1 (Qualité)
 - **Attribué à :** 🧑‍💻 Nathanaël
-- **Cible :** `tests/Feature/UserProfileTest.php`, `tests/Feature/FavoriteCharacterTest.php`
+- **Cible :** `tests/Feature/UserProfileTest.php`, `tests/Feature/CollectionGridTest.php`, `tests/Feature/LevelProgressionTest.php`
 - **Critères d'acceptation :**
   - [x] Test de limitation stricte à 3 cartes favorites (rejet ou blocage de la 4e).
   - [x] Test de la progression de niveau et calcul d'XP.
   - [x] Test d'accès au profil personnel et redirection/affichage du profil public.
-  - [x] Test de protection des cartes favorites contre le recyclage.
+  - [x] Test de protection des cartes favorites contre le recyclage unitaire et de masse.
+  - [x] Test d'exactitude du calcul des duels d'arène, victoires, défaites et winrate dans le profil (`test_user_profile_accurately_calculates_and_displays_duels_wins_losses_and_winrate`).
+  - [x] Test d'ouverture de la fiche détaillée d'inspection avec composants, passifs innés et synergies (`test_user_profile_modal_opens_full_detailed_sheet_with_passives_and_synergies`).
+  - [x] Suite de tests `tests/Feature/UserProfileTest.php` validée à 100% (11 tests passants, 53 assertions).
+  - [x] Validation globale de la suite de tests du projet : 189 tests, 784 assertions, 100% au vert.
 
 ---
 
@@ -713,13 +731,13 @@
 
 ```mermaid
 graph TD
-    A[Épic 0 : Fondations & Roue ✅] --> B[Nathanaël : Épic 1 - CollectionGrid & Lock]
-    A --> C[Mathéo : Épic 2 - Moteur de Combat & Tickets]
-    C --> D[Mathéo : Épic 3 - Élo FIDE, Bots & Leaderboard]
-    B --> E[Nathanaël : Épic 6 - Robustesse & Pending Reveal]
-    C --> F[Mathéo : Épic 4 - Atelier & Économie d'Or]
-    B & C --> G[Binôme : Épic 5 - Paper Doll & Polish Visuel]
-    B & D --> J[Nathanaël : Épic 9 - Profil Joueur, Niveaux & Vitrine]
-    E & F & J --> H[Nathanaël : Épic 7 - Démo Soutenance & God Mode]
-    H --> I[Binôme : Épic 8 - Validation Suite de Tests PHPUnit]
+    A["Épic 0 : Fondations & Roue ✅"] --> B["Nathanaël : Épic 1 - CollectionGrid & Lock ✅"]
+    A --> C["Mathéo : Épic 2 - Moteur de Combat & Tickets ✅"]
+    C --> D["Mathéo : Épic 3 - Élo FIDE, Bots & Leaderboard ✅"]
+    B --> E["Nathanaël : Épic 6 - Robustesse & Pending Reveal ✅"]
+    C --> F["Mathéo : Épic 4 - Atelier & Économie d'Or ✅"]
+    B & C --> G["Binôme : Épic 5 - Paper Doll & Polish Visuel ⏳"]
+    B & D --> J["Nathanaël : Épic 9 - Profil Joueur, Niveaux & Vitrine ✅"]
+    E & F & J --> H["Nathanaël : Épic 7 - Démo Soutenance & God Mode ⏳"]
+    H --> I["Binôme : Épic 8 - Validation Tests PHPUnit (189 tests ✅)"]
 ```
