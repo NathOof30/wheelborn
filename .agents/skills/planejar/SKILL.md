@@ -1,58 +1,51 @@
 ---
 name: planejar
-description: Decompõe uma Especificação (Spec) aprovada em um grafo de Fatias Verticais com Throughput Checkpoint, usando o destino de tickets configurado e perguntando apenas se faltar. Antes de gravar, um Leitor novo lê os tickets. Use quando o usuário digitar /planejar.
+description: Decomposes an approved Specification (Spec) into a graph of Vertical Slices with a Throughput Checkpoint, using configured ticket destinations. Before recording, a fresh Reader inspects the tickets. Use when the user types /planejar.
 disable-model-invocation: true
 ---
 
-# Planejar Grafo de Fatias Verticais (`/planejar`)
+# Plan Graph of Vertical Slices (`/planejar`)
 
-## Configuração do projeto
-Leia a configuração apontada nas instruções do projeto; sem ponteiro, procure `docs/agents/projeto.md` na raiz do repositório. Reutilize-a enquanto não mudar. Use seus caminhos, comandos e escopo; os exemplos abaixo são fallback. A sessão prevalece. Sem configuração, pergunte só pelas escolhas necessárias ausentes e ofereça `/setup` uma vez, sem bloquear a tarefa.
+## Project Configuration
+Read the configuration specified in the project instructions; if missing, look for `docs/agents/projeto.md` at the repository root. Reuse it while unchanged. Use its paths, commands, and scope; the examples below are fallbacks. The session takes precedence. If unconfigured, ask only for missing required decisions and offer `/setup` once, without blocking the task.
 
-## 1. Objetivo
-Transformar uma Especificação (Spec) aprovada em tickets pequenos de Fatias Verticais (*Tracer Bullets*) com relações de bloqueio explícitas e um *Throughput Checkpoint* antes da execução.
+## 1. Goal
+Transform an approved Specification (Spec) into small Vertical Slice (*Tracer Bullet*) tickets with explicit blocking dependencies and a mandatory *Throughput Checkpoint* prior to execution.
 
-## 2. Regras Inegociáveis
-- **Proíba fatiamento horizontal:** Nunca separe tarefas por camada técnica isolada (ex.: "Ticket 1: Criar todas as migrations", "Ticket 2: Criar todas as Actions"). Cada ticket deve entregar uma fatia vertical verificável de ponta a ponta.
-- **Use expand–contract para refactor amplo:** Uma mudança mecânica que quebra muitos pontos de chamada de uma vez (renomear coluna, mudar o tipo de um Enum ou DTO compartilhado) não cabe numa fatia vertical. Sequencie em 3 etapas:
-  1. **Expand:** Adicione a forma nova ao lado da antiga. Nada quebra.
-  2. **Migrate:** Migre os pontos de chamada em lotes (por módulo ou diretório). Cada lote é um ticket bloqueado pelo Expand e fica verde sozinho.
-  3. **Contract:** Remova a forma antiga num ticket bloqueado por todos os lotes.
-- **Escreva o Throughput Checkpoint antes dos tickets:** Separe passos bloqueantes de frentes paralelizáveis e identifique arquivos com estado compartilhado.
-- **Declare arestas de bloqueio:** Todo ticket deve conter `Bloqueado por: Nenhum` ou `Bloqueado por: Ticket #N`.
-- **Passe os tickets por um Leitor novo antes de gravar:** O implementador recebe só a Spec e o ticket, sem o histórico do chat. Aplique `leitura-independente` no modo Tickets. Uma decisão de design deixada ao implementador é um achado.
-- **Use o destino de Tickets:** Leia sua escolha própria na configuração ou sessão. O destino da Spec não determina o dos tickets. Pergunte somente se a escolha estiver ausente ou conflitante.
+## 2. Non-Negotiable Rules
+- **Forbid horizontal slicing:** Never slice tasks by isolated technical layers (e.g., "Ticket 1: Create all migrations", "Ticket 2: Create all Actions"). Every ticket must deliver an end-to-end verifiable vertical slice.
+- **Use expand–contract for broad refactoring:** Mechanical changes breaking many call sites at once (renaming columns, altering shared DTO or Enum types) do not fit in a single vertical slice. Sequence into 3 stages:
+  1. **Expand:** Add the new format alongside the old one. Nothing breaks.
+  2. **Migrate:** Migrate call sites in batches (by module or directory). Each batch is a ticket blocked by Expand and turns green independently.
+  3. **Contract:** Remove the old format in a ticket blocked by all migration batches.
+- **Write the Throughput Checkpoint before tickets:** Separate blocking foundations from parallelizable streams and identify files with shared mutable state.
+- **Declare blocking edges:** Every ticket must explicitly specify `Blocked by: None` or `Blocked by: Ticket #N`.
+- **Use the Tickets Destination:** Read the configured destination (`tickets/todo/` or issue tracker). Ask only if the choice is absent or conflicting.
 
-## 3. Processo
-1. **Leitura da Spec:** Leia a Spec indicada; sem indicação, localize-a no destino de Specs configurado. Se houver candidatas ambíguas, peça apenas a identificação. Inspecione os arquivos afetados. Use também os achados `mover para tickets` da Leitura Independente da Spec, quando houver.
-2. **Throughput Checkpoint (4 itens obrigatórios):**
-   - **1. Fundação Bloqueante:** O que precisa existir antes de qualquer paralelismo (ex.: contrato compartilhado ou migration, somente quando necessários).
-   - **2. Frentes Paralelizáveis:** Quais fatias verticais não disputam os mesmos arquivos e podem ser delegadas em paralelo.
-   - **3. Estado Mutável Compartilhado:** Arquivos que múltiplos tickets poderiam tocar (ex.: `routes/web.php`, componente Livewire pai) e como serializar a edição.
-   - **4. Menor Decomposição Segura:** Quantidade mínima de tickets/commits verificáveis (~100 linhas por fatia).
-3. **Estrutura de Cada Ticket (Fatia Vertical):**
-   - **Título e Objetivo Observável** (1 frase em voz ativa).
-   - **Bloqueado por:** `#ID` ou `Nenhum`.
-   - **Ponteiros de Contexto:** Caminhos exatos dos arquivos a criar ou modificar.
-   - **Critério de Aceite no Pest:** Qual teste da Costura escolhida e da Fronteira (`Livewire::test()` ou HTTP) comprovará a fatia.
-4. **Leitura Independente:** Aplique `leitura-independente` no modo Tickets, com a Spec aprovada. Grave o rascunho dos tickets num arquivo temporário fora do repositório e delegue a leitura a um Leitor novo. Mostre a Paráfrase e os achados ao usuário. Continue só depois da resposta dele.
-5. **Destino e Gravação:** Use o destino de Tickets registrado, mantendo o vínculo com a Spec mesmo em sistemas diferentes. Só quando faltar escolha, pergunte entre:
-   - **Opção 1:** Markdown local (ex.: `docs/tickets/<spec>/NN-slug.md`).
-   - **Opção 2:** Issues no GitHub (`gh issue create`) ou GitLab (`glab issue create`) com links de bloqueio.
-   - **Opção 3:** Outro destino informado.
-6. **Fechamento:** Apague o rascunho temporário. Exiba o resumo do grafo e a linha `Leitura Independente:`, e oriente o usuário a executar `/implementar`.
+## 3. Process
+1. **Spec Reading:** Read the designated Spec. Inspect affected files and identified dependencies.
+2. **Throughput Checkpoint (4 mandatory sections):**
+   - **1. Blocking Foundation:** What must exist before any parallelism (e.g., shared schema migration or core contract).
+   - **2. Parallelizable Streams:** Which vertical slices do not touch the same files and can be executed independently.
+   - **3. Shared Mutable State:** Files that multiple tickets would touch (e.g., `routes/web.php`, common HUD component) and how to sequence edits.
+   - **4. Smallest Safe Decomposition:** Minimum number of verifiable commits/tickets (~50-100 lines per slice).
+3. **Structure of Each Ticket (Vertical Slice):**
+   - **Title and Observable Goal** (1 sentence in active voice).
+   - **Blocked by:** `#ID` or `None`.
+   - **Context Pointers:** Exact paths and line ranges of files to create or modify.
+   - **Acceptance Criteria in Test:** Specific automated test asserting the public Seam and Boundary (`Livewire::test()` or HTTP test) proving the slice.
+4. **Independent Review:** Validate the ticket plan to ensure no implicit design decisions are left unstated for the implementer.
+5. **Persistence:** Write tickets to destination (`tickets/todo/NN-slug.md` or issues).
 
-## 4. Racionalizações Proibidas (Anti-Atalho)
-| Desculpa do Agente | Regra Correta |
+## 4. Forbidden Rationalizations (Anti-Shortcuts)
+| Agent Excuse | Required Rule |
 |---|---|
-| "Vou criar um ticket separado no final apenas para escrever os testes no Pest." | **Proibido.** Cada Fatia Vertical inclui seu próprio teste Pest executado via TDD. |
-| "Vou colar o código inteiro dos arquivos dentro da descrição do ticket." | **Proibido.** Use apenas Ponteiros de Contexto (caminho do arquivo e linhas) e assinaturas de tipos. |
-| "Vou renomear a coluna e corrigir os 200 usos num ticket só." | **Proibido.** Use expand–contract. Cada lote de migração fica verde sozinho. |
-| "Não preciso mapear arquivos compartilhados entre tickets." | **Proibido.** Sem mapear o Estado Mutável Compartilhado, subagentes paralelos gerarão conflitos de merge. |
-| "O implementador decide o nome da coluna; é detalhe." | **Proibido.** Tabela, coluna, assinatura e regra de erro mudam dados e contratos. O ticket decide; a Leitura Independente aponta o que falta. |
+| "I will create a separate ticket at the end just to write tests." | **Forbidden.** Every Vertical Slice includes its own automated tests executed via TDD. |
+| "I will paste entire file code inside the ticket description." | **Forbidden.** Use Context Pointers (file path and line ranges) and typed signatures only. |
+| "I will rename the column and update 200 usages in a single ticket." | **Forbidden.** Use expand–contract. Each migration batch turns green on its own. |
+| "I do not need to map shared files between tickets." | **Forbidden.** Without mapping Shared Mutable State, parallel implementations create merge conflicts. |
 
-## 5. Prova de Execução (Critério de Saída)
-- `[measured]` *Throughput Checkpoint* de 4 itens presente no plano.
-- `[measured]` Zero tickets horizontais ou tickets exclusivos de teste, exceto lotes de expand–contract.
-- `[measured]` Paráfrase do Leitor mostrada ao usuário antes da gravação, e linha `Leitura Independente:` no fechamento.
-- `[measured]` Tickets gravados no destino escolhido pelo usuário.
+## 5. Execution Proof (Exit Criteria)
+- `[measured]` 4-item *Throughput Checkpoint* present in the plan.
+- `[measured]` Zero horizontal or test-only tickets, except expand–contract migration batches.
+- `[measured]` Tickets recorded in the designated destination with explicit blocking edges.

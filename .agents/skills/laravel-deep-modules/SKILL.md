@@ -1,29 +1,29 @@
 ---
 name: laravel-deep-modules
-description: Disciplina arquitetural de Módulos Profundos para PHP, Laravel e Livewire. Use ao desenhar, planejar, implementar ou revisar Actions, DTOs, Models, Controllers e componentes Livewire.
+description: Deep Modules architectural discipline for PHP, Laravel, and Livewire. Use when designing, planning, implementing, or reviewing Actions, DTOs, Models, Controllers, and Livewire components.
 ---
 
-# Módulos Profundos no Laravel e Livewire (`laravel-deep-modules`)
+# Deep Modules in Laravel and Livewire (`laravel-deep-modules`)
 
-## Configuração do projeto
-Leia a configuração apontada nas instruções do projeto; sem ponteiro, procure `docs/agents/projeto.md` na raiz do repositório. Reutilize-a enquanto não mudar. Use seus caminhos, comandos e escopo; os exemplos abaixo são fallback. A sessão prevalece. Sem configuração, pergunte só pelas escolhas necessárias ausentes e ofereça `/setup` uma vez, sem bloquear a tarefa.
+## Project Configuration
+Read the configuration specified in the project instructions; if missing, look for `docs/agents/projeto.md` at the repository root. Reuse it while unchanged. Use its paths, commands, and scope; the examples below are fallbacks. The session takes precedence. If unconfigured, ask only for missing required decisions and offer `/setup` once, without blocking the task.
 
-## 1. Objetivo
-Encapsular regras de negócio atrás de interfaces pequenas e testáveis. Prefira as Costuras existentes e mantenha validação e autorização explícitas na Fronteira.
+## 1. Goal
+Encapsulate business rules behind small, testable interfaces. Prefer existing public Seams and keep validation and authorization explicit at the Boundary.
 
-## 2. Regras Inegociáveis
-- **Declare tipos estritos em código PHP:** Inicie arquivos de código PHP com `declare(strict_types=1);`. Templates `.blade.php` ficam fora desta regra.
-- **Preserve a arquitetura existente:** Antes de criar classes, identifique a Costura pública e a complexidade que ela esconde. Não converta código vizinho só para impor este padrão.
-- **Mantenha a Fronteira magra:** Valide entrada e autorização na Fronteira. Extraia regras, transações e coordenação quando houver complexidade a encapsular. CRUD trivial pode continuar no Controller/Livewire se seguir a arquitetura do projeto e permanecer testável.
-- **Proteja o estado público do Livewire:** Adicione o atributo `#[Locked]` em qualquer propriedade pública de componente Livewire que armazene IDs ou estados que o cliente não pode manipular no frontend.
-- **Escolha dados pelo contrato:** Prefira DTO `final readonly` quando vários campos, invariantes ou consumidores pedirem um contrato explícito. Reutilize tipos existentes; valores escalares ou dados validados locais bastam para operações simples. Não crie DTO que apenas repassa campos sem benefício.
-- **Desenhe interfaces pequenas:** Para uma nova Action, prefira `handle()` e encapsule o fluxo relevante. Preserve assinaturas públicas já estabelecidas. Justifique a escolha ou exceção no ticket/Spec em uma frase; não crie ADR só por isso.
-- **Torne o estado inválido impossível de escrever:** Use `enum`, DTO `readonly` e tipos estritos para que o PHPStan recuse o valor inválido. Não silencie o PHPStan com `@phpstan-ignore` nem com uma entrada nova no baseline.
-- **Valide uma vez, na entrada:** O `FormRequest` ou o `Livewire\Form` valida e converte a entrada em tipos ou DTO. Dentro da Costura, confie no dado. Não repita a validação nem espalhe `if ($x !== null)` defensivos.
-- **Torne a operação repetível:** Job com retry, webhook, comando agendado e duplo clique no Livewire executam a mesma operação de novo. Executar 2 vezes, ou de novo depois de uma falha no meio, deixa o mesmo estado final. Use índice único com `upsert`, chave de idempotência, `ShouldBeUnique` ou a conferência do estado dentro da transação.
-- **Dê um só escritor ao estado compartilhado:** Se dois processos não precisam do mesmo registro mutável, dê a cada um o seu. Se precisam, garanta um só escritor na estrutura: `lockForUpdate()` na transação, `increment()` atômico ou job com `WithoutOverlapping`.
+## 2. Non-Negotiable Rules
+- **Declare strict types in PHP code:** Start PHP files with `declare(strict_types=1);`. Blade templates (`.blade.php`) are exempt.
+- **Preserve existing architecture:** Before creating classes, identify the public Seam and the complexity it encapsulates. Do not refactor neighboring code merely to enforce this pattern.
+- **Keep the Boundary thin:** Validate input and authorization at the Boundary. Extract rules, transactions, and coordination when complexity exists. Trivial CRUD may remain in the Controller or Livewire component if it aligns with project conventions and remains testable.
+- **Protect Livewire public state:** Add the `#[Locked]` attribute to any Livewire component public property storing IDs or state that the client must not manipulate.
+- **Select data by contract:** Prefer `final readonly` DTOs when multiple fields, invariants, or consumers require an explicit contract. Reuse existing types; scalar values or local validated data are sufficient for simple operations. Do not create pass-through DTOs without real benefit.
+- **Design small interfaces:** For a new Action, prefer `handle()` and encapsulate the relevant workflow. Preserve already established public signatures. Justify design choices or exceptions in the ticket/Spec in one sentence; do not create an ADR solely for this.
+- **Make invalid state unrepresentable:** Use `enum`, `readonly` DTO, and strict types so PHPStan rejects invalid values. Never silence PHPStan with `@phpstan-ignore` or new baseline entries.
+- **Validate once, at entry:** `FormRequest` or `Livewire\Form` validates and converts input into types or DTO. Inside the Seam, trust the data. Do not repeat validation or sprinkle defensive `if ($x !== null)` checks.
+- **Make operations repeatable:** Retried jobs, webhooks, scheduled commands, and Livewire double-clicks execute the same operation again. Running twice, or resuming after a mid-execution failure, must leave the exact same final state. Use unique indexes with `upsert`, idempotency keys, `ShouldBeUnique`, or state checks inside transactions.
+- **Enforce a single writer on shared state:** If two processes do not need the same mutable record, isolate them. If they do, enforce a single writer: `lockForUpdate()` in transaction, atomic `increment()`, or jobs with `WithoutOverlapping`.
 
-## 3. Exemplo de Action com contrato tipado
+## 3. Action Example with Typed Contract
 
 ```php
 <?php
@@ -72,18 +72,18 @@ final readonly class ApproveOrderAction
 }
 ```
 
-## 4. Racionalizações Proibidas (Anti-Atalho)
-| Desculpa do Agente | Regra Correta |
+## 4. Forbidden Rationalizations (Anti-Shortcuts)
+| Agent Excuse | Required Rule |
 |---|---|
-| "A query Eloquent tem apenas 4 linhas, vou colocá-la direto no método `save()` do componente Livewire." | Avalie o comportamento: CRUD trivial pode ficar na Fronteira; regras, transações e coordenação pedem uma Costura própria. O número de linhas não decide sozinho. |
-| "Vou passar `$request->validated()` como `array` direto para a Action." | Prefira DTO quando estabiliza um contrato entre módulos. Não adicione uma classe apenas para repassar dados validados locais. |
-| "Vou criar uma interface `ApproveOrderActionInterface` mesmo tendo apenas uma implementação." | **Proibido (Anti-Shallow Module).** Não crie interfaces pass-through sem necessidade real de múltiplas implementações. |
-| "O job tem `$tries = 3`; se falhar, ele roda de novo e pronto." | **Proibido.** A nova tentativa repete as escritas que já aconteceram. Prove que a 2ª execução deixa o mesmo estado. |
-| "O PHPStan reclama do tipo; ponho `@phpstan-ignore` e sigo." | **Proibido.** O erro aponta um estado inválido possível. Corrija o tipo ou a origem do dado. |
+| "The Eloquent query is only 4 lines, I will put it directly in the Livewire `save()` method." | Evaluate behavior: trivial CRUD may stay at the Boundary; rules, transactions, and coordination require a dedicated Seam. Line count alone does not decide. |
+| "I will pass `$request->validated()` as an `array` directly to the Action." | Prefer DTO when stabilizing a contract between modules. Do not add a class merely to forward local validated data. |
+| "I will create an interface `ApproveOrderActionInterface` even though there is only one implementation." | **Forbidden (Anti-Shallow Module).** Do not create pass-through interfaces without an actual need for multiple implementations. |
+| "The job has `$tries = 3`; if it fails, it will just re-run." | **Forbidden.** Retries repeat writes that already succeeded. Prove that a 2nd execution leaves the exact same state. |
+| "PHPStan complains about the type; I will add `@phpstan-ignore` and move on." | **Forbidden.** The error reveals a possible invalid state. Fix the type or data origin. |
 
-## 5. Prova de Execução (Critério de Saída)
-Quando houver alteração PHP, aplique o alcance de `laravel-verification`. Em desenho ou documentação, registre a decisão sem executar ferramentas PHP só por carregar esta disciplina.
-- `[measured]` Arquivos de código PHP criados ou editados (exceto templates `.blade.php`) contêm `declare(strict_types=1);`.
-- `[measured]` Costura escolhida e complexidade encapsulada identificadas; exceção ao padrão explicada quando aplicável.
-- `[measured]` Zero erros reportados por `./vendor/bin/phpstan analyse`, sem `@phpstan-ignore` nem entrada nova no baseline.
-- `[measured]` Para cada operação repetível do diff (job, webhook, comando agendado ou ação Livewire que grava): um teste que a executa 2 vezes e confere o mesmo estado final.
+## 5. Execution Proof (Exit Criteria)
+When modifying PHP code, apply `laravel-verification`. In design or documentation tasks, record decisions without running PHP tools merely because this skill is loaded.
+- `[measured]` Created or edited PHP files (except `.blade.php` templates) contain `declare(strict_types=1);`.
+- `[measured]` Selected Seam and encapsulated complexity identified; exceptions explained when applicable.
+- `[measured]` Zero errors reported by static analysis without `@phpstan-ignore` or baseline additions.
+- `[measured]` For each repeatable operation in the diff (job, webhook, scheduled command, or mutating Livewire action): a test executes it twice and asserts the same final state.

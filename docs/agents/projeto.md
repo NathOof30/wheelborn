@@ -1,45 +1,44 @@
-# Configuração do Projeto WHEELBORN
+# WHEELBORN Project Configuration
 
-Configuração padrão consumida pelos agentes e skills (`.agents/skills/`).
+Default configuration consumed by agents and skills (`.agents/skills/`).
 
-## 1. Identificação da Aplicação
-- **Nome :** WHEELBORN (RNGboy)
-- **Framework :** Laravel 11.x / 12.x
-- **Frontend / Réactivité :** Livewire 3/4, Alpine.js, Tailwind CSS
-- **Base de données :** SQLite (`database/database.sqlite`)
-- **PHP :** ^8.3 (Windows PowerShell / POSIX)
+## 1. Application Details
+- **Name:** WHEELBORN (RNGboy)
+- **Framework:** Laravel 11.x / 12.x
+- **Frontend / Reactivity:** Livewire 3/4, Alpine.js, Tailwind CSS
+- **Database:** SQLite (`database/database.sqlite`)
+- **PHP Version:** ^8.3 (Windows PowerShell / POSIX)
 
-## 2. Comandos do Portão de Verificação (`laravel-verification`)
-- **Formatação :**
+## 2. Verification Gate Commands (`laravel-verification`)
+- **Code Formatting Check:**
   ```bash
   ./vendor/bin/pint --test
   ```
-- **Formatação (correção automática) :**
+- **Code Formatting Fix:**
   ```bash
   ./vendor/bin/pint
   ```
-- **Testes automatizados :**
+- **Automated Tests:**
   ```bash
   php artisan test
   ```
-- **Testes com filtro :**
+- **Filtered Tests:**
   ```bash
-  php artisan test --filter=<NomeDoTeste>
+  php artisan test --filter=<TestName>
   ```
-- **Ambiente de Testes :** SQLite em memória ou banco local de testes (`phpunit.xml`)
+- **Test Environment:** SQLite in-memory or local test database (`phpunit.xml`)
 
-## 3. Destinos do Projeto
-| Recurso | Destino no Repositório |
+## 3. Project File Destinations
+| Resource | Destination in Repository |
 | :--- | :--- |
-| **Tickets a Fazer** | `tickets/todo/` |
-| **Tickets Concluídos** | `tickets/done/` |
-| **Especificações & GDD** | `docs/` |
-| **Mapa de Features** | `docs/features/` |
-| **Evidências de Teste** | `docs/evidencias/` |
+| **Tickets To Do** | `tickets/todo/` |
+| **Tickets Done** | `tickets/done/` |
+| **Specifications & GDD** | `docs/` |
+| **Feature Map** | `docs/features/` |
+| **Test Evidence** | `docs/evidencias/` |
 
-## 4. Convenções Arquiteturais (`laravel-deep-modules`)
-- Todo arquivo PHP de produção inicia com `declare(strict_types=1);`.
-- Propriedades de estado ou IDs em componentes Livewire utilizam `#[Locked]`.
-- Mutações de inventário, moedas, charges e combates utilizam `DB::transaction()` com `lockForUpdate()`.
-- Código interno, classes, métodos e testes em inglês; textos voltados ao jogador em francês.
-
+## 4. Architectural Conventions (`laravel-deep-modules`)
+- Every production PHP file starts with `declare(strict_types=1);`.
+- State properties or sensitive IDs in Livewire components use `#[Locked]`.
+- Mutations of inventory, coins, charges, and battles use `DB::transaction()` with `lockForUpdate()`.
+- Internal code, classes, methods, and tests are written in English; player-facing text is written in French.

@@ -1,38 +1,38 @@
 ---
 name: ste100-clean-code
-description: Disciplina de escrita técnica ASD-STE100 em português, remoção de comentários desnecessários (/no-comments) e eliminação de ruído textual de IA (/unslop). Use em todas as respostas, documentações, commits, PRs e código PHP/Blade.
+description: ASD-STE100 technical writing discipline in English, unnecessary comment elimination (/no-comments), and removal of AI text noise (/unslop). Use in all responses, documentation, commits, PRs, and PHP/Blade code.
 ---
 
-# Escrita Técnica ASD-STE100 e Código Sem Ruído (`ste100-clean-code`)
+# ASD-STE100 Technical Writing & Clean Code (`ste100-clean-code`)
 
-## 1. Objetivo
-Manter toda comunicação, documentação (`SPEC`, `GLOSSARY.md`, PRs) e código-fonte livres de jargão vazio de IA (*slop*) e de comentários redundantes, aplicando o padrão **ASD-STE100** adaptado ao português.
+## 1. Goal
+Maintain all communications, documentation (`SPEC`, `GLOSSARY.md`, PR descriptions), and source code completely free of empty AI jargon (*slop*) and redundant narrative comments, applying the **ASD-STE100** standard adapted for software engineering.
 
-## 2. Regras Inegociáveis de Texto (ASD-STE100 + `/unslop`)
-- **Use consistência terminológica (1 termo = 1 conceito):** Chame sempre `Action` de `Action`, `DTO` de `DTO`, `Costura` de `Costura` e `Fatia Vertical` de `Fatia Vertical`.
-- **Escreva em voz ativa:** Prefira "A Action atualiza o pedido" em vez de "O pedido é atualizado pela Action".
-- **Mantenha frases curtas:** Limite instruções procedimentais a no máximo 20 palavras e explicações descritivas a no máximo 25 palavras.
-- **Dê uma instrução por frase:** Separe passos múltiplos em listas numeradas.
-- **Corte muletas de IA (`/unslop`):** Proíba expressões vazias como *"Certamente!"*, *"Vamos mergulhar nisso"*, *"É importante notar que"*, *"Robusto e escalável"*, *"Sem mais delongas"*. Vá direto ao fato técnico.
-- **Escreva o commit com a prova:** O título diz o que mudou. O corpo diz por que mudou e como você provou. A prova é o comando e o resultado `[measured]`, por exemplo `pest --filter=AprovaPedido: 3 passed`. Sem prova executada, escreva `não verificado` e o motivo.
+## 2. Non-Negotiable Text Rules (ASD-STE100 + `/unslop`)
+- **Use terminological consistency (1 term = 1 concept):** Always refer consistently to `Action`, `DTO`, `Seam`, and `Vertical Slice`.
+- **Write in active voice:** Prefer "The Action updates the order" over "The order is updated by the Action".
+- **Keep sentences short:** Limit procedural instructions to a maximum of 20 words and descriptive statements to a maximum of 25 words.
+- **Give one instruction per sentence:** Break multiple steps into numbered lists.
+- **Eliminate AI conversational crutches (`/unslop`):** Strictly ban empty phrases such as *"Certainly!"*, *"Let's dive in"*, *"It is important to note that"*, *"Robust and scalable"*, *"Without further ado"*. State technical facts directly.
+- **Write commit messages with proof:** Title states what changed. Body states why it changed and how it was proved. Proof is the command and `[measured]` output, for example: `php artisan test --filter=ApproveOrder: 3 passed`. Without execution, write `unverified` and the reason.
 
-## 3. Regras Inegociáveis de Código (`/no-comments`)
-- **Não narre o que o código já diz:** Remova todo comentário que apenas repete o nome do método ou variável (ex.: `// Busca o usuário pelo ID`).
-- **Codifique restrições na estrutura, não em comentários:** Se você sente vontade de escrever um comentário avisando sobre um tipo ou estado, substitua o comentário por um tipo estrito, um `enum`, um DTO `readonly` ou uma asserção.
-- **Quando um comentário é permitido:**
-  1. Anotações de tipo exigidas pelo Larastan/PHPStan (ex.: `/** @var Collection<int, Order> $orders */`).
-  2. Explicação de um *porquê* não-óbvio (workaround de bug externo, link de RFC ou motivo de performance medido).
-- **Subtraia antes de adicionar:** Delete código comentado, métodos não chamados e imports órfãos no mesmo commit.
+## 3. Non-Negotiable Code Rules (`/no-comments`)
+- **Do not narrate what code already says:** Remove all comments that simply restate method names or variables (e.g., `// Find user by ID`).
+- **Encode constraints in structure, not comments:** When tempted to write a comment warning about a type or state, replace the comment with a strict type, an `enum`, a `readonly` DTO, or an assertion.
+- **When a comment is permitted:**
+  1. Type annotations required by PHPStan/Larastan (e.g., `/** @var Collection<int, Order> $orders */`).
+  2. Explanation of a non-obvious *why* (workaround for an external upstream bug, RFC link, or measured performance justification).
+- **Subtract before adding:** Delete commented-out code, unused methods, and orphaned imports in the same commit.
 
-## 4. Racionalizações Proibidas (Anti-Atalho)
-| Desculpa do Agente | Regra Correta |
+## 4. Forbidden Rationalizations (Anti-Shortcuts)
+| Agent Excuse | Required Rule |
 |---|---|
-| "Vou deixar comentários `// Passo 1`, `// Passo 2` dentro do método `handle()` para ficar didático." | **Proibido.** Se o método precisa de divisórias em comentário, extraia métodos privados com nomes claros. |
-| "Vou comentar o código antigo em vez de apagar, caso precisemos dele depois." | **Proibido.** O Git guarda o histórico. Delete código morto imediatamente. |
-| "Vou escrever uma introdução longa elogiando a pergunta do usuário." | **Proibido.** Comece a resposta diretamente pela decisão, diagnóstico ou resultado. |
-| "O título `fix: corrige aprovação` basta; o diff mostra o resto." | **Proibido.** O diff mostra o quê, não o porquê nem a prova. Escreva os dois no corpo. |
+| "I will leave comments `// Step 1`, `// Step 2` inside the `handle()` method for clarity." | **Forbidden.** If a method needs comment dividers, extract smaller private methods with descriptive names. |
+| "I will comment out old code instead of deleting it, in case we need it later." | **Forbidden.** Git stores history. Delete dead code immediately. |
+| "I will write a polite introductory paragraph praising the user's question." | **Forbidden.** Start the response directly with the decision, diagnosis, or result. |
+| "The title `fix: resolve approval` is enough; the diff shows the rest." | **Forbidden.** The diff shows what, not why or how it was proved. Write both in the body. |
 
-## 5. Prova de Execução (Critério de Saída)
-- `[measured]` Zero código comentado ou comentários narrativos (`// valida dados`, `// salva no banco`) no `git diff`.
-- `[measured]` Texto da Spec, ticket ou PR escrito em voz ativa e frases curtas sob o padrão ASD-STE100.
-- `[measured]` Corpo de cada commit com o porquê e a prova, ou com `não verificado` e o motivo.
+## 5. Execution Proof (Exit Criteria)
+- `[measured]` Zero commented-out code or narrative comments (`// validate data`, `// save to db`) in the `git diff`.
+- `[measured]` Spec, ticket, or PR text written in active voice and short sentences under ASD-STE100 guidelines.
+- `[measured]` Body of each commit contains the rationale and proof, or `unverified` with the reason.
