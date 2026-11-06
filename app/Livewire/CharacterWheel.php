@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use App\Data\GameConfig;
 use App\Data\PowerData;
 use App\Data\RaceData;
 use App\Data\WeaponData;
@@ -27,13 +28,23 @@ class CharacterWheel extends Component
     // Champ du personnage lu par chaque roue
     private const WHEEL_FIELDS = ['race' => 'race_id', 'weapon' => 'weapon_id', 'power' => 'power_id'];
 
+    // État du joueur, calculé par le serveur : verrouillé pour que le navigateur ne puisse pas le modifier
+    // (sinon un joueur pourrait se déclarer admin ou abaisser le seuil du Super Spin depuis la console)
+    #[Locked]
     public int $spinCharges = 3;
+    #[Locked]
     public int $maxCharges = 3;
+    #[Locked]
     public int $pityCounter = 0;
+    #[Locked]
     public int $pityMax = 10;
+    #[Locked]
     public int $coins = 250;
+    #[Locked]
     public int $elo = 1000;
+    #[Locked]
     public int $nextRegenSeconds = 0;
+    #[Locked]
     public bool $isAdmin = false;
     public bool $showAdminForge = false;
     public string $adminSelectedRace = 'human';
@@ -42,7 +53,9 @@ class CharacterWheel extends Component
     public string $adminSelectedRarity = 'rare';
 
     // Ticket d'Urgence (affichage uniquement, l'achat est vérifié par WorkshopService)
+    #[Locked]
     public ?int $emergencyCost = null;
+    #[Locked]
     public int $emergencyRemaining = 0;
 
     // Vrai du lancement jusqu'à l'arrêt de la dernière roue : bloque un nouveau tirage et cache le résultat
@@ -57,6 +70,7 @@ class CharacterWheel extends Component
     #[Locked]
     public array $previousRotations = ['race' => 0, 'weapon' => 0, 'power' => 0];
 
+    #[Locked]
     public ?array $revealedCharacter = null;
     public ?string $notification = null;
     public ?string $notificationType = null;
@@ -133,6 +147,7 @@ class CharacterWheel extends Component
         }
 
         $this->isAdmin = $user->isAdmin();
+        $this->pityMax = GameConfig::pityThreshold();
 
         if ($this->isAdmin) {
             // Pour l'admin : argent et charges illimités
@@ -241,7 +256,8 @@ class CharacterWheel extends Component
                 }
 
                 // 4. Génération du combattant
-                $isLucky = $user->pity_counter >= $this->pityMax;
+                // Seuil lu dans la config, jamais dans l'état du composant
+                $isLucky = $user->pity_counter >= GameConfig::pityThreshold();
                 $character = app(CharacterGeneratorService::class)->generate($user, $isLucky);
 
                 // 5. Gestion atomique de la jauge de pitié
@@ -450,9 +466,18 @@ class CharacterWheel extends Component
 
     // --- OUTILS ADMIN POUR LES TESTS ---
 
+    /**
+     * Vrai seulement si le compte connecté est réellement admin en base.
+     * Ne jamais se fier à $isAdmin, qui ne sert qu'à l'affichage.
+     */
+    private function authorizeAdmin(): bool
+    {
+        return (bool) auth()->user()?->isAdmin();
+    }
+
     public function adminAddCoins(int $amount = 50000): void
     {
-        if (!$this->isAdmin) return;
+        if (!$this->authorizeAdmin()) return;
 
         auth()->user()->increment('coins', $amount);
         $this->refreshState();
@@ -462,7 +487,7 @@ class CharacterWheel extends Component
 
     public function adminTriggerSuperSpin(): void
     {
-        if (!$this->isAdmin) return;
+        if (!$this->authorizeAdmin()) return;
 
         auth()->user()->update(['pity_counter' => 10]);
         $this->refreshState();
@@ -472,7 +497,7 @@ class CharacterWheel extends Component
 
     public function adminResetPity(): void
     {
-        if (!$this->isAdmin) return;
+        if (!$this->authorizeAdmin()) return;
 
         auth()->user()->update(['pity_counter' => 0]);
         $this->refreshState();
@@ -485,7 +510,7 @@ class CharacterWheel extends Component
      */
     public function toggleAdminForge(): void
     {
-        if (!$this->isAdmin) return;
+        if (!$this->authorizeAdmin()) return;
         $this->showAdminForge = !$this->showAdminForge;
     }
 
@@ -496,7 +521,7 @@ class CharacterWheel extends Component
      */
     public function adminSpawnCustom(bool $withAnimation = false): void
     {
-        if (!$this->isAdmin) return;
+        if (!$this->authorizeAdmin()) return;
 
         $user = auth()->user();
         if ($this->isSpinning || $this->revealedCharacter) {

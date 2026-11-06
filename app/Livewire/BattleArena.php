@@ -31,10 +31,19 @@ class BattleArena extends Component
     #[Locked]
     public ?array $result = null;
 
+    // Adversaire réel mis de côté pendant un replay : il est restauré en quittant le replay,
+    // pour qu'on ne puisse jamais combattre pour de vrai l'adversaire d'un ancien duel
+    #[Locked]
+    public ?array $opponentBeforeReplay = null;
+
     // Tickets d'arène (affichage uniquement, la vérification se fait côté serveur au lancement du duel)
+    #[Locked]
     public int $arenaTickets = 0;
+    #[Locked]
     public int $maxTickets = 0;
+    #[Locked]
     public int $nextTicketSeconds = 0;
+    #[Locked]
     public bool $isAdmin = false;
     // Modale de sélection de combattant
     public bool $showFighterModal = false;
@@ -331,6 +340,12 @@ class BattleArena extends Component
             return;
         }
 
+        // Re-choisir la même carte ne doit pas offrir un nouvel adversaire gratuit
+        if ($characterId === $this->fighterId) {
+            $this->showFighterModal = false;
+            return;
+        }
+
         $this->fighterId = $characterId;
         $this->showFighterModal = false;
         unset($this->fighter);
@@ -340,7 +355,11 @@ class BattleArena extends Component
         $this->newOpponent();
     }
 
-    public function newOpponent(): void
+    /**
+     * Nouvel adversaire sans coût : réservé au serveur (arrivée dans l'arène, changement de combattant).
+     * Privée pour que le navigateur ne puisse pas l'appeler : le joueur passe toujours par rerollOpponent().
+     */
+    private function newOpponent(): void
     {
         $currentId = $this->opponent['id'] ?? null;
         $this->opponent = app(ArenaService::class)->findOpponent(auth()->user(), $this->fighter, $currentId);
@@ -348,12 +367,17 @@ class BattleArena extends Component
         $this->resetBattle();
     }
 
-    /** Changer d'adversaire avant le duel avec gestion du coût (1er gratuit après un combat, suivants payants). */
+    /**
+     * Changer d'adversaire, avant le duel ou après (bouton « Autre adversaire »).
+     * Coût : le 1er changement après un combat est gratuit, les suivants coûtent 10 🪙.
+     */
     public function rerollOpponent(): void
     {
-        if ($this->result !== null || !$this->fighter) {
+        if (!$this->fighter) {
             return;
         }
+
+        $this->leaveReplay();
 
         $user = auth()->user();
         $cost = $this->rerollCost;
@@ -383,6 +407,12 @@ class BattleArena extends Component
     public function fight(): void
     {
         if (!$this->fighter || !$this->opponent) {
+            return;
+        }
+
+        // Un replay ne fait que rejouer un ancien journal : son adversaire ne peut pas être combattu pour de vrai
+        if ($this->replayFighter !== null) {
+            $this->error = "Quitte le replay avant de lancer un vrai combat.";
             return;
         }
 
@@ -419,6 +449,7 @@ class BattleArena extends Component
 
     public function rematch(): void
     {
+        $this->leaveReplay();
         $this->resetBattle();
     }
 
@@ -434,12 +465,34 @@ class BattleArena extends Component
             return;
         }
 
+        // On met de côté l'adversaire réel (une seule fois si on enchaîne plusieurs replays)
+        if ($this->replayFighter === null) {
+            $this->opponentBeforeReplay = $this->opponent;
+        }
+
         $this->replayFighter = $replay['challenger'];
         $this->opponent = $replay['opponent'];
         $this->result = $replay['result'];
         $this->error = null;
 
         $this->dispatch('battle-started', log: $replay['log'], maxHp: $replay['max_hp'], stats: null, replay: true);
+    }
+
+    /** Sort du mode replay : l'adversaire de l'historique est remplacé par l'adversaire réel mis de côté. */
+    private function leaveReplay(): void
+    {
+        if ($this->replayFighter === null) {
+            return;
+        }
+
+        $this->replayFighter = null;
+        $this->opponent = $this->opponentBeforeReplay;
+        $this->opponentBeforeReplay = null;
+
+        // Aucun adversaire réel avant le replay : on en propose un, sans coût (le joueur n'en avait pas)
+        if ($this->opponent === null && $this->fighter) {
+            $this->newOpponent();
+        }
     }
 
     private function resetBattle(): void

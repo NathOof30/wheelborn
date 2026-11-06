@@ -655,7 +655,7 @@
                             </button>
                             <button
                                 type="button"
-                                wire:click="newOpponent"
+                                wire:click="rerollOpponent"
                                 class="py-3.5 bg-gradient-to-r from-indigo-600 to-rose-600 hover:from-indigo-500 hover:to-rose-500 text-white font-extrabold text-xs rounded-2xl shadow-lg transition hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
                                 title="Chercher un nouvel adversaire"
                             >

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Character;
@@ -18,6 +19,8 @@ class CollectionGrid extends Component
 
     protected string $paginationTheme = 'tailwind';
 
+    // Verrouillé : le navigateur ne doit pas pouvoir demander toute la collection d'un coup (perPage = 100000)
+    #[Locked]
     public int $perPage = 12;
 
     // --- Filtres & Tri Principaux (Ticket T1.2) ---

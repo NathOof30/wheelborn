@@ -146,7 +146,7 @@ class BattleArenaTest extends TestCase
         $test = Livewire::actingAs($user)->test(BattleArena::class);
         $firstBotId = $test->get('opponent')['id'];
 
-        $test->call('newOpponent');
+        $test->call('rerollOpponent'); // newOpponent() est privée depuis l'audit (faille 3)
         $secondBotId = $test->get('opponent')['id'];
 
         $this->assertNotEmpty($firstBotId);

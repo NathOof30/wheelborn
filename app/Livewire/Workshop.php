@@ -15,7 +15,10 @@ use Livewire\Component;
  */
 class Workshop extends Component
 {
+    // Affichage uniquement (l'achat relit le solde en base), verrouillé pour ne pas être modifié par le navigateur
+    #[Locked]
     public int $coins = 0;
+    #[Locked]
     public bool $isAdmin = false;
 
     // Amélioration qui vient d'être achetée : sa carte joue l'animation de déblocage

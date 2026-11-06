@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use App\Services\EnergyManagerService;
 
@@ -11,6 +12,7 @@ class PlayerHud extends Component
     public int $coins = 250;
     public int $elo = 1000;
     public int $spinCharges = 3;
+    #[Locked]
     public bool $isAdmin = false;
     public string $leagueIcon = '🥉';
 
