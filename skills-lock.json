@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": {
+    "ensine-me": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/ensine-me/SKILL.md",
+      "computedHash": "9d8436fe2bd07d43d84fa1a87c73adeacf43c847acc694afe0a2dbab564f4d6e"
+    },
+    "laravel-deep-modules": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/laravel-deep-modules/SKILL.md",
+      "computedHash": "b2bb98f58dc073c00f52ea5431266c8606bbf055a365298c83ea81df8e9dd09a"
+    },
+    "laravel-tdd-seams": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/laravel-tdd-seams/SKILL.md",
+      "computedHash": "f6945c2d986118880c4faf4dcc71c929a440f4044c961695ef56819a331e7d6a"
+    },
+    "laravel-verification": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/laravel-verification/SKILL.md",
+      "computedHash": "2e87b223f7ceef8efd6db7a23883038dc41464ec814af8020fb1e783d924648f"
+    },
+    "leitura-independente": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/leitura-independente/SKILL.md",
+      "computedHash": "1da8dc081e08fe4724b4515018287aca65b9e802686afe60a41cd3eb80415abb"
+    },
+    "mapear": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/mapear/SKILL.md",
+      "computedHash": "42bced98ef9c78b7c727d3e97b528959d28a98e5ae2db0fb820af0489d32e114"
+    },
+    "planejar": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/planejar/SKILL.md",
+      "computedHash": "4ce07d55f405186f9a64ef96c3ac815faaeaf61b77387255b96c30ee93510de5"
+    },
+    "revisar": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/revisar/SKILL.md",
+      "computedHash": "ed637083fa84d66ff8df7811fe001accec415ca23c5ce8027c2372b1f3850736"
+    },
+    "ste100-clean-code": {
+      "source": "rfl-designer/skills",
+      "sourceType": "github",
+      "skillPath": "skills/ste100-clean-code/SKILL.md",
+      "computedHash": "331dfde1ce4fb08a086d0f49821274070346694c58f1ddc273ccf2b8a1f93876"
+    }
+  }
+}
