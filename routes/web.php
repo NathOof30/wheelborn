@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Controllers\NewDaShowcaseController;
 use App\Http\Controllers\ProfileController;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/newda', NewDaShowcaseController::class)->name('newda.showcase');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -27,7 +31,7 @@ Route::get('/workshop', function () {
     return view('workshop');
 })->middleware(['auth', 'verified'])->name('workshop');
 
-Route::get('/players/{user:name}', function (\App\Models\User $user) {
+Route::get('/players/{user:name}', function (User $user) {
     return view('player-profile', ['user' => $user]);
 })->middleware(['auth', 'verified'])->name('player.profile');
 

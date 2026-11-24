@@ -1,0 +1,2128 @@
+/* ==========================================================================
+   CODEX WHEELBORN — Direction Artistique « Grimoire Vivant & Sceaux »
+   Feuille de style 100% autonome (Option B : zéro impact sur app.css / Vite)
+   ========================================================================== */
+
+:root {
+    /* Supports & Matières */
+    --desk-deep: #1E1408;
+    --desk-warm: #2A1A0A;
+    --leather: #4A1F0A;
+    --leather-light: #6B3218;
+    --leather-dark: #2A0E04;
+    --vellum: #EBE0C8;
+    --vellum-light: #F5EDD8;
+    --vellum-shade: #D9CBA8;
+    --vellum-border: #C8B88F;
+
+    /* Encres (jamais de noir pur #000) */
+    --ink: #3A2A1A;
+    --ink-soft: #5A4530;
+    --ink-sepia: #6B4A2A;
+    --ink-faded: #8A7555;
+
+    /* Accents Précieux & Métaux */
+    --gold: #B8923A;
+    --gold-light: #D8B860;
+    --gold-dark: #8A6E20;
+    --metal: #8A7048;
+    --metal-light: #C8A870;
+    --metal-dark: #4A3A18;
+    --wax: #8A1A14;
+    --wax-light: #B3261E;
+    --wax-dark: #5B0F0B;
+
+    /* 8 Pigments Alchimiques Historiques */
+    --pigment-fire: #8A1A14;
+    --pigment-poison: #3E5438;
+    --pigment-ice: #2A3A7A;
+    --pigment-lightning: #A67C20;
+    --pigment-regeneration: #5A6B47;
+    --pigment-gravity: #2F2A45;
+    --pigment-teleportation: #54274A;
+    --pigment-invisibility: #6B6258;
+
+    /* Typographies */
+    --font-gothic: 'UnifrakturCook', 'Palatino Linotype', Georgia, serif;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'EB Garamond', Georgia, serif;
+    --font-scribe: 'IM Fell English', Georgia, serif;
+
+    /* Grain papier SVG (data-uri léger) */
+    --noise-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='0.11'/%3E%3C/svg%3E");
+    --noise-leather: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.35' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23l)' opacity='0.18'/%3E%3C/svg%3E");
+
+    /* Mesures */
+    --codex-max: 1120px;
+    --spine-width: 54px;
+    --gilded-edge: 12px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+}
+
+body.codex-body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.62;
+    background-color: var(--desk-deep);
+    background-image:
+        radial-gradient(ellipse at 50% 0%, rgba(184, 146, 58, 0.10) 0%, transparent 56%),
+        radial-gradient(ellipse at 18% 85%, rgba(138, 26, 20, 0.08) 0%, transparent 45%),
+        repeating-linear-gradient(
+            90deg,
+            rgba(42, 26, 10, 0.45) 0px,
+            rgba(30, 20, 8, 0.55) 28px,
+            rgba(48, 30, 12, 0.35) 58px,
+            rgba(26, 16, 6, 0.55) 96px
+        );
+    overflow-x: clip;
+    padding: 36px 24px 72px;
+}
+
+/* Focus accessible */
+:focus-visible {
+    outline: 2px solid var(--gold-light);
+    outline-offset: 2px;
+}
+
+.tabular-nums {
+    font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* ==========================================================================
+   SCÈNE DU CODEX & SIGNETS ANCRÉS
+   ========================================================================== */
+
+.codex-stage {
+    position: relative;
+    max-width: calc(var(--codex-max) + 132px);
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.codex-shell {
+    position: relative;
+    width: 100%;
+    max-width: var(--codex-max);
+    display: flex;
+    background: var(--leather);
+    border-radius: 10px 14px 14px 10px;
+    padding: 12px 10px 12px 0;
+    box-shadow:
+        0 34px 75px rgba(8, 4, 1, 0.78),
+        0 12px 26px rgba(8, 4, 1, 0.65),
+        inset 0 1px 0 rgba(216, 184, 96, 0.24),
+        inset 0 -2px 6px rgba(15, 6, 2, 0.72);
+}
+
+/* Reliure cuir gauche + nervures + fermoirs laiton */
+.codex-spine {
+    position: relative;
+    flex: 0 0 var(--spine-width);
+    background-color: var(--leather);
+    background-image:
+        var(--noise-leather),
+        linear-gradient(
+            90deg,
+            var(--leather-dark) 0%,
+            var(--leather) 28%,
+            var(--leather-light) 52%,
+            var(--leather) 76%,
+            var(--leather-dark) 100%
+        );
+    border-radius: 8px 0 0 8px;
+    box-shadow:
+        inset -6px 0 12px rgba(20, 6, 1, 0.65),
+        inset 2px 0 3px rgba(216, 184, 96, 0.14);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 48px 0;
+    user-select: none;
+}
+
+.spine-band {
+    width: 82%;
+    height: 10px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--leather-light), var(--leather-dark));
+    border-top: 1px solid rgba(216, 184, 96, 0.35);
+    border-bottom: 1px solid rgba(20, 6, 1, 0.75);
+    box-shadow: 0 3px 6px rgba(15, 5, 1, 0.45);
+}
+
+/* Fermoirs métalliques rivetés (.clasp) */
+.codex-clasp {
+    position: absolute;
+    left: 24px;
+    width: 50px;
+    height: 24px;
+    z-index: 6;
+    border-radius: 4px 10px 10px 4px;
+    background: linear-gradient(180deg, var(--metal-light) 0%, var(--metal) 48%, var(--metal-dark) 100%);
+    border: 1px solid var(--metal-dark);
+    box-shadow:
+        0 4px 10px rgba(12, 6, 1, 0.62),
+        inset 0 1px 1px rgba(255, 240, 200, 0.65),
+        inset 0 -2px 2px rgba(40, 26, 8, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 7px;
+    pointer-events: none;
+}
+
+.codex-clasp--top {
+    top: 132px;
+}
+
+.codex-clasp--bottom {
+    bottom: 164px;
+}
+
+.codex-clasp::before,
+.codex-clasp::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #F2DEAE, var(--metal-dark));
+    box-shadow: 0 1px 1px rgba(255, 244, 210, 0.4);
+}
+
+/* Corps Vélin principal */
+.codex-vellum {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    background-color: var(--vellum);
+    background-image:
+        var(--noise-paper),
+        radial-gradient(ellipse at 12% 8%, rgba(245, 237, 216, 0.72) 0%, transparent 45%),
+        radial-gradient(ellipse at 92% 94%, rgba(168, 138, 92, 0.24) 0%, transparent 48%),
+        radial-gradient(ellipse at 86% 18%, rgba(138, 112, 72, 0.14) 0%, transparent 36%),
+        linear-gradient(90deg, rgba(90, 62, 34, 0.22) 0%, rgba(90, 62, 34, 0.05) 3.8%, transparent 8%);
+    border-radius: 3px 6px 6px 3px;
+    border: 1px solid var(--vellum-border);
+    box-shadow:
+        inset 18px 0 28px -14px rgba(58, 36, 14, 0.34),
+        inset -6px 0 14px -8px rgba(90, 66, 36, 0.25),
+        inset 0 0 0 1px rgba(245, 237, 216, 0.65);
+    padding: 36px 46px 52px 52px;
+}
+
+/* Tranche dorée à droite */
+.codex-gilded-edge {
+    flex: 0 0 var(--gilded-edge);
+    border-radius: 0 6px 6px 0;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            var(--gold-dark) 0px,
+            var(--gold-light) 1.5px,
+            #E7D5AE 2.5px,
+            var(--gold) 3.5px
+        );
+    box-shadow:
+        inset 2px 0 3px rgba(58, 38, 16, 0.42),
+        inset -2px 0 4px rgba(74, 48, 16, 0.45);
+}
+
+/* Marginalia discrètes (strictement sur les marges globales du Codex) */
+.codex-marginalia {
+    position: absolute;
+    pointer-events: none;
+    color: var(--ink-faded);
+    opacity: 0.45;
+    user-select: none;
+}
+
+.codex-marginalia--top-right {
+    top: 16px;
+    right: 22px;
+    font-family: var(--font-scribe);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    font-style: italic;
+}
+
+.codex-marginalia--inkblot {
+    bottom: 24px;
+    left: 20px;
+    width: 34px;
+    height: 34px;
+    opacity: 0.16;
+}
+
+.codex-marginalia--fleuron {
+    top: 520px;
+    right: 12px;
+    font-size: 1.25rem;
+    color: var(--gold-dark);
+    opacity: 0.35;
+    animation: codex-breathe 6s ease-in-out infinite;
+}
+
+@keyframes codex-breathe {
+    0%, 100% { opacity: 0.26; transform: translateY(0); }
+    50% { opacity: 0.52; transform: translateY(-2px); }
+}
+
+/* ==========================================================================
+   NAVIGATION SIGNETS DE CUIR (ancrés au bord droit, repliés en haut < 1180px)
+   ========================================================================== */
+
+.codex-bookmarks {
+    position: sticky;
+    top: 44px;
+    flex: 0 0 128px;
+    margin-left: -4px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 24px;
+}
+
+.bookmark-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 14px 11px 16px;
+    text-decoration: none;
+    color: #EADAC0;
+    font-family: var(--font-display);
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-variant: small-caps;
+    letter-spacing: 0.11em;
+    background-color: var(--leather);
+    background-image:
+        var(--noise-leather),
+        linear-gradient(180deg, var(--leather-light) 0%, var(--leather) 55%, var(--leather-dark) 100%);
+    border: 1px solid rgba(216, 184, 96, 0.32);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    box-shadow:
+        4px 4px 12px rgba(8, 4, 1, 0.52),
+        inset 0 1px 0 rgba(245, 224, 172, 0.22);
+    transform: translateX(-8px);
+    transition: transform 0.22s ease, background 0.22s ease, color 0.22s ease, border-color 0.22s ease;
+    white-space: nowrap;
+}
+
+.bookmark-tab:hover {
+    transform: translateX(4px);
+    color: var(--vellum-light);
+    border-color: var(--gold-light);
+}
+
+.bookmark-tab.is-active {
+    transform: translateX(8px);
+    color: #2B1907;
+    background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold) 58%, var(--gold-dark) 100%);
+    border-color: #F2DEAE;
+    box-shadow:
+        5px 5px 14px rgba(8, 4, 1, 0.58),
+        inset 0 1px 1px rgba(255, 248, 224, 0.72);
+}
+
+.bookmark-roman {
+    font-family: var(--font-scribe);
+    font-size: 0.78rem;
+    opacity: 0.85;
+}
+
+/* ==========================================================================
+   EN-TÊTE & BANDEAU HUD MANUSCRIT
+   ========================================================================== */
+
+.codex-header {
+    text-align: center;
+    padding-bottom: 24px;
+    border-bottom: 2px double var(--vellum-border);
+    margin-bottom: 30px;
+}
+
+.codex-top-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.codex-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border: 1px solid var(--vellum-border);
+    background: rgba(245, 237, 216, 0.7);
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    color: var(--ink-sepia);
+}
+
+.codex-pill--accent {
+    border-color: var(--gold);
+    color: var(--wax);
+}
+
+.codex-title {
+    margin: 6px 0 4px;
+    font-family: var(--font-gothic);
+    font-size: clamp(2.25rem, 4.4vw, 3.35rem);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--ink);
+    text-shadow: 0 1px 0 rgba(255, 248, 230, 0.8);
+}
+
+.codex-subtitle {
+    margin: 0 0 18px;
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 1.08rem;
+    color: var(--ink-sepia);
+}
+
+/* Bandeau HUD Manuscrit */
+.hud-bar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px 14px;
+    background: linear-gradient(180deg, rgba(245, 237, 216, 0.86), rgba(217, 203, 168, 0.56));
+    border: 1px solid var(--vellum-border);
+    box-shadow: inset 0 0 0 3px var(--vellum), inset 0 0 0 4px rgba(184, 146, 58, 0.45);
+    text-align: left;
+}
+
+.hud-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px 8px;
+    border-right: 1px dashed rgba(107, 74, 42, 0.28);
+}
+
+.hud-item:last-child {
+    border-right: none;
+}
+
+.hud-label {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    color: var(--ink-sepia);
+    text-transform: lowercase;
+}
+
+.hud-value {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-family: var(--font-display);
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.ink-drops {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ink-drop {
+    width: 14px;
+    height: 16px;
+    fill: var(--ink);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.ink-drop.is-spent {
+    fill: none;
+    stroke: var(--ink-faded);
+    stroke-width: 1.5;
+    opacity: 0.45;
+}
+
+.pity-runes {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.pity-pip {
+    width: 7px;
+    height: 7px;
+    transform: rotate(45deg);
+    border: 1px solid var(--gold-dark);
+    background: transparent;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pity-pip.is-lit {
+    background: var(--gold);
+    box-shadow: 0 0 4px rgba(184, 146, 58, 0.65);
+}
+
+.pity-pip.is-ready {
+    background: var(--wax);
+    border-color: var(--wax-dark);
+}
+
+/* ==========================================================================
+   CHAPITRES & TYPOGRAPHIE MANUSCRITE
+   ========================================================================== */
+
+.codex-chapter {
+    padding: 28px 0 34px;
+    border-bottom: 1px solid rgba(138, 112, 72, 0.32);
+    scroll-margin-top: 24px;
+}
+
+.codex-chapter:last-of-type {
+    border-bottom: none;
+    padding-bottom: 10px;
+}
+
+.chapter-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(107, 74, 42, 0.35);
+}
+
+.chapter-numeral {
+    font-family: var(--font-display);
+    font-size: 0.84rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.2em;
+    color: var(--wax);
+}
+
+.chapter-title {
+    margin: 2px 0 0;
+    font-family: var(--font-gothic);
+    font-size: clamp(1.65rem, 2.9vw, 2.25rem);
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.15;
+}
+
+.chapter-folio-ref {
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 0.92rem;
+    color: var(--ink-faded);
+}
+
+/* Lettrine enluminée */
+.illuminated-intro {
+    font-size: 1.05rem;
+    color: var(--ink);
+    margin: 0 0 22px;
+}
+
+.drop-cap {
+    float: left;
+    width: 56px;
+    height: 56px;
+    margin: 3px 14px 4px 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-gothic);
+    font-size: 2.35rem;
+    line-height: 1;
+    color: var(--vellum-light);
+    background:
+        radial-gradient(circle at 30% 25%, var(--wax-light), var(--wax) 62%, var(--wax-dark));
+    border: 2px solid var(--gold);
+    box-shadow:
+        inset 0 0 0 2px rgba(245, 237, 216, 0.35),
+        0 3px 8px rgba(58, 42, 26, 0.28);
+}
+
+.illuminated-intro::after {
+    content: '';
+    display: table;
+    clear: both;
+}
+
+/* Filets pointillés « Copiste » (dt ... dd) */
+.scribe-list {
+    margin: 0;
+    padding: 0;
+}
+
+.scribe-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 0.95rem;
+}
+
+.scribe-row dt {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    color: var(--ink-sepia);
+    white-space: nowrap;
+}
+
+.scribe-dots {
+    flex: 1 1 auto;
+    border-bottom: 1px dotted rgba(107, 74, 42, 0.48);
+    min-width: 14px;
+    transform: translateY(-3px);
+}
+
+.scribe-row dd {
+    margin: 0;
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--ink);
+    text-align: right;
+}
+
+/* Panneaux parchemin encadrés */
+.parchment-panel {
+    background: rgba(245, 237, 216, 0.62);
+    border: 1px solid var(--vellum-border);
+    box-shadow: inset 0 0 0 3px rgba(235, 224, 200, 0.9), inset 0 0 0 4px rgba(184, 146, 58, 0.32);
+    padding: 18px 20px;
+}
+
+.panel-heading {
+    margin: 0 0 12px;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    color: var(--wax);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* ==========================================================================
+   3 FAMILLES DE BOUTONS V2 (Plaque de Laiton · Cartouche Enluminé · Sceau Cire)
+   ========================================================================== */
+
+/* 1. Plaque de Laiton à rivets (Action principale) */
+.btn-brass {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px 26px;
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.15em;
+    color: #231607;
+    text-shadow: 0 1px 0 rgba(255, 240, 200, 0.52);
+    background: linear-gradient(180deg, var(--metal-light) 0%, var(--gold) 45%, var(--metal) 78%, var(--metal-dark) 100%);
+    border: 1px solid var(--metal-dark);
+    border-radius: 4px;
+    box-shadow:
+        0 3px 9px rgba(42, 26, 8, 0.35),
+        inset 0 1px 1px rgba(255, 246, 216, 0.72),
+        inset 0 -2px 2px rgba(48, 32, 10, 0.45);
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-brass::before,
+.btn-brass::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin-top: -3px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #F7E8BF, var(--metal-dark));
+    box-shadow: 0 1px 1px rgba(255, 246, 216, 0.45);
+}
+
+.btn-brass::before { left: 9px; }
+.btn-brass::after { right: 9px; }
+
+.btn-brass:hover:not(:disabled) {
+    filter: brightness(1.07);
+    transform: translateY(-1px);
+    box-shadow:
+        0 6px 14px rgba(42, 26, 8, 0.42),
+        inset 0 1px 2px rgba(255, 248, 224, 0.85);
+}
+
+.btn-brass:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.btn-brass:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* 2. Cartouche Enluminé Encre & Or (Actions secondaires & filtres) */
+.btn-cartouche {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 18px;
+    font-family: var(--font-display);
+    font-size: 0.86rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.13em;
+    color: var(--ink);
+    background: rgba(245, 237, 216, 0.78);
+    border: 1px solid var(--gold-dark);
+    box-shadow: inset 0 0 0 2px var(--vellum), inset 0 0 0 3px rgba(184, 146, 58, 0.42);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    text-decoration: none;
+}
+
+.btn-cartouche::before,
+.btn-cartouche::after {
+    content: '◆';
+    font-size: 0.52rem;
+    color: var(--gold-dark);
+    transition: color 0.2s ease;
+}
+
+.btn-cartouche:hover:not(:disabled),
+.btn-cartouche.is-active {
+    background: var(--wax);
+    color: var(--vellum-light);
+    border-color: var(--wax-dark);
+    box-shadow: inset 0 0 0 2px rgba(245, 237, 216, 0.25);
+}
+
+.btn-cartouche:hover:not(:disabled)::before,
+.btn-cartouche:hover:not(:disabled)::after,
+.btn-cartouche.is-active::before,
+.btn-cartouche.is-active::after {
+    color: var(--gold-light);
+}
+
+.btn-cartouche--gold.is-active,
+.btn-cartouche--gold:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba(184, 146, 58, 0.26), rgba(184, 146, 58, 0.42));
+    color: var(--ink);
+    border-color: var(--gold-dark);
+}
+
+/* 3. Vrai Sceau de Cire rond 1:1 (Action rituelle unique) */
+.btn-wax-seal {
+    position: relative;
+    width: 108px;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    color: #F6E9D0;
+    text-shadow: 0 1px 2px rgba(45, 5, 3, 0.82);
+    background:
+        radial-gradient(circle at 32% 28%, var(--wax-light) 0%, var(--wax) 56%, var(--wax-dark) 100%);
+    box-shadow:
+        0 6px 14px rgba(38, 12, 6, 0.55),
+        0 0 0 4px rgba(138, 26, 20, 0.88),
+        0 0 0 6px rgba(91, 15, 11, 0.55),
+        inset 0 2px 4px rgba(255, 205, 190, 0.35),
+        inset 0 -4px 7px rgba(48, 6, 4, 0.72);
+    cursor: pointer;
+    transition: transform 0.14s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.btn-wax-seal::before {
+    content: '';
+    position: absolute;
+    inset: 9px;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(246, 233, 208, 0.45);
+    pointer-events: none;
+}
+
+.btn-wax-seal:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: scale(1.03);
+}
+
+.btn-wax-seal:active:not(:disabled) {
+    transform: scale(0.94);
+    box-shadow:
+        0 2px 5px rgba(38, 12, 6, 0.65),
+        0 0 0 4px rgba(138, 26, 20, 0.92),
+        inset 0 4px 10px rgba(48, 6, 4, 0.82);
+}
+
+.btn-wax-seal:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.btn-wax-seal--gold {
+    background: radial-gradient(circle at 32% 28%, var(--gold-light) 0%, var(--gold) 58%, var(--gold-dark) 100%);
+    color: #2A1905;
+    text-shadow: 0 1px 0 rgba(255, 245, 210, 0.6);
+    box-shadow:
+        0 6px 14px rgba(42, 26, 8, 0.52),
+        0 0 0 4px rgba(184, 146, 58, 0.88),
+        0 0 0 6px rgba(138, 110, 32, 0.45),
+        inset 0 2px 4px rgba(255, 248, 224, 0.55),
+        inset 0 -4px 7px rgba(82, 58, 12, 0.58);
+}
+
+/* ==========================================================================
+   CHAPITRE I — CONCEPT, TABLEAUX COPISTE & PIGMENTS
+   ========================================================================== */
+
+.concept-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.compendium-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.gloss-entry {
+    padding: 7px 0;
+    border-bottom: 1px dotted rgba(107, 74, 42, 0.34);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.gloss-entry:last-child {
+    border-bottom: none;
+}
+
+.gloss-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--ink);
+}
+
+.gloss-sub {
+    display: block;
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 0.84rem;
+    color: var(--ink-sepia);
+}
+
+.gloss-tag {
+    flex-shrink: 0;
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    color: var(--ink-faded);
+}
+
+.pigments-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.pigment-swatch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(245, 237, 216, 0.72);
+    border: 1px solid var(--vellum-border);
+}
+
+.pigment-sigil-mini {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+}
+
+.pigment-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.92rem;
+    line-height: 1.15;
+    color: var(--ink);
+}
+
+.pigment-meta {
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--ink-sepia);
+}
+
+/* ==========================================================================
+   CHAPITRE II — LE SCEAU-VOLVELLE D'INVOCATION
+   ========================================================================== */
+
+.volvelle-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.volvelle-controls-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.volvelle-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 460px) minmax(280px, 1fr);
+    gap: 28px;
+    align-items: center;
+}
+
+.volvelle-stage {
+    position: relative;
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+}
+
+.volvelle-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: drop-shadow(0 12px 24px rgba(58, 42, 26, 0.28));
+    overflow: visible;
+}
+
+.volvelle-ring {
+    transform-box: view-box;
+    transform-origin: 250px 250px;
+    transition: transform 2.4s cubic-bezier(0.14, 0.82, 0.18, 1);
+}
+
+.volvelle-ring--weapons {
+    transition-duration: 2.05s;
+}
+
+.volvelle-ring--races {
+    transition-duration: 1.7s;
+}
+
+.volvelle-pointer {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 36px;
+    z-index: 8;
+    filter: drop-shadow(0 3px 4px rgba(30, 20, 8, 0.45));
+    pointer-events: none;
+}
+
+.volvelle-center-trigger {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24.5%;
+    min-width: 68px;
+    max-width: 108px;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+
+.volvelle-center-trigger .btn-wax-seal {
+    width: 100%;
+    font-size: clamp(0.62rem, 2.3vw, 0.82rem);
+}
+
+.volvelle-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 0.84rem;
+    color: var(--ink-sepia);
+}
+
+/* Zone résultat du rituel */
+.ritual-stage {
+    position: relative;
+    min-height: 450px;
+    background:
+        var(--noise-paper),
+        linear-gradient(180deg, var(--vellum-light), var(--vellum));
+    border: 1px solid var(--vellum-border);
+    box-shadow:
+        inset 0 0 0 4px var(--vellum),
+        inset 0 0 0 5px rgba(184, 146, 58, 0.45),
+        0 10px 24px rgba(58, 42, 26, 0.14);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.ritual-idle {
+    text-align: center;
+    padding: 24px 12px;
+}
+
+.ritual-idle-circle {
+    width: 112px;
+    height: 112px;
+    margin: 0 auto 14px;
+    color: var(--gold-dark);
+    opacity: 0.65;
+}
+
+.ritual-status {
+    text-align: center;
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--wax);
+    margin: 0 0 12px;
+    min-height: 1.5em;
+}
+
+.ritual-sigil-trace {
+    width: 170px;
+    height: 170px;
+    margin: 8px auto;
+    display: block;
+}
+
+.ritual-sigil-trace path,
+.ritual-sigil-trace circle,
+.ritual-sigil-trace polygon,
+.ritual-sigil-trace line {
+    stroke-dasharray: 420;
+    stroke-dashoffset: 420;
+    animation: trace-sigil 1.25s ease-out forwards;
+}
+
+@keyframes trace-sigil {
+    to { stroke-dashoffset: 0; }
+}
+
+.ritual-folio-reveal {
+    animation: ink-imprint 0.55s ease-out both;
+}
+
+@keyframes ink-imprint {
+    from { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.wax-stamp-drop {
+    animation: stamp-press 0.36s cubic-bezier(0.22, 1.35, 0.36, 1) both;
+}
+
+@keyframes stamp-press {
+    0% { opacity: 0; transform: scale(1.9) rotate(-14deg); }
+    70% { opacity: 1; transform: scale(0.92) rotate(-4deg); }
+    100% { opacity: 1; transform: scale(1) rotate(-5deg); }
+}
+
+.ritual-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+/* ==========================================================================
+   RENDU PAPER DOLL CODEX & BLASON GRAVÉ HÉRALDIQUE
+   ========================================================================== */
+
+.codex-portrait-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 218px;
+    margin: 0 auto;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 4px;
+    background: radial-gradient(circle at 50% 52%, rgba(245, 237, 216, 0.72), rgba(217, 203, 168, 0.32) 72%, transparent 100%);
+}
+
+/* Filigrane géométrique SVG du pouvoir derrière l'illustration (10%-20% opacité) */
+.codex-sigil-watermark {
+    position: absolute;
+    inset: 4%;
+    width: 92%;
+    height: 92%;
+    opacity: 0.17;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+/* Calques Paper Doll Codex : ombre sépia chaude, ZÉRO mix-blend-screen */
+.codex-doll {
+    position: relative;
+    width: 94%;
+    height: 94%;
+    z-index: 3;
+}
+
+.codex-doll-halo {
+    position: absolute;
+    inset: 14% 12% 16% 12%;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    background: radial-gradient(
+        circle at 54% 48%,
+        rgba(46, 30, 14, 0.34) 0%,
+        var(--halo-pigment, rgba(42, 58, 122, 0.26)) 46%,
+        transparent 74%
+    );
+    filter: blur(8px);
+}
+
+.codex-doll.is-contrast-halo .codex-doll-halo {
+    opacity: 1;
+}
+
+.codex-doll-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+}
+
+.codex-doll-layer--race {
+    z-index: 10;
+    filter: drop-shadow(0 6px 10px rgba(58, 42, 26, 0.30));
+}
+
+.codex-doll-layer--weapon {
+    z-index: 20;
+    filter: drop-shadow(0 3px 6px rgba(58, 42, 26, 0.28));
+}
+
+.codex-doll-layer--aura {
+    z-index: 30;
+    /* Jamais de mix-blend-screen sur vélin clair ! */
+    mix-blend-mode: normal;
+}
+
+.codex-doll.is-contrast-halo .codex-doll-layer--aura.is-pale-aura {
+    filter:
+        drop-shadow(0 0 2px rgba(42, 24, 10, 0.72))
+        drop-shadow(0 0 6px rgba(58, 42, 26, 0.42))
+        contrast(1.16)
+        saturate(1.22);
+}
+
+/* Blason gravé héraldique pour les 7 races sans silhouette WebP */
+.heraldic-blason {
+    position: relative;
+    z-index: 3;
+    width: 82%;
+    height: 86%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border: 1.5px solid var(--gold-dark);
+    border-radius: 6px 6px 50% 50% / 6px 6px 26% 26%;
+    background:
+        radial-gradient(circle at 50% 35%, rgba(245, 237, 216, 0.92), rgba(217, 203, 168, 0.85));
+    box-shadow:
+        inset 0 0 0 3px var(--vellum),
+        inset 0 0 0 4px rgba(107, 74, 42, 0.38),
+        0 6px 14px rgba(58, 42, 26, 0.22);
+    text-align: center;
+}
+
+.heraldic-initial {
+    font-family: var(--font-gothic);
+    font-size: 3.1rem;
+    line-height: 1;
+    color: var(--ink);
+    text-shadow: 0 1px 0 rgba(255, 248, 224, 0.85);
+}
+
+.heraldic-rune {
+    width: 34px;
+    height: 34px;
+    margin: 4px 0;
+    color: var(--wax);
+}
+
+.heraldic-caption {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    color: var(--ink-sepia);
+}
+
+.heraldic-origin {
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 0.74rem;
+    color: var(--ink-faded);
+}
+
+/* ==========================================================================
+   CHAPITRE III — BANC D'ESSAI PAPER DOLL & GALERIE 3D FOLIOS
+   ========================================================================== */
+
+.bench-box {
+    margin-bottom: 26px;
+}
+
+.bench-grid {
+    display: grid;
+    grid-template-columns: 270px 1fr;
+    gap: 22px;
+    align-items: center;
+}
+
+.bench-stage {
+    position: relative;
+    padding: 18px;
+    border-radius: 6px;
+    border: 1px solid var(--vellum-border);
+    background-color: var(--vellum);
+    background-image: var(--noise-paper);
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.bench-stage.is-cosmos {
+    background-color: #0B1020;
+    background-image:
+        radial-gradient(circle at 50% 45%, rgba(56, 189, 248, 0.18), transparent 64%),
+        radial-gradient(circle at 25% 20%, rgba(192, 132, 252, 0.14), transparent 52%);
+    border-color: #334155;
+}
+
+.bench-stage.is-cosmos .codex-portrait-frame {
+    background: transparent;
+}
+
+.bench-stage.is-cosmos .codex-sigil-watermark {
+    opacity: 0.24;
+}
+
+.bench-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bench-control-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.bench-select {
+    font-family: var(--font-body);
+    font-size: 0.94rem;
+    color: var(--ink);
+    background: var(--vellum-light);
+    border: 1px solid var(--gold-dark);
+    padding: 7px 12px;
+    border-radius: 3px;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.bench-diagnostic {
+    padding: 10px 12px;
+    background: rgba(235, 224, 200, 0.72);
+    border-left: 3px solid var(--gold-dark);
+    font-family: var(--font-scribe);
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+}
+
+/* Barre de filtres & Mode connecté */
+.gallery-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.gallery-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Grille de Folios */
+.folios-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+/* Carte Folio 3D Flip */
+.folio-card {
+    perspective: 1250px;
+    min-height: 556px;
+    position: relative;
+}
+
+.folio-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 556px;
+    transform-style: preserve-3d;
+    transition: transform 0.62s cubic-bezier(0.24, 0.8, 0.26, 1);
+}
+
+.folio-card.is-flipped .folio-card-inner {
+    transform: rotateY(180deg);
+}
+
+.folio-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 15px 13px;
+    background-color: var(--vellum-light);
+    background-image:
+        var(--noise-paper),
+        linear-gradient(180deg, rgba(245, 237, 216, 0.96), rgba(235, 224, 200, 0.94));
+    border: 1px solid var(--vellum-border);
+    box-shadow:
+        0 8px 20px rgba(42, 26, 8, 0.16),
+        inset 0 0 0 3px var(--vellum-light);
+    transition: transform 0.24s ease, box-shadow 0.24s ease;
+    overflow: hidden;
+}
+
+/* Coin de page soulevé au survol */
+.folio-face::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 0 0 0;
+    border-color: transparent transparent var(--vellum-shade) transparent;
+    box-shadow: -2px -2px 4px rgba(58, 42, 26, 0.16);
+    transition: border-width 0.22s ease;
+    pointer-events: none;
+}
+
+.folio-card:hover:not(.is-flipped) .folio-face--front {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 26px rgba(42, 26, 8, 0.22);
+}
+
+.folio-card:hover:not(.is-flipped) .folio-face--front::after {
+    border-width: 0 0 18px 18px;
+}
+
+.folio-face--back {
+    transform: rotateY(180deg);
+    overflow-y: auto;
+}
+
+/* Bordures de rareté (4 paliers) */
+.folio-card[data-rarity="common"] .folio-face {
+    border-color: #A69274;
+}
+
+.folio-card[data-rarity="rare"] .folio-face {
+    border-color: var(--pigment-ice);
+    box-shadow:
+        0 8px 20px rgba(42, 26, 8, 0.18),
+        inset 0 0 0 3px var(--vellum-light),
+        inset 0 0 0 4.5px rgba(42, 58, 122, 0.48);
+}
+
+.folio-card[data-rarity="epic"] .folio-face {
+    border-color: var(--pigment-teleportation);
+    box-shadow:
+        0 9px 22px rgba(58, 30, 52, 0.22),
+        inset 0 0 0 3px var(--vellum-light),
+        inset 0 0 0 5px rgba(184, 146, 58, 0.65);
+}
+
+.folio-card[data-rarity="legendary"] .folio-face {
+    border: 1.5px solid var(--gold);
+    box-shadow:
+        0 10px 24px rgba(138, 110, 32, 0.28),
+        inset 0 0 0 3px var(--vellum-light),
+        inset 0 0 0 5px var(--gold);
+}
+
+.folio-card[data-rarity="legendary"] .folio-face--front::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 22%, rgba(216, 184, 96, 0.22) 50%, transparent 78%);
+    background-size: 220% 100%;
+    pointer-events: none;
+    animation: gold-shimmer 7s ease-in-out infinite;
+}
+
+@keyframes gold-shimmer {
+    0%, 100% { background-position: 140% 0; }
+    50% { background-position: -40% 0; }
+}
+
+.folio-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(107, 74, 42, 0.28);
+    margin-bottom: 8px;
+}
+
+.folio-ref-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.folio-ref {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    color: var(--ink-sepia);
+}
+
+.folio-badge-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border-radius: 2px;
+    border: 1px solid var(--gold-dark);
+    color: var(--ink);
+    background: rgba(184, 146, 58, 0.18);
+}
+
+.folio-badge-mini--lock {
+    border-color: var(--ink-sepia);
+    background: rgba(107, 74, 42, 0.14);
+}
+
+/* Médaillon Power Score */
+.power-medallion {
+    flex-shrink: 0;
+    min-width: 44px;
+    height: 30px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #261605;
+    background: linear-gradient(180deg, var(--gold-light), var(--gold) 65%, var(--gold-dark));
+    border: 1px solid var(--metal-dark);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 1px rgba(255, 248, 224, 0.7), 0 2px 4px rgba(42, 26, 8, 0.25);
+}
+
+.folio-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.folio-lettrine {
+    flex: 0 0 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-gothic);
+    font-size: 1.55rem;
+    line-height: 1;
+    color: var(--vellum-light);
+    background: radial-gradient(circle at 30% 30%, var(--wax-light), var(--wax));
+    border: 1.5px solid var(--gold);
+}
+
+.folio-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.12;
+    color: var(--ink);
+}
+
+.folio-sub {
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--ink-sepia);
+}
+
+.folio-synergy-strip {
+    margin-top: 6px;
+    padding: 4px 8px;
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--gold);
+    background: rgba(184, 146, 58, 0.14);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.folio-synergy-strip--unstable {
+    border-color: var(--wax);
+    background: rgba(138, 26, 20, 0.10);
+    color: var(--wax);
+}
+
+.folio-footer {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(107, 74, 42, 0.30);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.folio-note {
+    margin: 0;
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 0.76rem;
+    line-height: 1.32;
+    color: var(--ink-sepia);
+}
+
+/* Cachet de cire de rareté */
+.rarity-wax-chip {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #F6E9D0;
+    font-family: var(--font-display);
+    font-size: 0.54rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-align: center;
+    background-color: var(--seal-hex, #6B4A2A);
+    background-image: radial-gradient(circle at 32% 30%, color-mix(in srgb, var(--seal-hex, #6B4A2A) 75%, white), var(--seal-hex, #6B4A2A) 65%, #23140A);
+    box-shadow:
+        0 3px 6px rgba(36, 20, 8, 0.36),
+        inset 0 1px 2px rgba(255, 245, 224, 0.38);
+    border: 1.5px dashed rgba(246, 233, 208, 0.48);
+}
+
+.folio-card[data-rarity="legendary"] .rarity-wax-chip {
+    color: #2B1A06;
+    border-color: rgba(43, 26, 6, 0.45);
+    box-shadow:
+        0 0 0 2px var(--gold-dark),
+        0 3px 8px rgba(138, 110, 32, 0.45);
+}
+
+.folio-flip-btn {
+    margin-top: 8px;
+    width: 100%;
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid rgba(107, 74, 42, 0.38);
+    font-family: var(--font-display);
+    font-size: 0.76rem;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.12em;
+    color: var(--ink-sepia);
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.folio-flip-btn:hover {
+    background: rgba(138, 26, 20, 0.10);
+    color: var(--wax);
+    border-color: var(--wax);
+}
+
+/* Jauges à l'encre (Verso) */
+.ink-stat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 6px 0 10px;
+}
+
+.ink-stat-head {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.ink-meter {
+    height: 7px;
+    background: rgba(107, 74, 42, 0.16);
+    border: 1px solid rgba(107, 74, 42, 0.35);
+    overflow: hidden;
+}
+
+.ink-meter-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ink-sepia), var(--ink));
+}
+
+.ink-meter-fill--hp {
+    background: linear-gradient(90deg, #6E1813, var(--wax));
+}
+
+.verso-section {
+    padding: 6px 8px;
+    background: rgba(235, 224, 200, 0.65);
+    border: 1px dotted rgba(107, 74, 42, 0.42);
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+    line-height: 1.32;
+}
+
+.verso-section strong {
+    font-family: var(--font-display);
+    color: var(--ink);
+}
+
+/* ==========================================================================
+   CHAPITRE IV — DUEL SUR L'ÉTABLI (Bois sombre #1E1408)
+   ========================================================================== */
+
+.duel-selectors {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.duel-workbench {
+    position: relative;
+    padding: 26px 22px;
+    border-radius: 6px;
+    background-color: var(--desk-deep);
+    background-image:
+        radial-gradient(ellipse at 50% 40%, rgba(184, 146, 58, 0.14), transparent 62%),
+        repeating-linear-gradient(
+            90deg,
+            rgba(42, 26, 10, 0.4) 0px,
+            rgba(24, 14, 5, 0.55) 26px,
+            rgba(48, 30, 12, 0.35) 54px
+        );
+    border: 2px solid var(--metal-dark);
+    box-shadow:
+        inset 0 6px 18px rgba(0, 0, 0, 0.65),
+        0 8px 20px rgba(42, 26, 8, 0.25);
+}
+
+.duel-arena-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 86px minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+}
+
+.duel-folio {
+    position: relative;
+    padding: 16px;
+    background-color: var(--vellum);
+    background-image: var(--noise-paper);
+    border: 2px solid var(--gold-dark);
+    box-shadow: 0 12px 28px rgba(8, 4, 1, 0.65);
+    transition: transform 0.25s ease, filter 0.35s ease, box-shadow 0.35s ease;
+}
+
+.duel-folio.is-channeling {
+    box-shadow: 0 0 28px var(--duel-glow, rgba(184, 146, 58, 0.55)), 0 12px 28px rgba(8, 4, 1, 0.65);
+}
+
+.duel-folio.is-channeling .codex-sigil-watermark {
+    opacity: 0.42;
+    transform: scale(1.06);
+}
+
+.duel-folio.is-winner {
+    box-shadow: 0 0 28px rgba(216, 184, 96, 0.65), 0 14px 30px rgba(8, 4, 1, 0.72);
+}
+
+.duel-folio.is-loser {
+    filter: sepia(0.45) brightness(0.84);
+}
+
+.duel-vs-medallion {
+    width: 74px;
+    height: 74px;
+    margin: 0 auto;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-gothic);
+    font-size: 1.65rem;
+    color: #241405;
+    background: linear-gradient(180deg, var(--metal-light), var(--gold) 55%, var(--metal-dark));
+    border: 2px solid var(--metal-dark);
+    box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.65),
+        inset 0 2px 3px rgba(255, 246, 216, 0.72);
+}
+
+.duel-stamp {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-9deg);
+    padding: 8px 18px;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    border: 3px double currentColor;
+    z-index: 25;
+    pointer-events: none;
+    display: none;
+}
+
+.duel-folio.is-winner .duel-stamp--win {
+    display: block;
+    color: var(--gold-dark);
+    background: rgba(245, 237, 216, 0.94);
+    box-shadow: 0 6px 16px rgba(42, 26, 8, 0.42);
+    animation: duel-stamp-press 0.4s ease-out both;
+}
+
+.duel-folio.is-loser .duel-stamp--lose {
+    display: block;
+    color: var(--wax);
+    background: rgba(235, 224, 200, 0.92);
+    border-style: dashed;
+    animation: duel-stamp-press 0.4s ease-out both;
+}
+
+@keyframes duel-stamp-press {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(1.7) rotate(-14deg); }
+    70% { opacity: 1; transform: translate(-50%, -50%) scale(0.94) rotate(-8deg); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-9deg); }
+}
+
+.duel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.duel-chronicle {
+    margin-top: 18px;
+    padding: 14px 18px;
+    background: rgba(245, 237, 216, 0.92);
+    border: 1px solid var(--vellum-border);
+    font-family: var(--font-scribe);
+    font-size: 0.94rem;
+    color: var(--ink);
+    min-height: 78px;
+}
+
+.duel-chronicle p {
+    margin: 4px 0;
+}
+
+/* ==========================================================================
+   CHAPITRE V — ATELIER ALCHIMIQUE, BOUTONS V2 & ÉTATS NARRATIFS
+   ========================================================================== */
+
+.buttons-showcase {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.button-demo-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
+    gap: 14px;
+    padding: 20px 16px;
+    background: rgba(245, 237, 216, 0.72);
+    border: 1px solid var(--vellum-border);
+}
+
+.workshop-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.workshop-tiers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0 8px;
+}
+
+.tier-chip {
+    padding: 4px 10px;
+    border: 1px solid var(--gold-dark);
+    background: rgba(235, 224, 200, 0.8);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.tier-chip.is-bought {
+    background: linear-gradient(180deg, var(--gold-light), var(--gold));
+    color: #261605;
+}
+
+/* 3 États Narratifs */
+.states-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.narrative-state {
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    border: 1px solid var(--vellum-border);
+    background: rgba(245, 237, 216, 0.75);
+}
+
+.narrative-state--empty {
+    border-style: dashed;
+}
+
+.narrative-state--error {
+    border: 2px double var(--wax);
+    background: rgba(138, 26, 20, 0.08);
+    color: var(--wax-dark);
+}
+
+.loading-sigil-svg {
+    width: 68px;
+    height: 68px;
+    color: var(--gold-dark);
+}
+
+.loading-sigil-svg .trace-loop {
+    stroke-dasharray: 240;
+    stroke-dashoffset: 240;
+    animation: trace-loop 3.2s ease-in-out infinite;
+}
+
+@keyframes trace-loop {
+    0% { stroke-dashoffset: 240; opacity: 0.35; }
+    50% { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: -240; opacity: 0.35; }
+}
+
+.codex-footer {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 2px double var(--vellum-border);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--font-scribe);
+    font-style: italic;
+    font-size: 0.86rem;
+    color: var(--ink-faded);
+}
+
+/* ==========================================================================
+   RESPONSIVE (< 1180px : signets latéraux -> rubans supérieurs, jamais cachés)
+   ========================================================================== */
+
+@media (max-width: 1180px) {
+    .codex-stage {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .codex-bookmarks {
+        position: sticky;
+        top: 0;
+        order: -1;
+        flex: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin: 0 0 -2px 0;
+        padding: 8px 10px 0;
+        gap: 6px;
+        background: linear-gradient(180deg, rgba(30, 20, 8, 0.94), rgba(30, 20, 8, 0.72));
+        z-index: 40;
+    }
+
+    .bookmark-tab {
+        transform: translateY(2px);
+        border: 1px solid rgba(216, 184, 96, 0.35);
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        padding: 8px 13px;
+        font-size: 0.82rem;
+    }
+
+    .bookmark-tab:hover,
+    .bookmark-tab.is-active {
+        transform: translateY(0);
+    }
+
+    .codex-shell {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 960px) {
+    .hud-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .volvelle-layout,
+    .bench-grid,
+    .concept-grid,
+    .compendium-grid,
+    .workshop-grid,
+    .buttons-showcase,
+    .states-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .folios-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pigments-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .duel-arena-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    body.codex-body {
+        padding: 14px 8px 44px;
+    }
+
+    .codex-spine {
+        flex: 0 0 18px;
+    }
+
+    .codex-clasp {
+        display: none;
+    }
+
+    .codex-vellum {
+        padding: 18px 12px 28px 14px;
+    }
+
+    .codex-gilded-edge {
+        flex: 0 0 8px;
+    }
+
+    .codex-pill,
+    .codex-footer,
+    .codex-footer code,
+    .bench-diagnostic {
+        overflow-wrap: anywhere;
+    }
+
+    .scribe-row {
+        flex-wrap: wrap;
+        gap: 2px 6px;
+    }
+
+    .scribe-row dt {
+        white-space: normal;
+    }
+
+    .scribe-dots {
+        display: none;
+    }
+
+    .scribe-row dd {
+        text-align: left;
+    }
+
+    .gloss-entry {
+        flex-wrap: wrap;
+    }
+
+    .panel-heading {
+        flex-wrap: wrap;
+    }
+
+    .folios-grid,
+    .pigments-grid,
+    .hud-bar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hud-item {
+        border-right: none;
+        border-bottom: 1px dashed rgba(107, 74, 42, 0.25);
+        padding: 6px 2px;
+    }
+
+    .hud-item:last-child {
+        border-bottom: none;
+    }
+
+    .bookmark-tab {
+        padding: 7px 10px;
+        font-size: 0.76rem;
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITÉ — prefers-reduced-motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
