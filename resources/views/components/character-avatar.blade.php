@@ -32,7 +32,7 @@
     }
 
     $layers = \App\Services\PaperDollService::resolveLayers($raceId, $weaponId, $powerId, $rarityKey);
-    $hasVisualLayer = !empty($layers['race']) || !empty($layers['weapon']) || !empty($layers['aura']) || !empty($layers['power']);
+    $hasVisualLayer = !empty($layers['race']);
 
     $glowColor = match($rarityKey) {
         'legendary' => 'bg-amber-500/25',

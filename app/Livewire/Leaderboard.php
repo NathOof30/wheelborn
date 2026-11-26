@@ -1,29 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire;
 
 use App\Enums\League;
-use App\Models\Battle;
+use App\Models\Character;
 use App\Models\User;
 use App\Services\LeaderboardService;
+use App\View\Presenters\FolioCardPresenter;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Leaderboard extends Component
 {
-    // Podium néon : couleur, médaille et hauteur de marche (en px) pour chaque place
     private const PODIUM = [
-        1 => ['color' => '#fbbf24', 'medal' => '🥇', 'height' => 140],
-        2 => ['color' => '#cbd5e1', 'medal' => '🥈', 'height' => 110],
-        3 => ['color' => '#cd7f32', 'medal' => '🥉', 'height' => 85],
+        1 => ['color' => '#74520A', 'medal' => '🥇', 'height' => 148],
+        2 => ['color' => '#536270', 'medal' => '🥈', 'height' => 116],
+        3 => ['color' => '#8A4F24', 'medal' => '🥉', 'height' => 92],
     ];
 
     // Onglet actif ("all" ou une ligue), gardé dans l'URL pour pouvoir partager le lien
     #[Url]
     public string $league = 'all';
 
+    #[Locked]
     public ?array $inspectedPlayer = null;
+
     public bool $showInspectorModal = false;
 
     public function setLeague(string $league): void
@@ -37,7 +42,7 @@ class Leaderboard extends Component
     public function inspectPlayer(int $userId): void
     {
         $user = User::find($userId);
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
@@ -47,31 +52,29 @@ class Leaderboard extends Component
         $battles = $stats['total'];
         $wins = $stats['wins'];
         $winrate = $stats['winrate'];
-        $favorites = $user->favoriteCharacters()->get()->map(fn ($c) => [
-            'id'          => (string) $c->id,
-            'name'        => $c->name,
-            'rarity'      => $c->rarity->label(),
-            'rarity_key'  => $c->rarity->value,
-            'power_score' => $c->power_score,
-            'race'        => $c->race_label,
-            'weapon'      => $c->weapon_label,
-        ])->all();
+        $presenter = app(FolioCardPresenter::class);
+        $favorites = $user->favoriteCharacters()
+            ->where('pending_reveal', false)
+            ->get()
+            ->map(fn (Character $c): array => $presenter->present($c))
+            ->all();
 
         $this->inspectedPlayer = [
-            'id'          => $user->id,
-            'name'        => $user->name,
-            'elo'         => $user->elo,
-            'league'      => [
-                'name'  => $league->name,
-                'icon'  => $league->icon(),
+            'id' => $user->id,
+            'name' => $user->name,
+            'elo' => $user->elo,
+            'league' => [
+                'name' => $league->label(),
+                'icon' => $league->icon(),
                 'color' => $league->color(),
+                'ink_color' => FolioCardPresenter::leagueInkColor($league->value),
             ],
-            'level'       => $progress['level'],
-            'title'       => $progress['title'],
-            'battles'     => $battles,
-            'wins'        => $wins,
-            'winrate'     => $winrate,
-            'favorites'   => $favorites,
+            'level' => $progress['level'],
+            'title' => $progress['title'],
+            'battles' => $battles,
+            'wins' => $wins,
+            'winrate' => $winrate,
+            'favorites' => $favorites,
             'profile_url' => route('player.profile', $user->name),
         ];
         $this->showInspectorModal = true;
@@ -83,14 +86,21 @@ class Leaderboard extends Component
         $this->inspectedPlayer = null;
     }
 
-    /** Onglets : "Tous" puis les ligues de la plus haute à la plus basse. */
     #[Computed]
     public function leagueTabs(): array
     {
         $leaderboard = app(LeaderboardService::class);
-        $leagueTabs = array_map(fn (League $league) => $leaderboard->leagueData($league), array_reverse(League::cases()));
+        $leagueTabs = array_map(function (League $league) use ($leaderboard): array {
+            $data = $leaderboard->leagueData($league);
+            $data['ink_color'] = FolioCardPresenter::leagueInkColor($league->value);
 
-        return [['value' => 'all', 'label' => 'Tous', 'icon' => '🏆', 'color' => '#e2e8f0'], ...$leagueTabs];
+            return $data;
+        }, array_reverse(League::cases()));
+
+        return [
+            ['value' => 'all', 'label' => 'Tous', 'icon' => '🏆', 'color' => '#6E4F0E', 'ink_color' => '#6E4F0E'],
+            ...$leagueTabs,
+        ];
     }
 
     /** Joueurs classés de l'onglet actif (servis par le cache de 60 secondes). */

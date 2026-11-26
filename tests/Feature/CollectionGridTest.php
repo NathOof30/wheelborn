@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Character;
-use App\Enums\Rarity;
 use App\Enums\PowerTier;
+use App\Enums\Rarity;
 use App\Livewire\CollectionGrid;
+use App\Models\Character;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -47,22 +47,22 @@ class CollectionGridTest extends TestCase
         $user = User::factory()->create();
 
         $character = Character::create([
-            'user_id'           => $user->id,
-            'name'              => 'Eldrin Sombrelame',
-            'race_id'           => 'elf',
-            'weapon_id'         => 'sword',
-            'power_id'          => 'fire',
-            'power_tier'        => PowerTier::Common,
-            'hp'                => 110,
-            'max_hp'            => 110,
-            'strength'          => 45,
-            'speed'             => 60,
-            'defense'           => 30,
-            'power_score'       => 78,
-            'rarity'            => Rarity::Rare,
-            'recycle_value'     => 160,
-            'pending_reveal'    => false,
-            'recycled_at'       => null,
+            'user_id' => $user->id,
+            'name' => 'Eldrin Sombrelame',
+            'race_id' => 'elf',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 110,
+            'max_hp' => 110,
+            'strength' => 45,
+            'speed' => 60,
+            'defense' => 30,
+            'power_score' => 78,
+            'rarity' => Rarity::Rare,
+            'recycle_value' => 160,
+            'pending_reveal' => false,
+            'recycled_at' => null,
         ]);
 
         $this->actingAs($user);
@@ -81,42 +81,42 @@ class CollectionGridTest extends TestCase
 
         // 1. Carte en attente de révélation (ne doit pas être affichée dans la collection)
         Character::create([
-            'user_id'           => $user->id,
-            'name'              => 'Héros Fantôme',
-            'race_id'           => 'human',
-            'weapon_id'         => 'sword',
-            'power_id'          => 'fire',
-            'power_tier'        => PowerTier::Common,
-            'hp'                => 100,
-            'max_hp'            => 100,
-            'strength'          => 40,
-            'speed'             => 40,
-            'defense'           => 40,
-            'power_score'       => 50,
-            'rarity'            => Rarity::Common,
-            'recycle_value'     => 70,
-            'pending_reveal'    => true,
-            'recycled_at'       => null,
+            'user_id' => $user->id,
+            'name' => 'Héros Fantôme',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 40,
+            'speed' => 40,
+            'defense' => 40,
+            'power_score' => 50,
+            'rarity' => Rarity::Common,
+            'recycle_value' => 70,
+            'pending_reveal' => true,
+            'recycled_at' => null,
         ]);
 
         // 2. Carte déjà recyclée (ne doit pas être affichée)
         Character::create([
-            'user_id'           => $user->id,
-            'name'              => 'Héros Poussière',
-            'race_id'           => 'human',
-            'weapon_id'         => 'sword',
-            'power_id'          => 'fire',
-            'power_tier'        => PowerTier::Common,
-            'hp'                => 100,
-            'max_hp'            => 100,
-            'strength'          => 40,
-            'speed'             => 40,
-            'defense'           => 40,
-            'power_score'       => 50,
-            'rarity'            => Rarity::Common,
-            'recycle_value'     => 70,
-            'pending_reveal'    => false,
-            'recycled_at'       => now(),
+            'user_id' => $user->id,
+            'name' => 'Héros Poussière',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 40,
+            'speed' => 40,
+            'defense' => 40,
+            'power_score' => 50,
+            'rarity' => Rarity::Common,
+            'recycle_value' => 70,
+            'pending_reveal' => false,
+            'recycled_at' => now(),
         ]);
 
         $this->actingAs($user);
@@ -133,22 +133,22 @@ class CollectionGridTest extends TestCase
         $user = User::factory()->create(['coins' => 200]);
 
         $character = Character::create([
-            'user_id'           => $user->id,
-            'name'              => 'Grommash le Brisé',
-            'race_id'           => 'demon',
-            'weapon_id'         => 'hammer',
-            'power_id'          => 'fire',
-            'power_tier'        => PowerTier::Common,
-            'hp'                => 105,
-            'max_hp'            => 105,
-            'strength'          => 50,
-            'speed'             => 30,
-            'defense'           => 30,
-            'power_score'       => 65,
-            'rarity'            => Rarity::Common,
-            'recycle_value'     => 90,
-            'pending_reveal'    => false,
-            'recycled_at'       => null,
+            'user_id' => $user->id,
+            'name' => 'Grommash le Brisé',
+            'race_id' => 'demon',
+            'weapon_id' => 'hammer',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 105,
+            'max_hp' => 105,
+            'strength' => 50,
+            'speed' => 30,
+            'defense' => 30,
+            'power_score' => 65,
+            'rarity' => Rarity::Common,
+            'recycle_value' => 90,
+            'pending_reveal' => false,
+            'recycled_at' => null,
         ]);
 
         $this->actingAs($user);
@@ -340,7 +340,7 @@ class CollectionGridTest extends TestCase
             'power_score' => 75,
             'rarity' => Rarity::Rare,
             'synergies_data' => [
-                ['name' => 'Tempête Elfique', 'icon' => '🌪️', 'is_unstable' => false]
+                ['name' => 'Tempête Elfique', 'icon' => '🌪️', 'is_unstable' => false],
             ],
             'recycle_value' => 140,
             'pending_reveal' => false,
@@ -725,7 +725,7 @@ class CollectionGridTest extends TestCase
             'recycle_value' => 65,
             'is_locked' => false,
             'synergies_data' => [
-                ['name' => 'Flamme Tellurique', 'icon' => '🔥', 'is_unstable' => false]
+                ['name' => 'Flamme Tellurique', 'icon' => '🔥', 'is_unstable' => false],
             ],
             'pending_reveal' => false,
         ]);
@@ -763,11 +763,11 @@ class CollectionGridTest extends TestCase
         $this->assertNull($withSynergy->recycled_at);
     }
 
-    public function test_character_inspector_modal_displays_full_details_and_passives(): void
+    public function test_universal_card_verso_displays_full_details_and_passives(): void
     {
         $user = User::factory()->create();
 
-        $hero = Character::create([
+        Character::create([
             'user_id' => $user->id,
             'name' => 'Sylvana Brise-Vent',
             'race_id' => 'elf',
@@ -791,29 +791,24 @@ class CollectionGridTest extends TestCase
                     'icon' => '🏹❄️',
                     'description' => 'Ralentit la cible et augmente les coups critiques de 20%.',
                     'is_unstable' => false,
-                ]
+                ],
             ],
             'pending_reveal' => false,
         ]);
 
         $this->actingAs($user);
 
-        // Ouvrir l'inspecteur
         Livewire::test(CollectionGrid::class)
-            ->call('inspectCharacter', $hero->id)
-            ->assertSet('inspectedCharacterId', $hero->id)
             ->assertSee('Sylvana Brise-Vent')
-            ->assertSee('Grâce Sylvestre') // Passif race Elfe
-            ->assertSee('Tir d\'alerte') // Passif arme Arc
-            ->assertSee('Archer Glacial') // Nom synergie
-            ->assertSee('Ralentit la cible') // Description synergie
-            ->assertSee('70%') // Taux de victoire : 7 / 10 = 70%
-            ->assertSee('Fermer la fiche')
-            ->call('closeInspector')
-            ->assertSet('inspectedCharacterId', null);
+            ->assertSee('Grâce Sylvestre')
+            ->assertSee("Tir d'alerte")
+            ->assertSee('Archer Glacial')
+            ->assertSee('Ralentit la cible')
+            ->assertSee('70%')
+            ->assertDontSee('data-flip-folio');
     }
 
-    public function test_character_can_be_recycled_from_inspector_modal(): void
+    public function test_character_can_be_recycled_from_universal_card_verso(): void
     {
         $user = User::factory()->create(['coins' => 100]);
 
@@ -839,10 +834,7 @@ class CollectionGridTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(CollectionGrid::class)
-            ->call('inspectCharacter', $hero->id)
-            ->assertSet('inspectedCharacterId', $hero->id)
             ->call('recycleCharacter', $hero->id)
-            ->assertSet('inspectedCharacterId', null)
             ->assertSee('+75 🪙 ajoutées à votre solde');
 
         $user->refresh();

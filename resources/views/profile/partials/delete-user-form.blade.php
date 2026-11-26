@@ -1,12 +1,11 @@
-<section class="space-y-6">
+<section class="space-y-5">
     <header>
-        <h2 class="text-lg font-display font-bold text-rose-300 tracking-wide flex items-center gap-2">
-            <span>⚠️</span>
-            <span>{{ __('Zone de Dissolution du Compte') }}</span>
+        <h2 class="font-display text-lg font-bold text-wax tracking-wide">
+            {{ __('Zone de Dissolution du Compte') }}
         </h2>
 
-        <p class="mt-1 text-sm text-slate-400">
-            {{ __('Une fois votre compte supprimé, l\'ensemble de vos combattants, victoires et ressources accumulées seront définitivement anéantis.') }}
+        <p class="mt-1 font-body text-sm text-ink-sepia">
+            {{ __("Une fois votre compte supprimé, l'ensemble de vos combattants, victoires et ressources accumulées seront définitivement anéantis.") }}
         </p>
     </header>
 
@@ -16,19 +15,21 @@
     >{{ __('Supprimer le compte') }}</x-danger-button>
 
     <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
-        <form method="post" action="{{ route('profile.destroy') }}" class="p-8">
+        <form method="post" action="{{ route('profile.destroy') }}" class="p-6 sm:p-8 space-y-5">
             @csrf
             @method('delete')
 
-            <h2 class="text-xl font-display font-bold text-white tracking-wide">
-                {{ __('Êtes-vous certain de vouloir dissoudre ce compte ?') }}
-            </h2>
+            <div>
+                <h2 class="font-display text-xl font-bold text-ink tracking-wide">
+                    {{ __('Êtes-vous certain de vouloir dissoudre ce compte ?') }}
+                </h2>
 
-            <p class="mt-2 text-sm text-slate-400 leading-relaxed">
-                {{ __('Cette action est irréversible. Veuillez renseigner votre mot de passe pour confirmer la destruction définitive de vos données.') }}
-            </p>
+                <p class="mt-2 font-body text-sm text-ink-sepia leading-relaxed">
+                    {{ __('Cette action est irréversible. Veuillez renseigner votre mot de passe pour confirmer la destruction définitive de vos données.') }}
+                </p>
+            </div>
 
-            <div class="mt-6">
+            <div>
                 <x-input-label for="password" value="{{ __('Mot de passe') }}" class="sr-only" />
 
                 <x-text-input
@@ -42,7 +43,7 @@
                 <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
             </div>
 
-            <div class="mt-8 flex justify-end gap-3">
+            <div class="pt-2 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">
                     {{ __('Annuler') }}
                 </x-secondary-button>

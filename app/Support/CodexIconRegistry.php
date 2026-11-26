@@ -6,7 +6,7 @@ namespace App\Support;
 
 use InvalidArgumentException;
 
-final class NewDaIconRegistry
+final class CodexIconRegistry
 {
     /** @var list<string> */
     public const CATEGORIES = ['races', 'weapons', 'powers'];
@@ -60,14 +60,30 @@ final class NewDaIconRegistry
         'invisibility' => '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="6 4"/><circle cx="60" cy="60" r="38" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="3 4"/><path d="M18 60 Q60 26 102 60 Q60 94 18 60 Z" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="60" cy="60" r="11" fill="none" stroke="currentColor" stroke-width="1.3"/><line x1="24" y1="96" x2="96" y2="24" stroke="currentColor" stroke-width="1.2"/>',
     ];
 
-    private string $iconsDirectory;
+    /** @var list<array{dir: string, prefix: string}> */
+    private array $searchLocations;
 
-    private string $publicPrefix;
+    public function __construct(
+        ?string $primaryDirectory = null,
+        string $primaryPrefix = 'images/codex/icons',
+        ?string $fallbackDirectory = null,
+        ?string $fallbackPrefix = 'images/newda/icons',
+    ) {
+        $locations = [
+            [
+                'dir' => rtrim($primaryDirectory ?? public_path($primaryPrefix), '/\\'),
+                'prefix' => trim($primaryPrefix, '/'),
+            ],
+        ];
 
-    public function __construct(?string $iconsDirectory = null, string $publicPrefix = 'images/newda/icons')
-    {
-        $this->iconsDirectory = rtrim($iconsDirectory ?? public_path($publicPrefix), '/\\');
-        $this->publicPrefix = trim($publicPrefix, '/');
+        if ($fallbackPrefix !== null && $fallbackPrefix !== '') {
+            $locations[] = [
+                'dir' => rtrim($fallbackDirectory ?? public_path($fallbackPrefix), '/\\'),
+                'prefix' => trim($fallbackPrefix, '/'),
+            ];
+        }
+
+        $this->searchLocations = $locations;
     }
 
     /**
@@ -81,19 +97,21 @@ final class NewDaIconRegistry
 
         $safeId = preg_replace('/[^a-z0-9_-]/i', '', strtolower($id)) ?? '';
         $fallbackMarkup = self::DEFAULT_ICONS[$category][$safeId]
-            ?? reset(self::DEFAULT_ICONS[$category]);
+            ?? array_values(self::DEFAULT_ICONS[$category])[0];
 
         if ($safeId !== '') {
-            foreach (self::CUSTOM_EXTENSIONS as $ext) {
-                $fullPath = $this->iconsDirectory.DIRECTORY_SEPARATOR.$category.DIRECTORY_SEPARATOR.$safeId.'.'.$ext;
-                if (is_file($fullPath)) {
-                    return [
-                        'type' => 'image',
-                        'format' => $ext,
-                        'url' => asset("{$this->publicPrefix}/{$category}/{$safeId}.{$ext}"),
-                        'viewBox' => '0 0 48 48',
-                        'markup' => $fallbackMarkup,
-                    ];
+            foreach ($this->searchLocations as $location) {
+                foreach (self::CUSTOM_EXTENSIONS as $ext) {
+                    $fullPath = $location['dir'].DIRECTORY_SEPARATOR.$category.DIRECTORY_SEPARATOR.$safeId.'.'.$ext;
+                    if (is_file($fullPath)) {
+                        return [
+                            'type' => 'image',
+                            'format' => $ext,
+                            'url' => asset("{$location['prefix']}/{$category}/{$safeId}.{$ext}"),
+                            'viewBox' => '0 0 48 48',
+                            'markup' => $fallbackMarkup,
+                        ];
+                    }
                 }
             }
         }

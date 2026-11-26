@@ -2,761 +2,601 @@
     x-data="battleAnimation"
     x-on:battle-started.window="play($event.detail)"
     x-on:battle-reset.window="reset()"
-    class="space-y-4 max-w-7xl mx-auto"
-    @if (!$isAdmin && $arenaTickets < $maxTickets) wire:poll.15s="refreshTickets" @endif
+    class="space-y-6"
+    @if (! $isAdmin && $arenaTickets < $maxTickets) wire:poll.15s="refreshTickets" @endif
 >
     @if ($this->fighters->isEmpty())
-        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-12 text-center max-w-xl mx-auto shadow-2xl space-y-4 my-10">
-            <p class="text-6xl animate-bounce">⚔️</p>
-            <h2 class="text-2xl font-black text-white">Aucun combattant disponible</h2>
-            <p class="text-slate-400 text-sm leading-relaxed">Invoque d'abord un héros sur la Roue du Destin pour entrer dans l'arène de duel.</p>
-            <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl transition shadow-lg hover:scale-105 active:scale-95">
-                <span>🎡</span>
-                <span>Aller au tirage</span>
-            </a>
+        <div class="codex-panel codex-panel--framed max-w-xl mx-auto p-8 sm:p-10 text-center space-y-5 my-6">
+            <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center bg-parchment-shade/80 border-2 border-brass-dark/40 text-wax">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 19 L18 6 M14 5 H19 V10 M5 5 L19 19 M19 19 L16 19 M5 16 L8 19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="space-y-2">
+                <h2 class="font-display text-2xl font-bold text-ink">Aucun combattant disponible</h2>
+                <p class="font-body text-base text-ink-sepia leading-relaxed">
+                    Invoquez d'abord un héros sur la Roue du Destin pour entrer dans l'arène de duel.
+                </p>
+            </div>
+            <div>
+                <a href="{{ route('dashboard') }}" class="btn-wax">
+                    <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                    </svg>
+                    <span>Aller au tirage</span>
+                </a>
+            </div>
         </div>
     @else
-        {{-- LAYOUT COCKPIT ZERO-SCROLL : ARÈNE À GAUCHE (65%), POSTE DE COMMANDE & LOGS À DROITE (35%) --}}
-        <div class="grid grid-cols-1 lg:grid-cols-[65%_1fr] gap-6 items-stretch">
+        {{-- ========================================================================= --}}
+        {{-- BANDEAU DE COMMANDE : ARÈNE 1V1, TICKETS & COMPTE À REBOURS               --}}
+        {{-- ========================================================================= --}}
+        <div class="codex-panel p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-wax/10 border border-wax/40 flex items-center justify-center text-wax shrink-0">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 19 L18 6 M14 5 H19 V10 M5 5 L19 19 M19 19 L16 19 M5 16 L8 19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-display text-base font-bold uppercase tracking-wider text-ink">Arène de Duel 1v1</h2>
+                    <p class="font-body text-sm italic text-ink-muted">Matchmaking classé &amp; duels contre joueurs et fantômes</p>
+                </div>
+            </div>
 
-            {{-- ========================================================================= --}}
-            {{-- COLONNE GAUCHE : L'ARÈNE FACE-À-FACE (JOUEUR VS BOT)                      --}}
-            {{-- ========================================================================= --}}
-            <div class="bg-slate-900/70 border border-slate-800/90 rounded-3xl p-5 shadow-2xl backdrop-blur-md relative flex flex-col justify-between h-full w-full">
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-5 sm:gap-6">
-                    @foreach ($this->cards as $side => $card)
-                        @if ($side === 'opponent')
-                            {{-- Écusson VS Central --}}
-                            <div class="flex flex-col items-center justify-center py-2 sm:py-0 shrink-0 select-none">
-                                <div class="w-12 h-12 rounded-2xl bg-rose-600/20 border-2 border-rose-500/60 shadow-[0_0_20px_rgba(244,63,94,0.4)] flex items-center justify-center text-xl font-black text-rose-400 animate-pulse">
-                                    VS
-                                </div>
-                            </div>
-                        @endif
+            <div class="flex flex-wrap items-center gap-2.5">
+                @if ($isAdmin)
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brass/20 border border-brass-dark/50 font-display text-xs font-bold uppercase tracking-wider text-brass-dark">
+                        <span>👑</span>
+                        <span>Tickets illimités</span>
+                    </span>
+                @else
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border font-display text-xs font-bold {{ $arenaTickets > 0 ? 'bg-parchment-bright border-brass-dark/50 text-ink' : 'bg-wax/10 border-wax/50 text-wax' }}">
+                        <svg class="w-3.5 h-3.5 text-brass-dark" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 7 H20 V10 A2 2 0 0 0 20 14 V17 H4 V14 A2 2 0 0 0 4 10 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                        <span>{{ $arenaTickets }}/{{ $maxTickets }}</span>
+                    </span>
 
-                        @php
-                            $rarityKey = $card['rarity_key'];
-                            $borderStyles = match($rarityKey) {
-                                'legendary' => 'border-amber-400/80 bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950 shadow-[0_0_25px_rgba(251,191,36,0.25)] hover:shadow-[0_0_35px_rgba(251,191,36,0.4)]',
-                                'epic'      => 'border-purple-500/70 bg-gradient-to-b from-purple-950/30 via-slate-900 to-slate-950 shadow-[0_0_20px_rgba(192,132,252,0.2)] hover:shadow-[0_0_30px_rgba(192,132,252,0.35)]',
-                                'rare'      => 'border-cyan-400/60 bg-gradient-to-b from-cyan-950/30 via-slate-900 to-slate-950 shadow-[0_0_20px_rgba(56,189,248,0.18)] hover:shadow-[0_0_30px_rgba(56,189,248,0.3)]',
-                                default     => 'border-slate-800 bg-slate-900/90 hover:border-slate-700',
-                            };
-                            $badgeStyle = match($rarityKey) {
-                                'legendary' => 'bg-amber-400 text-slate-950 font-black shadow-[0_0_10px_rgba(251,191,36,0.5)]',
-                                'epic'      => 'bg-purple-500 text-white font-bold',
-                                'rare'      => 'bg-cyan-500 text-slate-950 font-bold',
-                                default     => 'bg-slate-700 text-slate-200 font-medium',
-                            };
-                            $stars = match($rarityKey) {
-                                'legendary' => 5,
-                                'epic'      => 4,
-                                'rare'      => 3,
-                                default     => 2,
-                            };
-                        @endphp
+                    @if ($arenaTickets < $maxTickets)
+                        <div
+                            wire:key="arena-timer-{{ $arenaTickets }}-{{ $nextTicketSeconds }}"
+                            x-data="{
+                                remaining: {{ (int) $nextTicketSeconds }},
+                                interval: null,
+                                formatTime() {
+                                    const s = Math.max(0, parseInt(this.remaining, 10) || 0);
+                                    const m = Math.floor(s / 60);
+                                    const sec = s % 60;
+                                    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+                                },
+                                init() {
+                                    this.interval = setInterval(() => {
+                                        if (this.remaining > 0) {
+                                            this.remaining--;
+                                        } else {
+                                            clearInterval(this.interval);
+                                            this.interval = null;
+                                            $wire.call('refreshTickets');
+                                        }
+                                    }, 1000);
+                                },
+                                destroy() {
+                                    if (this.interval) clearInterval(this.interval);
+                                }
+                            }"
+                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-parchment-shade/80 border border-parchment-border font-body text-xs font-semibold text-ink-sepia"
+                        >
+                            <span>⏳</span>
+                            <span>+1 dans <strong x-text="formatTime()" class="font-display text-ink">{{ sprintf('%02d:%02d', floor($nextTicketSeconds / 60), $nextTicketSeconds % 60) }}</strong></span>
+                        </div>
+                    @endif
+                @endif
+            </div>
+        </div>
 
-                        <div class="space-y-2.5 w-[270px] max-w-[270px] shrink-0">
-                            {{-- En-tête de carte : Bouton d'action rapide & Camp --}}
-                            <div class="flex items-center justify-between gap-1 text-xs">
-                                @if ($side === 'challenger')
-                                    <button
-                                        type="button"
-                                        wire:click="openFighterModal"
-                                        @disabled($result)
-                                        class="px-2.5 py-1 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                                        title="Ouvrir la sélection de combattant"
-                                    >
-                                        <span>🔄</span>
-                                        <span>Changer</span>
-                                    </button>
-                                    <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                        {{ $card['label'] }}
-                                    </span>
-                                @else
-                                    <button
-                                        type="button"
-                                        wire:click="inspectOpponent"
-                                        class="font-extrabold text-rose-400 hover:text-rose-300 flex items-center gap-1.5 uppercase tracking-wider text-[11px] group cursor-pointer transition text-left"
-                                        title="Cliquer pour inspecter le profil de l'adversaire"
-                                    >
-                                        <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
-                                        <span class="group-hover:underline">{{ $card['label'] }}</span>
-                                        <span class="text-xs opacity-75">🔍</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        wire:click="rerollOpponent"
-                                        wire:loading.attr="disabled"
-                                        @disabled($result)
-                                        class="px-2.5 py-1 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                                        title="{{ $this->rerollCost === 0 ? 'Chercher un autre adversaire (1er essai gratuit)' : 'Chercher un autre adversaire (coûte ' . $this->rerollCost . ' 🪙)' }}"
-                                    >
-                                        <span>🎲</span>
-                                        <span>Autre</span>
-                                        @if ($this->rerollCost === 0)
-                                            <span class="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded border border-emerald-800/60">Gratuit</span>
-                                        @else
-                                            <span class="text-[9px] font-mono font-bold text-amber-300 bg-amber-950/80 px-1 py-0.5 rounded border border-amber-800/60">{{ $this->rerollCost }} 🪙</span>
-                                        @endif
-                                    </button>
-                                @endif
-                            </div>
+        @if ($error)
+            <div class="p-3.5 rounded-lg bg-wax/10 border-2 border-wax/50 font-body text-sm font-bold text-wax flex items-center gap-2.5" role="alert">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3 L22 20 H2 Z M12 10 V14 M12 17 V17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ $error }}</span>
+            </div>
+        @endif
 
-                            {{-- Combat HUD : Barre de PV animée pendant le duel --}}
-                            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 shadow space-y-1">
-                                <div class="flex justify-between items-center text-xs text-slate-300 font-mono">
-                                    <span class="font-bold flex items-center gap-1 text-[11px]">
-                                        <span>❤️ PV</span>
-                                        @if ($card['elo'])
-                                            <span class="text-amber-400 font-bold ml-1">({{ $card['elo'] }} Élo)</span>
-                                        @endif
-                                    </span>
-                                    <span><strong x-text="hp('{{ $side }}', {{ $card['hp'] }})" class="text-white">{{ $card['hp'] }}</strong> / {{ $card['hp'] }}</span>
-                                </div>
-                                <div class="h-2.5 rounded-full bg-slate-900 border border-slate-800 overflow-hidden shadow-inner">
+        {{-- ========================================================================= --}}
+        {{-- ÉTABLI DE DUEL : 2 CARTES UNIVERSELLES (316×440) + MÉDAILLON VS           --}}
+        {{-- ========================================================================= --}}
+        @php
+            $challengerWinner = $result && ! $result['draw'] && $result['won'];
+            $challengerLoser = $result && ! $result['draw'] && ! $result['won'];
+            $opponentWinner = $result && ! $result['draw'] && ! $result['won'];
+            $opponentLoser = $result && ! $result['draw'] && $result['won'];
+            $isDraw = (bool) ($result['draw'] ?? false);
+        @endphp
+
+        <div class="duel-workbench">
+            <div class="duel-workbench-grid">
+                @foreach ($this->cards as $side => $card)
+                    @if ($side === 'opponent')
+                        <div class="flex flex-col items-center justify-center py-1 select-none">
+                            <div class="duel-vs-medallion" aria-hidden="true">VS</div>
+                        </div>
+                    @endif
+
+                    @php
+                        $source = $card['character'];
+                        $cardId = $source instanceof \App\Models\Character
+                            ? (string) $source->id
+                            : (string) ($source['id'] ?? $side);
+                        $isSideWinner = $side === 'challenger' ? $challengerWinner : $opponentWinner;
+                        $isSideLoser = $side === 'challenger' ? $challengerLoser : $opponentLoser;
+                    @endphp
+
+                    <div
+                        wire:key="duel-slot-{{ $side }}-{{ $cardId }}"
+                        class="duel-slot"
+                        :class="{
+                            'is-winner': done && @js($isSideWinner),
+                            'is-loser': done && @js($isSideLoser),
+                        }"
+                    >
+                        {{-- En-tête externe du slot : Camp & Actions rapides --}}
+                        <div class="duel-slot-bar">
+                            @if ($side === 'challenger')
+                                <button
+                                    type="button"
+                                    wire:click="openFighterModal"
+                                    @disabled($result)
+                                    class="btn-cartouche btn-cartouche--sm"
+                                    title="Ouvrir la sélection de combattant"
+                                >
+                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M4 7 H18 M14 3 L18 7 L14 11 M20 17 H6 M10 13 L6 17 L10 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <span>Changer</span>
+                                </button>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-parchment-light/95 border border-forest/40 font-display text-[11px] font-bold uppercase tracking-wider text-forest truncate">
+                                    <span class="w-2 h-2 rounded-full bg-forest shrink-0"></span>
+                                    <span class="truncate">{{ $card['label'] }}</span>
+                                </span>
+                            @else
+                                <button
+                                    type="button"
+                                    wire:click="inspectOpponent"
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-parchment-light/95 border border-wax/45 font-display text-[11px] font-bold uppercase tracking-wider text-wax hover:bg-parchment-bright transition cursor-pointer min-w-0"
+                                    title="Cliquer pour inspecter le profil de l'adversaire"
+                                >
+                                    <span class="w-2 h-2 rounded-full bg-wax shrink-0"></span>
+                                    <span class="truncate">{{ $card['label'] }}</span>
+                                    <svg class="w-3.5 h-3.5 shrink-0 opacity-80" viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M16 16 L20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="rerollOpponent"
+                                    wire:loading.attr="disabled"
+                                    @disabled($result)
+                                    class="btn-cartouche btn-cartouche--sm shrink-0"
+                                    title="{{ $this->rerollCost === 0 ? 'Chercher un autre adversaire (1er essai gratuit)' : 'Chercher un autre adversaire (coûte '.$this->rerollCost.' 🪙)' }}"
+                                >
+                                    <span>Autre</span>
+                                    @if ($this->rerollCost === 0)
+                                        <span class="px-1.5 py-0.5 rounded bg-forest/15 text-forest text-[10px] font-bold normal-case">Gratuit</span>
+                                    @else
+                                        <span class="px-1.5 py-0.5 rounded bg-brass/25 text-ink text-[10px] font-bold normal-case">{{ $this->rerollCost }} 🪙</span>
+                                    @endif
+                                </button>
+                            @endif
+                        </div>
+
+                        {{-- Barre de PV animée pendant le duel --}}
+                        <div class="duel-hp-hud">
+                            <span class="duel-hp-label">PV</span>
+                            <div class="space-y-1 min-w-0">
+                                <div class="duel-hp-track">
                                     <div
-                                        class="h-full rounded-full transition-all duration-300 shadow-sm {{ $side === 'challenger' ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-rose-500 to-amber-500' }}"
+                                        class="duel-hp-fill {{ $side === 'challenger' ? 'duel-hp-fill--player' : '' }}"
                                         x-bind:style="{ width: pct('{{ $side }}', {{ $card['hp'] }}) + '%' }"
                                     ></div>
                                 </div>
-                            </div>
-
-                            {{-- CARTE OFFICIELLE WHEELBORN AVEC 3D FLIP AU CLIC --}}
-                            <div
-                                x-data="{ flipped: false }"
-                                class="perspective-1000 w-[270px] select-none"
-                                style="width: 270px; height: 415px; min-height: 415px;"
-                            >
-                                <div
-                                    class="relative w-full h-full preserve-3d card-flip-transition"
-                                    :class="{ 'rotate-y-180': flipped }"
-                                    style="width: 270px; height: 415px; min-height: 415px;"
-                                >
-                                    {{-- ========================================================================= --}}
-                                    {{-- FACE RECTO (CLIC POUR FLIP VERS LE VERSO)                                  --}}
-                                    {{-- ========================================================================= --}}
-                                    <div
-                                        @click="flipped = true"
-                                        class="absolute inset-0 w-full h-full rounded-3xl border {{ $borderStyles }} overflow-hidden p-3.5 flex flex-col justify-between backface-hidden shadow-xl cursor-pointer hover:scale-[1.01] transition-transform duration-200"
-                                        :class="{ 'pointer-events-none': flipped }"
-                                        style="width: 270px; height: 415px; min-height: 415px;"
-                                        title="Cliquer pour afficher les statistiques et passifs"
-                                    >
-                                        {{-- En-tête Recto --}}
-                                        <div class="flex items-center justify-between gap-1">
-                                            <span class="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider {{ $badgeStyle }}">
-                                                {{ $card['rarity_label'] }}
-                                            </span>
-
-                                            <div class="flex items-center gap-1.5">
-                                                @if ($card['is_locked'])
-                                                    <span class="text-amber-400 text-[10px] bg-slate-950/80 px-1.5 py-0.5 rounded-full border border-amber-500/40 shadow-sm" title="Protégé contre le recyclage">
-                                                        🔒
-                                                    </span>
-                                                @endif
-                                                <div class="flex items-center gap-1 bg-slate-950/80 px-2 py-0.5 rounded-lg border border-slate-800">
-                                                    <span class="text-[11px] text-amber-400">⚡</span>
-                                                    <span class="font-extrabold text-xs text-white font-mono">{{ $card['power_score'] }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {{-- Scène Visuelle : Avatar Composite Paper Doll --}}
-                                        <div class="flex-1 my-1 flex items-center justify-center overflow-hidden">
-                                            <x-character-avatar :character="$card['character']" />
-                                        </div>
-
-                                        {{-- Pied de carte Recto : Titre & Composants --}}
-                                        <div class="text-center pt-2 border-t border-slate-800/80">
-                                            {{-- Étoiles de Rareté --}}
-                                            <div class="flex items-center justify-center gap-0.5 mb-0.5">
-                                                @for ($s = 1; $s <= 5; $s++)
-                                                    <span class="text-[11px] {{ $s <= $stars ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]' : 'text-slate-800' }}">
-                                                        ★
-                                                    </span>
-                                                @endfor
-                                            </div>
-                                            <h3 class="text-sm font-black text-white truncate tracking-tight">
-                                                {{ $card['name'] }}
-                                            </h3>
-                                            <p class="text-[11px] text-slate-400 truncate mt-0.5 font-medium">
-                                                {{ $card['race']['name'] ?? '' }} • {{ $card['weapon']['name'] ?? '' }}
-                                                <span class="text-indigo-400 font-semibold">({{ $card['power']['name'] ?? '' }})</span>
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {{-- ========================================================================= --}}
-                                    {{-- FACE VERSO (RÉVÉLÉE AU CLIC - STATISTIQUES & PASSIFS)                      --}}
-                                    {{-- ========================================================================= --}}
-                                    <div
-                                        @click="if (!$event.target.closest('button, a')) flipped = false"
-                                        class="absolute inset-0 w-full h-full rounded-3xl border {{ $borderStyles }} bg-slate-950/95 backdrop-blur-md overflow-hidden p-3.5 flex flex-col justify-between backface-hidden rotate-y-180 shadow-2xl cursor-pointer"
-                                        :class="{ 'pointer-events-auto': flipped, 'pointer-events-none': !flipped }"
-                                        style="width: 270px; height: 415px; min-height: 415px;"
-                                    >
-                                        <div>
-                                            {{-- En-tête Verso : Nom & Rareté --}}
-                                            <div class="flex items-center gap-1.5 mb-2 pb-1.5 border-b border-slate-800">
-                                                <span class="px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider {{ $badgeStyle }} shrink-0">
-                                                    {{ $card['rarity_label'] }}
-                                                </span>
-                                                <h4 class="text-xs font-black text-white truncate" title="{{ $card['name'] }}">
-                                                    {{ $card['name'] }}
-                                                </h4>
-                                            </div>
-
-                                            {{-- Tri-Slot Compact --}}
-                                            <div class="grid grid-cols-3 gap-1 py-1 px-1.5 rounded-xl bg-slate-900 border border-slate-800/80 mb-2 text-center text-[10px]">
-                                                <div>
-                                                    <span class="text-xs block">{{ $card['race']['icon'] ?? '👤' }}</span>
-                                                    <span class="text-[8px] text-slate-400 truncate block">{{ $card['race']['name'] ?? '' }}</span>
-                                                </div>
-                                                <div>
-                                                    <span class="text-xs block">{{ $card['weapon']['icon'] ?? '⚔️' }}</span>
-                                                    <span class="text-[8px] text-slate-400 truncate block">{{ $card['weapon']['name'] ?? '' }}</span>
-                                                </div>
-                                                <div>
-                                                    <span class="text-xs block">{{ $card['power']['icon'] ?? '🔮' }}</span>
-                                                    <span class="text-[8px] text-indigo-300 truncate block">{{ $card['power']['name'] ?? '' }}</span>
-                                                </div>
-                                            </div>
-
-                                            {{-- Barres de stats techniques --}}
-                                            <div class="space-y-1 mb-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800/50 text-[10px]">
-                                                <div>
-                                                    <div class="flex justify-between mb-0.5">
-                                                        <span class="text-rose-400 font-semibold">❤️ PV</span>
-                                                        <span class="font-mono text-white">{{ $card['hp'] }}</span>
-                                                    </div>
-                                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                        <div class="bg-rose-500 h-full rounded-full" style="width: {{ min(100, ($card['hp'] / 140) * 100) }}%"></div>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div class="flex justify-between mb-0.5">
-                                                        <span class="text-amber-400 font-semibold">⚔️ Force</span>
-                                                        <span class="font-mono text-white">{{ $card['strength'] }}</span>
-                                                    </div>
-                                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                        <div class="bg-amber-500 h-full rounded-full" style="width: {{ min(100, ($card['strength'] / 100) * 100) }}%"></div>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div class="flex justify-between mb-0.5">
-                                                        <span class="text-cyan-400 font-semibold">⚡ Vitesse</span>
-                                                        <span class="font-mono text-white">{{ $card['speed'] }}</span>
-                                                    </div>
-                                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                        <div class="bg-cyan-500 h-full rounded-full" style="width: {{ min(100, ($card['speed'] / 100) * 100) }}%"></div>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div class="flex justify-between mb-0.5">
-                                                        <span class="text-emerald-400 font-semibold">🛡️ Défense</span>
-                                                        <span class="font-mono text-white">{{ $card['defense'] }}</span>
-                                                    </div>
-                                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                        <div class="bg-emerald-500 h-full rounded-full" style="width: {{ min(100, ($card['defense'] / 100) * 100) }}%"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {{-- Synergies actives --}}
-                                            @if (!empty($card['synergies_data']))
-                                                <div class="mb-1 space-y-1">
-                                                    @foreach ($card['synergies_data'] as $syn)
-                                                        <div class="px-2 py-0.5 rounded text-[9px] font-bold border flex items-center justify-between {{ !empty($syn['is_unstable']) ? 'bg-amber-950/60 border-amber-600/70 text-amber-200' : 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200' }}">
-                                                            <span class="truncate">{{ $syn['icon'] ?? '✨' }} {{ $syn['name'] }}</span>
-                                                            @if (!empty($syn['is_unstable']))
-                                                                <span class="text-[8px] text-amber-400 font-mono ml-1">Instable</span>
-                                                            @endif
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <div class="mb-1 px-2 py-1 rounded bg-slate-900/50 border border-slate-800/40 text-center">
-                                                    <span class="text-[9px] text-slate-500 italic">Aucune synergie active</span>
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        {{-- Pied de carte Verso : Palmarès ou Statut Bot --}}
-                                        <div class="pt-1.5 border-t border-slate-800 text-center">
-                                            @if ($side === 'challenger')
-                                                <span class="text-[10px] text-slate-400 font-mono">
-                                                    🏆 Palmarès : {{ $card['wins'] }}V - {{ $card['losses'] }}D
-                                                </span>
-                                            @else
-                                                <span class="text-[10px] text-rose-400 font-mono">
-                                                    🤖 Combattant d'entraînement
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            {{-- ========================================================================= --}}
-            {{-- COLONNE DROITE : POSTE DE COMMANDE, ACTIONS, JOURNAL & BILAN (ZERO-SCROLL) --}}
-            {{-- ========================================================================= --}}
-            <div class="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-5 shadow-2xl backdrop-blur-md flex flex-col justify-between space-y-4 h-full w-full">
-                
-                {{-- En-tête : Réserve de Tickets & Timer en Direct --}}
-                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">⚔️</span>
-                        <div>
-                            <h2 class="font-extrabold text-sm text-white uppercase tracking-wider">Arène de Duel 1v1</h2>
-                            <p class="text-[11px] text-slate-400">Matchmaking d'entraînement d'arène</p>
-                        </div>
-                    </div>
-
-                    {{-- Tickets & Timer Alpine --}}
-                    <div>
-                        @if ($isAdmin)
-                            <span class="px-3 py-1 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                                <span>👑</span>
-                                <span>Tickets illimités</span>
-                            </span>
-                        @else
-                            <div class="flex items-center gap-2">
-                                <span class="px-3 py-1 rounded-full bg-slate-950 border text-xs font-bold font-mono flex items-center gap-1.5 {{ $arenaTickets > 0 ? 'text-amber-300 border-amber-500/40' : 'text-rose-400 border-rose-500/40' }}">
-                                    <span>🎟️</span>
-                                    <span>{{ $arenaTickets }}/{{ $maxTickets }}</span>
-                                </span>
-
-                                @if ($arenaTickets < $maxTickets)
-                                    <div
-                                        wire:key="arena-timer-{{ $arenaTickets }}-{{ $nextTicketSeconds }}"
-                                        x-data="{
-                                            remaining: {{ (int) $nextTicketSeconds }},
-                                            formatTime() {
-                                                let s = Math.max(0, parseInt(this.remaining, 10) || 0);
-                                                let m = Math.floor(s / 60);
-                                                let sec = s % 60;
-                                                return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
-                                            },
-                                            init() {
-                                                let interval = setInterval(() => {
-                                                    if (this.remaining > 0) {
-                                                        this.remaining--;
-                                                    } else {
-                                                        clearInterval(interval);
-                                                        $wire.call('refreshTickets');
-                                                    }
-                                                }, 1000);
-                                            }
-                                        }"
-                                        class="text-[11px] font-mono text-cyan-400 bg-cyan-950/60 px-2.5 py-1 rounded-full border border-cyan-800/40 flex items-center gap-1 shadow-sm"
-                                    >
-                                        <span>⏳</span>
-                                        <span>+1 dans <strong x-text="formatTime()" class="text-cyan-200 font-bold">{{ sprintf('%02d:%02d', floor($nextTicketSeconds / 60), $nextTicketSeconds % 60) }}</strong></span>
+                                @if ($card['elo'])
+                                    <div class="font-display text-[10px] font-bold text-ink-muted leading-none">
+                                        {{ $card['elo'] }} Élo
                                     </div>
                                 @endif
                             </div>
-                        @endif
-                    </div>
-                </div>
+                            <span class="duel-hp-val">
+                                <strong x-text="hp('{{ $side }}', {{ $card['hp'] }})">{{ $card['hp'] }}</strong>/{{ $card['hp'] }}
+                            </span>
+                        </div>
 
-                {{-- Message d'erreur éventuel --}}
-                @if ($error)
-                    <div class="p-3 bg-rose-950/80 border border-rose-700/60 rounded-2xl text-xs font-bold text-rose-200 flex items-center gap-2 animate-pulse">
-                        <span>⚠️</span>
-                        <span>{{ $error }}</span>
-                    </div>
-                @endif
+                        {{-- La VRAIE Carte Universelle Codex (316×440, flippable à tout moment) --}}
+                        <div class="duel-card-stage">
+                            <x-folio-card
+                                :card="$source"
+                                :showOwnerActions="false"
+                                :folioKey="'arena-'.$side.'-'.$cardId"
+                                wire:key="arena-card-{{ $side }}-{{ $cardId }}"
+                            />
 
-                {{-- ZONE CENTRALE DYNAMIQUE : BRIEFING TACTIQUE OU JOURNAL EN DIRECT OU BILAN --}}
-                <div class="flex-1 flex flex-col justify-center">
-                    @if (!$result)
-                        {{-- 1. État Pré-combat : Comparatif Dynamique des Forces (Jauges Bicolores Vert/Rouge) --}}
-                        @if ($comparison)
-                            <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 space-y-4 my-auto shadow-inner">
-                                {{-- En-tête du comparatif : Titre & Badge d'Équilibre Global --}}
-                                <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="text-sm">🎯</span>
-                                        <span class="text-xs font-black uppercase tracking-wider text-slate-200 truncate">
-                                            Comparatif des Forces
-                                        </span>
-                                    </div>
-
-                                    {{-- Indicateur d'avantage de Puissance --}}
-                                    @if ($comparison['power_diff'] > 0)
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 flex items-center gap-1 shadow-sm shrink-0">
-                                            <span>▲</span>
-                                            <span>Avantage Héros (+{{ $comparison['power_diff'] }})</span>
-                                        </span>
-                                    @elseif ($comparison['power_diff'] < 0)
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-950/80 border border-rose-800/60 text-rose-300 flex items-center gap-1 shadow-sm shrink-0">
-                                            <span>▼</span>
-                                            <span>Avantage Bot (+{{ abs($comparison['power_diff']) }})</span>
-                                        </span>
-                                    @else
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/80 border border-amber-800/60 text-amber-300 shrink-0">
-                                            Équilibre Parfait
-                                        </span>
-                                    @endif
-                                </div>
-
-                                {{-- Bandeau des Duellistes & Initiative --}}
-                                <div class="flex items-center justify-between text-[11px] bg-slate-900/60 px-3.5 py-2 rounded-xl border border-slate-800/50">
-                                    {{-- Combattant Joueur --}}
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
-                                        <span class="font-extrabold text-white truncate max-w-[160px]">{{ $comparison['challenger']['name'] }}</span>
-                                        <span class="text-[10px] font-mono font-bold text-amber-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">⚡{{ $comparison['challenger']['power_score'] }}</span>
-                                    </div>
-
-                                    {{-- Badge Initiative central --}}
-                                    <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold border shrink-0 {{ $comparison['initiative']['badge'] }}">
-                                        {{ $comparison['initiative']['icon'] }} {{ $comparison['initiative']['label'] }}
-                                    </span>
-
-                                    {{-- Adversaire Bot --}}
-                                    <div class="flex items-center gap-2 min-w-0 justify-end">
-                                        <span class="text-[10px] font-mono font-bold text-amber-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-slate-800 shrink-0">⚡{{ $comparison['opponent']['power_score'] }}</span>
-                                        <span class="font-extrabold text-slate-300 truncate max-w-[160px]">{{ $comparison['opponent']['name'] }}</span>
-                                        <span class="w-2.5 h-2.5 rounded-full bg-rose-400 shrink-0"></span>
-                                    </div>
-                                </div>
-
-                                {{-- LES 4 BARRES HORIZONTALES DE CONFRONTATION (VERT GAUCHE -> DROITE / ROUGE DROITE -> GAUCHE) --}}
-                                <div class="space-y-3">
-                                    @foreach ($comparison['stats'] as $sKey => $s)
-                                        <div class="space-y-1">
-                                            {{-- Ligne d'en-tête de la statistique : Joueur (gauche), Nom & Icône (centre), Bot (droite) --}}
-                                            <div class="flex items-center justify-between text-xs font-mono">
-                                                {{-- Valeur Joueur --}}
-                                                <div class="flex items-center gap-1.5 min-w-[70px]">
-                                                    <span class="font-extrabold text-sm {{ $s['diff'] > 0 ? 'text-emerald-400' : ($s['diff'] < 0 ? 'text-slate-400' : 'text-slate-200') }}">
-                                                        {{ $s['c_val'] }}
-                                                    </span>
-                                                    @if ($s['diff'] > 0)
-                                                        <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-950/90 border border-emerald-800/80 text-emerald-300 font-bold">
-                                                            +{{ $s['diff'] }}
-                                                        </span>
-                                                    @endif
-                                                </div>
-
-                                                {{-- Libellé au centre avec icône --}}
-                                                <div class="text-[11px] font-sans font-bold text-slate-300 flex items-center gap-1 select-none">
-                                                    <span>{{ $s['icon'] }}</span>
-                                                    <span>{{ $s['label'] }}</span>
-                                                </div>
-
-                                                {{-- Valeur Bot --}}
-                                                <div class="flex items-center gap-1.5 min-w-[70px] justify-end">
-                                                    @if ($s['diff'] < 0)
-                                                        <span class="text-[9px] px-1 py-0.2 rounded bg-rose-950/90 border border-rose-800/80 text-rose-300 font-bold">
-                                                            +{{ abs($s['diff']) }}
-                                                        </span>
-                                                    @endif
-                                                    <span class="font-extrabold text-sm {{ $s['diff'] < 0 ? 'text-rose-400' : ($s['diff'] > 0 ? 'text-slate-400' : 'text-slate-200') }}">
-                                                        {{ $s['o_val'] }}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {{-- Jauge bicolore horizontale de ratio --}}
-                                            <div class="relative h-3 rounded-full bg-slate-950 border border-slate-800/90 overflow-hidden flex shadow-inner">
-                                                {{-- Segment Vert (Joueur, de gauche à droite) --}}
-                                                <div
-                                                    class="h-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400 transition-all duration-300"
-                                                    style="width: {{ $s['ratio_c'] }}%;"
-                                                    title="Joueur : {{ $s['c_val'] }} ({{ $s['ratio_c'] }}%)"
-                                                ></div>
-
-                                                {{-- Ligne de démarcation blanche lumineuse à l'intersection --}}
-                                                <div class="w-0.5 h-full bg-white shadow-[0_0_6px_white] z-10 shrink-0"></div>
-
-                                                {{-- Segment Rouge (Bot, de droite à gauche) --}}
-                                                <div
-                                                    class="h-full bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 transition-all duration-300 flex-1"
-                                                    title="Bot : {{ $s['o_val'] }} ({{ $s['ratio_o'] }}%)"
-                                                ></div>
-
-                                                {{-- Marqueur subtil d'équilibre 50% au centre --}}
-                                                <div class="absolute inset-y-0 left-1/2 w-px bg-white/20 pointer-events-none z-0"></div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-
-                                {{-- Comparatif des Synergies Actives en bas --}}
-                                <div class="pt-2 border-t border-slate-800/70 grid grid-cols-2 gap-2 text-[10px]">
-                                    {{-- Synergies Joueur --}}
-                                    <div class="bg-slate-900/50 p-2 rounded-xl border border-slate-800/60 space-y-1">
-                                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                                            <span class="text-emerald-400">●</span>
-                                            <span>Joueur ({{ count($comparison['challenger']['synergies'] ?? []) }})</span>
-                                        </div>
-                                        @if (!empty($comparison['challenger']['synergies']))
-                                            <div class="flex flex-wrap gap-1">
-                                                @foreach ($comparison['challenger']['synergies'] as $syn)
-                                                    <span class="px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/60 text-purple-200 font-semibold truncate text-[9px]">
-                                                        🔮 {{ $syn }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            <span class="text-slate-500 italic block text-[9px]">Aucune synergie active</span>
-                                        @endif
-                                    </div>
-
-                                    {{-- Synergies Bot --}}
-                                    <div class="bg-slate-900/50 p-2 rounded-xl border border-slate-800/60 space-y-1 text-right">
-                                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center justify-end gap-1">
-                                            <span>Bot ({{ count($comparison['opponent']['synergies'] ?? []) }})</span>
-                                            <span class="text-rose-400">●</span>
-                                        </div>
-                                        @if (!empty($comparison['opponent']['synergies']))
-                                            <div class="flex flex-wrap gap-1 justify-end">
-                                                @foreach ($comparison['opponent']['synergies'] as $syn)
-                                                    <span class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-800/60 text-rose-200 font-semibold truncate text-[9px]">
-                                                        🔮 {{ $syn }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            <span class="text-slate-500 italic block text-[9px]">Aucune synergie active</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-
-                    @else
-                        {{-- 2. État Combat en cours / Résolu : Journal de combat & Bilan --}}
-                        <div class="flex flex-col h-full space-y-3">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                                    <span>📜</span>
-                                    <span>Journal des Échanges</span>
-                                </h3>
-                                <button
-                                    x-show="!done"
-                                    x-on:click="finish()"
-                                    class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-lg border border-slate-700 shadow-sm transition hover:scale-105 active:scale-95 flex items-center gap-1"
-                                >
-                                    Passer le combat ⏭
-                                </button>
-                            </div>
-
-                            {{-- Boîte de défilement des logs --}}
-                            <div x-ref="log" class="h-72 overflow-y-auto space-y-1 font-mono text-xs bg-slate-950/90 rounded-2xl p-4 border border-slate-800/90 shadow-inner">
-                                <template x-for="(entry, i) in entries" :key="i">
-                                    <p :class="style(entry)" x-text="entry.message" class="leading-relaxed"></p>
-                                </template>
-                            </div>
-
-                            {{-- Bilan Final (s'affiche instantanément dès que l'animation est finie) --}}
-                            <div x-show="done" x-cloak x-transition class="bg-slate-950/95 border border-slate-800 rounded-2xl p-3.5 text-center space-y-2">
-                                @if ($result['draw'])
-                                    <div class="text-xl font-black text-amber-400 flex items-center justify-center gap-1.5">
-                                        <span>🩸</span>
-                                        <span>ÉGALITÉ SANGLANTE !</span>
-                                    </div>
-                                    <div class="text-xs text-slate-400">Double K.O. simultané. Aucun changement d'Élo.</div>
-                                @elseif ($result['won'])
-                                    <div class="text-2xl font-black text-emerald-400 flex items-center justify-center gap-2">
-                                        <span>🏆</span>
-                                        <span>VICTOIRE ÉCLATANTE !</span>
-                                    </div>
+                            @if ($result)
+                                @if ($isDraw)
+                                    <div x-show="done" x-cloak class="duel-stamp duel-stamp--draw">ÉGALITÉ</div>
+                                @elseif ($isSideWinner)
+                                    <div x-show="done" x-cloak class="duel-stamp duel-stamp--win">VICTORIEUX</div>
                                 @else
-                                    <div class="text-2xl font-black text-rose-400 flex items-center justify-center gap-2">
-                                        <span>💀</span>
-                                        <span>DÉFAITE</span>
-                                    </div>
+                                    <div x-show="done" x-cloak class="duel-stamp duel-stamp--lose">VAINCU</div>
                                 @endif
-
-                                <div class="text-[11px] text-slate-500 font-mono">
-                                    {{ $result['turns'] }} tour(s) {{ $result['reason'] === 'turn_limit' ? '• décision aux points' : '' }}
-                                </div>
-
-                                {{-- Récompenses récoltées --}}
-                                <div class="flex justify-center gap-2 text-xs font-bold font-mono pt-1">
-                                    <span class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 {{ $result['elo_delta'] >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
-                                        {{ $result['elo_delta'] >= 0 ? '+' : '' }}{{ $result['elo_delta'] }} Élo
-                                    </span>
-                                    <span class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-amber-400">
-                                        +{{ $result['coins'] }} 🪙
-                                    </span>
-                                    <span class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-sky-400">
-                                        +{{ $result['xp'] }} XP
-                                    </span>
-                                </div>
-
-                                {{-- Changement de ligue --}}
-                                @if ($result['league_change'])
-                                    @if ($result['league_change']['type'] === 'promotion')
-                                        <div
-                                            class="mx-auto max-w-xs rounded-xl border-2 bg-slate-900/80 px-3 py-2 animate-bounce"
-                                            style="border-color: {{ $result['league_change']['color'] }}; box-shadow: 0 0 24px {{ $result['league_change']['color'] }}55"
-                                        >
-                                            <div class="text-2xl">🎉 {{ $result['league_change']['icon'] }} 🎉</div>
-                                            <div class="text-sm font-black uppercase tracking-wider" style="color: {{ $result['league_change']['color'] }}">Promotion !</div>
-                                            <div class="text-xs text-slate-300">
-                                                Tu entres en ligue <strong style="color: {{ $result['league_change']['color'] }}">{{ $result['league_change']['label'] }}</strong>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <div class="mx-auto max-w-xs rounded-xl border-2 border-rose-700/60 bg-rose-950/40 px-3 py-2">
-                                            <div class="text-2xl">📉 {{ $result['league_change']['icon'] }}</div>
-                                            <div class="text-sm font-black uppercase tracking-wider text-rose-400">Relégation</div>
-                                            <div class="text-xs text-slate-300">
-                                                Tu redescends en ligue <strong style="color: {{ $result['league_change']['color'] }}">{{ $result['league_change']['label'] }}</strong>. Quelques victoires et tu remontes !
-                                            </div>
-                                        </div>
-                                    @endif
-                                @endif
-                            </div>
+                            @endif
                         </div>
-                    @endif
-                </div>
-
-                {{-- BOUTONS D'ACTION DU POSTE DE COMMANDE --}}
-                <div class="pt-2 border-t border-slate-800/80">
-                    @if (!$result)
-                        <button
-                            type="button"
-                            wire:click="fight"
-                            wire:loading.attr="disabled"
-                            @disabled(!$isAdmin && $arenaTickets === 0)
-                            class="w-full py-4 text-white font-black text-base rounded-2xl shadow-xl transition-all duration-200 flex items-center justify-center gap-2 {{ !$isAdmin && $arenaTickets === 0 ? 'opacity-40 cursor-not-allowed bg-slate-800 text-slate-500 shadow-none' : 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-rose-900/40 hover:scale-[1.02] active:scale-[0.98] cursor-pointer' }}"
-                        >
-                            <span wire:loading.remove wire:target="fight" class="flex items-center gap-2">
-                                <span>⚔️</span>
-                                <span>Combattre !</span>
-                                <span class="text-xs font-bold opacity-80">(-1 🎟️)</span>
-                            </span>
-                            <span wire:loading wire:target="fight" class="flex items-center gap-2">
-                                <span class="animate-spin">⏳</span>
-                                <span>Combat en cours...</span>
-                            </span>
-                        </button>
-                    @else
-                        <div class="grid grid-cols-2 gap-2.5">
-                            <button
-                                type="button"
-                                wire:click="rematch"
-                                class="py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-extrabold text-xs rounded-2xl border border-slate-700 shadow-md transition hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
-                                title="Rejouer contre le même adversaire"
-                            >
-                                <span>🔄</span>
-                                <span>Revanche</span>
-                            </button>
-                            <button
-                                type="button"
-                                wire:click="newOpponent"
-                                class="py-3.5 bg-gradient-to-r from-indigo-600 to-rose-600 hover:from-indigo-500 hover:to-rose-500 text-white font-extrabold text-xs rounded-2xl shadow-lg transition hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
-                                title="Chercher un nouvel adversaire"
-                            >
-                                <span>⚔️</span>
-                                <span>Autre adversaire</span>
-                            </button>
-                        </div>
-                    @endif
-                </div>
+                    </div>
+                @endforeach
             </div>
         </div>
 
         {{-- ========================================================================= --}}
-        {{-- MODALE FLOTTANTE DE SÉLECTION DU COMBATTANT (AVEC RECHERCHE & FILTRES)     --}}
+        {{-- POSTE TACTIQUE & COMMANDES : COMPARATIF / JOURNAL / BILAN / ACTIONS       --}}
+        {{-- ========================================================================= --}}
+        <div class="codex-panel codex-panel--framed p-5 sm:p-6 space-y-5">
+            {{-- Boutons d'action principaux --}}
+            <div class="flex flex-wrap items-center justify-center gap-3 pb-4 border-b border-parchment-border/70">
+                @if (! $result)
+                    <button
+                        type="button"
+                        wire:click="fight"
+                        wire:loading.attr="disabled"
+                        @disabled(! $isAdmin && $arenaTickets === 0)
+                        class="btn-wax w-full sm:w-auto sm:min-w-[280px] py-3 text-base"
+                    >
+                        <span wire:loading.remove wire:target="fight" class="inline-flex items-center gap-2">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M5 19 L18 6 M14 5 H19 V10 M5 5 L19 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Combattre !</span>
+                            @if (! $isAdmin)
+                                <span class="text-xs opacity-85 font-body normal-case">(-1 🎟️)</span>
+                            @endif
+                        </span>
+                        <span wire:loading wire:target="fight" class="inline-flex items-center gap-2">
+                            <span>⏳</span>
+                            <span>Combat en cours...</span>
+                        </span>
+                    </button>
+                @else
+                    <button
+                        type="button"
+                        wire:click="rematch"
+                        class="btn-cartouche min-w-[160px]"
+                        title="Rejouer contre le même adversaire"
+                    >
+                        <span>Revanche</span>
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="newOpponent"
+                        class="btn-brass min-w-[190px]"
+                        title="Chercher un nouvel adversaire"
+                    >
+                        <span>Autre adversaire</span>
+                    </button>
+                @endif
+            </div>
+
+            @if (! $result)
+                {{-- 1. ÉTAT PRÉ-COMBAT : COMPARATIF DES FORCES --}}
+                @if ($comparison)
+                    <div class="space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-parchment-border/60">
+                            <h3 class="font-display text-sm font-bold uppercase tracking-wider text-ink flex items-center gap-2">
+                                <svg class="w-4 h-4 text-brass-dark" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 3 V21 M4 8 L20 8 M6 8 L4 14 H8 Z M18 8 L16 14 H20 Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>Comparatif des Forces</span>
+                            </h3>
+
+                            @if ($comparison['power_diff'] > 0)
+                                <span class="codex-init-badge codex-init-badge--player">
+                                    <span>▲</span>
+                                    <span>Avantage Héros (+{{ $comparison['power_diff'] }})</span>
+                                </span>
+                            @elseif ($comparison['power_diff'] < 0)
+                                <span class="codex-init-badge codex-init-badge--opponent">
+                                    <span>▼</span>
+                                    <span>Avantage Bot (+{{ abs($comparison['power_diff']) }})</span>
+                                </span>
+                            @else
+                                <span class="codex-init-badge codex-init-badge--draw">
+                                    Équilibre Parfait
+                                </span>
+                            @endif
+                        </div>
+
+                        {{-- Bandeau Duellistes & Initiative --}}
+                        <div class="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg bg-parchment-bright/90 border border-parchment-border">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="w-2.5 h-2.5 rounded-full bg-forest shrink-0"></span>
+                                <span class="font-display text-xs sm:text-sm font-bold text-ink truncate max-w-[180px]">{{ $comparison['challenger']['name'] }}</span>
+                                <span class="px-1.5 py-0.5 rounded bg-brass/20 border border-brass-dark/40 font-display text-[11px] font-bold text-ink">✦ {{ $comparison['challenger']['power_score'] }}</span>
+                            </div>
+
+                            <span class="{{ $comparison['initiative']['badge'] }}">
+                                <span>{{ $comparison['initiative']['icon'] }}</span>
+                                <span>{{ $comparison['initiative']['label'] }}</span>
+                            </span>
+
+                            <div class="flex items-center gap-2 min-w-0 justify-end">
+                                <span class="px-1.5 py-0.5 rounded bg-brass/20 border border-brass-dark/40 font-display text-[11px] font-bold text-ink">✦ {{ $comparison['opponent']['power_score'] }}</span>
+                                <span class="font-display text-xs sm:text-sm font-bold text-ink-sepia truncate max-w-[180px]">{{ $comparison['opponent']['name'] }}</span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-wax shrink-0"></span>
+                            </div>
+                        </div>
+
+                        {{-- 4 Barres Bicolores (Vert Forêt vs Cire Cramoisie) --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3.5">
+                            @foreach ($comparison['stats'] as $s)
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <div class="flex items-center gap-1.5 min-w-[68px]">
+                                            <span class="font-display text-sm font-bold {{ $s['diff'] > 0 ? 'text-forest' : ($s['diff'] < 0 ? 'text-ink-muted' : 'text-ink') }}">
+                                                {{ $s['c_val'] }}
+                                            </span>
+                                            @if ($s['diff'] > 0)
+                                                <span class="px-1.5 py-0.5 rounded bg-forest/15 border border-forest/40 font-display text-[10px] font-bold text-forest">
+                                                    +{{ $s['diff'] }}
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <div class="font-display text-[11px] font-bold uppercase tracking-wide text-ink-sepia flex items-center gap-1">
+                                            <span>{{ $s['label'] }}</span>
+                                        </div>
+
+                                        <div class="flex items-center gap-1.5 min-w-[68px] justify-end">
+                                            @if ($s['diff'] < 0)
+                                                <span class="px-1.5 py-0.5 rounded bg-wax/10 border border-wax/40 font-display text-[10px] font-bold text-wax">
+                                                    +{{ abs($s['diff']) }}
+                                                </span>
+                                            @endif
+                                            <span class="font-display text-sm font-bold {{ $s['diff'] < 0 ? 'text-wax' : ($s['diff'] > 0 ? 'text-ink-muted' : 'text-ink') }}">
+                                                {{ $s['o_val'] }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="relative h-3 rounded-full bg-parchment-shade border border-parchment-border overflow-hidden flex">
+                                        <div
+                                            class="h-full transition-all duration-300"
+                                            style="width: {{ $s['ratio_c'] }}%; background: linear-gradient(90deg, #1E4D33, #2E7A50);"
+                                            title="Joueur : {{ $s['c_val'] }} ({{ $s['ratio_c'] }}%)"
+                                        ></div>
+                                        <div class="w-0.5 h-full bg-brass-light z-10 shrink-0"></div>
+                                        <div
+                                            class="h-full transition-all duration-300 flex-1"
+                                            style="background: linear-gradient(90deg, #B3261E, #6E1813);"
+                                            title="Adversaire : {{ $s['o_val'] }} ({{ $s['ratio_o'] }}%)"
+                                        ></div>
+                                        <div class="absolute inset-y-0 left-1/2 w-px bg-ink/25 pointer-events-none"></div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        {{-- Face-à-face des Synergies --}}
+                        <div class="pt-3 border-t border-parchment-border/60 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <div class="p-3 rounded-lg bg-parchment-bright/80 border border-parchment-border space-y-1.5">
+                                <div class="font-display text-[11px] font-bold uppercase tracking-wider text-forest flex items-center gap-1.5">
+                                    <span>●</span>
+                                    <span>Synergies Joueur ({{ count($comparison['challenger']['synergies'] ?? []) }})</span>
+                                </div>
+                                @if (! empty($comparison['challenger']['synergies']))
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @foreach ($comparison['challenger']['synergies'] as $syn)
+                                            <span class="px-2 py-0.5 rounded bg-brass/20 border border-brass-dark/40 font-body text-xs font-bold text-ink">
+                                                ✦ {{ $syn }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span class="font-body italic text-ink-muted block">Aucune synergie active</span>
+                                @endif
+                            </div>
+
+                            <div class="p-3 rounded-lg bg-parchment-bright/80 border border-parchment-border space-y-1.5 sm:text-right">
+                                <div class="font-display text-[11px] font-bold uppercase tracking-wider text-wax flex items-center sm:justify-end gap-1.5">
+                                    <span>Synergies Adversaire ({{ count($comparison['opponent']['synergies'] ?? []) }})</span>
+                                    <span>●</span>
+                                </div>
+                                @if (! empty($comparison['opponent']['synergies']))
+                                    <div class="flex flex-wrap gap-1.5 sm:justify-end">
+                                        @foreach ($comparison['opponent']['synergies'] as $syn)
+                                            <span class="px-2 py-0.5 rounded bg-wax/10 border border-wax/35 font-body text-xs font-bold text-wax">
+                                                ✦ {{ $syn }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span class="font-body italic text-ink-muted block">Aucune synergie active</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            @else
+                {{-- 2. ÉTAT COMBAT EN COURS / RÉSOLU : CHRONIQUE & BILAN --}}
+                <div class="space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h3 class="font-display text-sm font-bold uppercase tracking-wider text-ink flex items-center gap-2">
+                            <svg class="w-4 h-4 text-brass-dark" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M5 4 H16 L19 7 V20 H5 Z M9 10 H15 M9 14 H15 M9 18 H12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Journal des Échanges</span>
+                        </h3>
+                        <button
+                            type="button"
+                            x-show="!done"
+                            x-on:click="finish()"
+                            class="btn-cartouche btn-cartouche--sm"
+                        >
+                            Passer le combat ⏭
+                        </button>
+                    </div>
+
+                    <div x-ref="log" class="duel-log-scroll h-72 overflow-y-auto p-3.5 space-y-1.5">
+                        <template x-for="(entry, i) in entries" :key="i">
+                            <p :class="style(entry)" x-text="entry.message"></p>
+                        </template>
+                    </div>
+
+                    {{-- Bilan Final --}}
+                    <div x-show="done" x-cloak x-transition class="p-4 sm:p-5 rounded-lg bg-parchment-bright border-2 border-brass text-center space-y-3">
+                        @if ($result['draw'])
+                            <div class="font-display text-xl sm:text-2xl font-bold text-ink-sepia">
+                                ÉGALITÉ SANGLANTE !
+                            </div>
+                            <p class="font-body text-sm italic text-ink-muted">Double K.O. simultané. Aucun changement d'Élo.</p>
+                        @elseif ($result['won'])
+                            <div class="font-display text-xl sm:text-2xl font-bold text-forest">
+                                VICTOIRE ÉCLATANTE !
+                            </div>
+                        @else
+                            <div class="font-display text-xl sm:text-2xl font-bold text-wax">
+                                DÉFAITE
+                            </div>
+                        @endif
+
+                        <div class="font-body text-xs font-semibold text-ink-muted">
+                            {{ $result['turns'] }} tour(s) {{ $result['reason'] === 'turn_limit' ? '• décision aux points' : '' }}
+                        </div>
+
+                        <div class="flex flex-wrap justify-center gap-2.5 pt-1">
+                            <span class="px-3 py-1 rounded-md bg-parchment-light border border-parchment-border font-display text-xs font-bold {{ $result['elo_delta'] >= 0 ? 'text-forest' : 'text-wax' }}">
+                                {{ $result['elo_delta'] >= 0 ? '+' : '' }}{{ $result['elo_delta'] }} Élo
+                            </span>
+                            <span class="px-3 py-1 rounded-md bg-parchment-light border border-parchment-border font-display text-xs font-bold text-brass-dark">
+                                +{{ $result['coins'] }} 🪙
+                            </span>
+                            <span class="px-3 py-1 rounded-md bg-parchment-light border border-parchment-border font-display text-xs font-bold text-ink">
+                                +{{ $result['xp'] }} XP
+                            </span>
+                        </div>
+
+                        @if ($result['league_change'])
+                            @if ($result['league_change']['type'] === 'promotion')
+                                <div class="mx-auto max-w-sm rounded-lg border-2 border-brass bg-parchment-light px-4 py-3 space-y-1 shadow-md">
+                                    <div class="text-xl">{{ $result['league_change']['icon'] }}</div>
+                                    <div class="font-display text-sm font-bold uppercase tracking-wider text-brass-dark">Promotion !</div>
+                                    <div class="font-body text-sm text-ink">
+                                        Vous entrez en ligue <strong class="font-display text-ink">{{ $result['league_change']['label'] }}</strong>.
+                                    </div>
+                                </div>
+                            @else
+                                <div class="mx-auto max-w-sm rounded-lg border-2 border-wax/60 bg-wax/5 px-4 py-3 space-y-1">
+                                    <div class="text-xl">{{ $result['league_change']['icon'] }}</div>
+                                    <div class="font-display text-sm font-bold uppercase tracking-wider text-wax">Relégation</div>
+                                    <div class="font-body text-sm text-ink-sepia">
+                                        Vous redescendez en ligue <strong class="font-display text-ink">{{ $result['league_change']['label'] }}</strong>. Quelques victoires et vous remontez !
+                                    </div>
+                                </div>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        {{-- ========================================================================= --}}
+        {{-- MODALE SÉLECTION DU COMBATTANT (VRAIES CARTES UNIVERSELLES)               --}}
         {{-- ========================================================================= --}}
         @if ($showFighterModal)
             <div
-                class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300"
+                class="codex-modal-backdrop"
                 x-data
                 x-on:keydown.escape.window="$wire.closeFighterModal()"
             >
                 <div
-                    class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-4xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden"
+                    class="codex-modal-panel max-w-6xl max-h-[90vh] flex flex-col"
                     @click.outside="$wire.closeFighterModal()"
                 >
-                    {{-- En-tête de la modale --}}
-                    <div class="p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/60">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">⚔️</span>
-                            <div>
-                                <h3 class="text-base font-extrabold text-white">Sélectionner ton Combattant</h3>
-                                <p class="text-xs text-slate-400">Choisis le héros qui entrera dans l'arène de duel</p>
-                            </div>
+                    <div class="p-4 sm:p-5 border-b border-parchment-border bg-parchment-shade/45 flex items-center justify-between gap-3">
+                        <div>
+                            <h3 class="font-display text-lg font-bold text-ink">Sélectionner ton Combattant</h3>
+                            <p class="font-body text-sm italic text-ink-muted">Cliquez une carte pour consulter son verso, puis choisissez votre champion.</p>
                         </div>
                         <button
+                            type="button"
                             wire:click="closeFighterModal"
-                            class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm font-bold transition hover:bg-slate-700"
+                            class="w-9 h-9 rounded-full bg-parchment-bright border border-parchment-border text-ink hover:bg-wax hover:text-parchment-bright hover:border-wax transition flex items-center justify-center font-bold cursor-pointer"
                             title="Fermer la sélection"
+                            aria-label="Fermer la sélection"
                         >
                             ✕
                         </button>
                     </div>
 
-                    {{-- Barre d'outils : Recherche & Filtres --}}
-                    <div class="p-4 border-b border-slate-800/80 bg-slate-950/40 space-y-3">
+                    {{-- Filtres Modale --}}
+                    <div class="p-4 border-b border-parchment-border bg-parchment-light/70 space-y-3">
                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                            {{-- Champ Recherche --}}
                             <div class="sm:col-span-8 relative">
-                                <span class="absolute inset-y-0 left-3 flex items-center text-slate-500 text-sm pointer-events-none">🔍</span>
                                 <input
                                     type="text"
                                     wire:model.live.debounce.250ms="search"
                                     placeholder="Rechercher par nom, race, arme ou pouvoir..."
-                                    class="w-full pl-9 pr-8 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
+                                    class="w-full pl-3.5 pr-9 py-2 bg-parchment-bright border border-parchment-border rounded-md font-body text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brass-dark focus:ring-1 focus:ring-brass-dark"
                                 >
-                                @if (!empty($search))
+                                @if (! empty($search))
                                     <button
+                                        type="button"
                                         wire:click="$set('search', '')"
-                                        class="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-slate-300 text-xs"
+                                        class="absolute inset-y-0 right-3 flex items-center text-ink-muted hover:text-ink text-xs font-bold"
+                                        aria-label="Effacer la recherche"
                                     >
                                         ✕
                                     </button>
                                 @endif
                             </div>
 
-                            {{-- Tri --}}
                             <div class="sm:col-span-4">
                                 <select
                                     wire:model.live="sortBy"
-                                    class="w-full py-2 px-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-amber-300 font-semibold focus:outline-none focus:border-amber-400 cursor-pointer"
+                                    class="w-full py-2 px-3 bg-parchment-bright border border-parchment-border rounded-md font-display text-xs font-bold text-ink focus:outline-none focus:border-brass-dark cursor-pointer"
                                 >
-                                    <option value="power_desc">⚡ Puissance (Max → Min)</option>
-                                    <option value="power_asc">⚡ Puissance (Min → Max)</option>
-                                    <option value="wins_desc">🏆 Victoires (Max)</option>
-                                    <option value="date_desc">🕒 Plus récents</option>
+                                    <option value="power_desc">Puissance (Max → Min)</option>
+                                    <option value="power_asc">Puissance (Min → Max)</option>
+                                    <option value="wins_desc">Victoires (Max)</option>
+                                    <option value="date_desc">Plus récents</option>
                                 </select>
                             </div>
                         </div>
 
-                        {{-- Filtres de Rareté rapides --}}
-                        <div class="flex items-center gap-1.5 flex-wrap text-xs">
-                            <span class="text-slate-400 text-[11px] font-semibold mr-1">Rareté :</span>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-display text-xs font-bold text-ink-muted mr-1">Rareté :</span>
                             <button
+                                type="button"
                                 wire:click="$set('rarityFilter', '')"
-                                class="px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase transition {{ empty($rarityFilter) ? 'bg-rose-600 text-white shadow-sm' : 'bg-slate-800 text-slate-400 hover:text-white' }}"
+                                class="filter-chip {{ empty($rarityFilter) ? 'is-active' : '' }}"
                             >
                                 Tous
                             </button>
-                            @foreach (['common' => 'Commune', 'rare' => 'Rare', 'epic' => 'Épique', 'legendary' => 'Légendaire'] as $rKey => $rLabel)
+                            @foreach (['common' => ['Commune', '#6B4A2A'], 'rare' => ['Rare', '#2A3A7A'], 'epic' => ['Épique', '#54274A'], 'legendary' => ['Légendaire', '#74520A']] as $rKey => [$rLabel, $rHex])
                                 <button
+                                    type="button"
                                     wire:click="$set('rarityFilter', '{{ $rKey }}')"
-                                    class="px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase transition {{ $rarityFilter === $rKey ? 'bg-rose-600 text-white shadow-sm' : 'bg-slate-800 text-slate-400 hover:text-white' }}"
+                                    class="filter-chip {{ $rarityFilter === $rKey ? 'is-active' : '' }}"
+                                    style="--chip-hex: {{ $rHex }};"
                                 >
                                     {{ $rLabel }}
                                 </button>
                             @endforeach
 
-                            @if (!empty($search) || !empty($rarityFilter))
+                            @if (! empty($search) || ! empty($rarityFilter))
                                 <button
+                                    type="button"
                                     wire:click="resetModalFilters"
-                                    class="ml-auto text-[11px] text-rose-400 hover:text-rose-300 font-semibold underline"
+                                    class="ml-auto font-display text-xs font-bold text-wax hover:underline cursor-pointer"
                                 >
                                     Réinitialiser
                                 </button>
@@ -764,99 +604,45 @@
                         </div>
                     </div>
 
-                    {{-- Corps : Grille compacte des Héros éligibles --}}
-                    <div class="p-5 overflow-y-auto flex-1 max-h-[58vh]">
+                    {{-- Grille des cartes universelles --}}
+                    <div class="p-4 sm:p-5 overflow-y-auto flex-1">
                         @if ($this->modalFighters->isEmpty())
                             <div class="text-center py-12 space-y-3">
-                                <span class="text-4xl">🔍</span>
-                                <p class="text-sm font-bold text-slate-300">Aucun combattant ne correspond à cette recherche.</p>
+                                <p class="font-display text-base font-bold text-ink">Aucun combattant ne correspond à cette recherche.</p>
                                 <button
+                                    type="button"
                                     wire:click="resetModalFilters"
-                                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 rounded-xl transition"
+                                    class="btn-cartouche btn-cartouche--sm"
                                 >
                                     Effacer les filtres
                                 </button>
                             </div>
                         @else
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 justify-items-center">
                                 @foreach ($this->modalFighters as $char)
-                                    @php
-                                        $cRarityKey = $char->rarity instanceof \App\Enums\Rarity ? $char->rarity->value : (string) $char->rarity;
-                                        $cBorder = match($cRarityKey) {
-                                            'legendary' => 'border-amber-400/80 bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.25)]',
-                                            'epic'      => 'border-purple-500/70 bg-gradient-to-b from-purple-950/30 via-slate-900 to-slate-950 shadow-[0_0_15px_rgba(192,132,252,0.2)]',
-                                            'rare'      => 'border-cyan-400/60 bg-gradient-to-b from-cyan-950/30 via-slate-900 to-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.18)]',
-                                            default     => 'border-slate-800 bg-slate-900/90 hover:border-slate-700',
-                                        };
-                                        $cBadge = match($cRarityKey) {
-                                            'legendary' => 'bg-amber-400 text-slate-950 font-black shadow-[0_0_8px_rgba(251,191,36,0.4)]',
-                                            'epic'      => 'bg-purple-500 text-white font-bold',
-                                            'rare'      => 'bg-cyan-500 text-slate-950 font-bold',
-                                            default     => 'bg-slate-700 text-slate-200 font-medium',
-                                        };
-                                        $cStars = match($cRarityKey) {
-                                            'legendary' => 5,
-                                            'epic'      => 4,
-                                            'rare'      => 3,
-                                            default     => 2,
-                                        };
-                                        $isSelected = $char->id === $fighterId;
-                                    @endphp
-
-                                    <button
-                                        type="button"
+                                    @php $isSelected = $char->id === $fighterId; @endphp
+                                    <div
                                         wire:key="modal-pick-{{ $char->id }}"
-                                        wire:click="selectFighter('{{ $char->id }}')"
-                                        class="group rounded-3xl border p-3 flex flex-col justify-between text-left transition-all duration-300 relative overflow-hidden cursor-pointer select-none {{ $cBorder }} {{ $isSelected ? 'ring-2 ring-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)] scale-[1.02]' : 'hover:scale-[1.02] hover:-translate-y-1' }}"
-                                        style="height: 305px;"
-                                        title="{{ $char->name }}"
+                                        class="picker-slot w-full max-w-[344px] {{ $isSelected ? 'is-selected' : '' }}"
                                     >
-                                        {{-- En-tête de carte fidèle au Recto --}}
-                                        <div class="flex items-center justify-between gap-1 w-full">
-                                            <span class="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider {{ $cBadge }}">
-                                                {{ $char->rarity->label() }}
-                                            </span>
-                                            <div class="flex items-center gap-1 bg-slate-950/80 px-2 py-0.5 rounded-lg border border-slate-800">
-                                                <span class="text-[10px] text-amber-400">⚡</span>
-                                                <span class="font-extrabold text-xs text-white font-mono">{{ $char->power_score }}</span>
-                                            </div>
-                                        </div>
+                                        <x-folio-card
+                                            :card="$char"
+                                            :showOwnerActions="false"
+                                            :folioKey="'picker-'.$char->id"
+                                        />
 
-                                        {{-- Avatar Paper Doll centré au bon gabarit --}}
-                                        <div class="my-auto flex items-center justify-center overflow-hidden py-1">
-                                            <x-character-avatar :character="$char" class="max-w-[135px]" />
-                                        </div>
-
-                                        {{-- Pied de carte avec Étoiles & Décoration identiques à la Collection --}}
-                                        <div class="w-full pt-1.5 border-t border-slate-800/80 text-center">
-                                            <div class="flex items-center justify-center gap-0.5 mb-1">
-                                                @for ($s = 1; $s <= 5; $s++)
-                                                    <span class="text-[10px] {{ $s <= $cStars ? 'text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]' : 'text-slate-800' }}">★</span>
-                                                @endfor
-                                            </div>
-
-                                            <div class="font-black text-xs text-white truncate tracking-tight group-hover:text-amber-300 transition-colors">
-                                                {{ $char->name }}
-                                            </div>
-
-                                            <p class="text-[10px] text-slate-400 truncate mt-0.5 font-medium">
-                                                {{ $char->race_data['name'] ?? ucfirst($char->race_id) }} • {{ $char->weapon_data['name'] ?? ucfirst($char->weapon_id) }}
-                                                <span class="text-indigo-400 font-semibold">({{ $char->power_data['name'] ?? ucfirst($char->power_id) }})</span>
-                                            </p>
-
-                                            <div class="mt-1.5 pt-1 border-t border-slate-800/60 flex items-center justify-center">
-                                                @if ($isSelected)
-                                                    <span class="text-[9px] text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold shadow-sm">
-                                                        ✓ En combat
-                                                    </span>
-                                                @else
-                                                    <span class="text-[9px] font-mono text-slate-500">
-                                                        🏆 {{ $char->wins }}V - {{ $char->losses }}D
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </button>
+                                        <button
+                                            type="button"
+                                            wire:click="selectFighter('{{ $char->id }}')"
+                                            class="{{ $isSelected ? 'btn-wax btn-wax--sm' : 'btn-brass btn-brass--sm' }} w-full max-w-[316px]"
+                                        >
+                                            @if ($isSelected)
+                                                <span>✓ En combat</span>
+                                            @else
+                                                <span>Choisir {{ $char->name }}</span>
+                                            @endif
+                                        </button>
+                                    </div>
                                 @endforeach
                             </div>
                         @endif
@@ -867,139 +653,148 @@
     @endif
 
     {{-- ========================================================================= --}}
-    {{-- MODALE D'INSPECTION RIVAL (PROFIL ADVERSAIRE DE DUEL)                       --}}
+    {{-- MODALE D'INSPECTION RIVAL (JOUEUR OU ENTITÉ ASTRALE)                      --}}
     {{-- ========================================================================= --}}
     @if ($showOpponentModal && $inspectedRival)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-fade-in">
-            <div class="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
-                <button
-                    type="button"
-                    wire:click="closeOpponentModal"
-                    class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center font-bold text-sm transition cursor-pointer"
-                >
-                    ✕
-                </button>
+        <div
+            class="codex-modal-backdrop"
+            x-data
+            x-on:keydown.escape.window="$wire.closeOpponentModal()"
+        >
+            <div
+                class="codex-modal-panel {{ ($inspectedRival['kind'] === 'player' && ! empty($inspectedRival['favorites'])) ? 'max-w-6xl' : 'max-w-lg' }} max-h-[90vh] flex flex-col"
+                @click.outside="$wire.closeOpponentModal()"
+            >
+                <div class="p-4 sm:p-5 border-b border-parchment-border bg-parchment-shade/45 flex items-center justify-between gap-3">
+                    <span class="font-display text-xs font-bold uppercase tracking-widest text-wax">
+                        {{ $inspectedRival['kind'] === 'player' ? "Rival d'Arène" : 'Entité Astrale' }}
+                    </span>
+                    <button
+                        type="button"
+                        wire:click="closeOpponentModal"
+                        class="w-8 h-8 rounded-full bg-parchment-bright border border-parchment-border text-ink hover:bg-wax hover:text-parchment-bright hover:border-wax transition flex items-center justify-center font-bold text-sm cursor-pointer"
+                        aria-label="Fermer l'inspection"
+                    >
+                        ✕
+                    </button>
+                </div>
 
-                @if ($inspectedRival['kind'] === 'player')
-                    {{-- En-tête Joueur Rival --}}
-                    <div class="flex items-center gap-4">
-                        <div 
-                            class="w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 bg-slate-950 shadow-lg shrink-0"
-                            style="border-color: {{ $inspectedRival['league']['color'] ?? '#6366f1' }}"
-                        >
-                            <span class="text-2xl">{{ $inspectedRival['league']['icon'] ?? '🛡️' }}</span>
-                            <span class="text-[8px] uppercase font-bold text-amber-300">{{ $inspectedRival['league']['name'] ?? 'Ligue' }}</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] uppercase font-extrabold tracking-wider text-rose-400">Rival d'Arène</span>
-                            <h3 class="text-xl font-black text-white font-display">
-                                {{ $inspectedRival['name'] }}
-                            </h3>
-                            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-950 border border-amber-400/30 text-amber-300 text-[10px] font-semibold mt-1">
-                                <span>⚡ Niveau {{ $inspectedRival['level'] }}</span>
-                                <span>·</span>
-                                <span>« {{ $inspectedRival['title'] }} »</span>
+                <div class="p-5 sm:p-6 overflow-y-auto space-y-5">
+                    @if ($inspectedRival['kind'] === 'player')
+                        <div class="flex flex-wrap items-center gap-4">
+                            <div
+                                class="w-16 h-16 rounded-xl flex flex-col items-center justify-center border-2 bg-parchment-bright shrink-0"
+                                style="border-color: {{ $inspectedRival['league']['ink_color'] ?? '#6E4F0E' }};"
+                            >
+                                <span class="text-2xl leading-none">{{ $inspectedRival['league']['icon'] ?? '🛡️' }}</span>
+                                <span class="font-display text-[9px] uppercase font-bold mt-1" style="color: {{ $inspectedRival['league']['ink_color'] ?? '#6E4F0E' }};">
+                                    {{ $inspectedRival['league']['name'] ?? 'Ligue' }}
+                                </span>
                             </div>
-                        </div>
-                    </div>
-
-                    {{-- Stats Palmarès Rapides --}}
-                    <div class="grid grid-cols-3 gap-2 text-center text-xs bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
-                        <div>
-                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Élo</span>
-                            <span class="font-mono font-bold text-amber-300">{{ $inspectedRival['elo'] }}</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Duels</span>
-                            <span class="font-mono font-bold text-white">{{ $inspectedRival['battles'] }}</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] text-slate-400 uppercase font-bold block">Winrate</span>
-                            <span class="font-mono font-bold text-emerald-400">{{ $inspectedRival['winrate'] }}%</span>
-                        </div>
-                    </div>
-
-                    {{-- Héros favoris en vitrine --}}
-                    <div class="space-y-2">
-                        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                            <span>⭐</span>
-                            <span>Champions de prédilection</span>
-                        </span>
-                        @if (!empty($inspectedRival['favorites']))
-                            <div class="space-y-1.5">
-                                @foreach ($inspectedRival['favorites'] as $fav)
-                                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/80 text-xs">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-amber-400 font-bold font-mono">⚡ {{ $fav['power_score'] }}</span>
-                                            <span class="font-bold text-white">{{ $fav['name'] }}</span>
-                                        </div>
-                                        <span class="text-[10px] font-semibold text-slate-400">
-                                            {{ $fav['race'] }} · {{ $fav['weapon'] }}
-                                        </span>
+                            <div class="min-w-0">
+                                <h3 class="font-display text-xl font-bold text-ink truncate">
+                                    {{ $inspectedRival['name'] }}
+                                </h3>
+                                @if (isset($inspectedRival['level']))
+                                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brass/15 border border-brass-dark/40 font-display text-xs font-bold text-ink-sepia mt-1">
+                                        <span>Niveau {{ $inspectedRival['level'] }}</span>
+                                        <span>·</span>
+                                        <span>« {{ $inspectedRival['title'] }} »</span>
                                     </div>
-                                @endforeach
+                                @endif
                             </div>
-                        @else
-                            <p class="text-xs text-slate-500 italic p-3 rounded-xl bg-slate-950/40 border border-slate-800/50 text-center">
-                                Aucun favori exposé actuellement.
-                            </p>
-                        @endif
-                    </div>
-
-                    {{-- Bouton vers Profil Public Complet --}}
-                    <div class="pt-3 border-t border-slate-800 flex items-center justify-between gap-3">
-                        <button
-                            type="button"
-                            wire:click="closeOpponentModal"
-                            class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer"
-                        >
-                            Fermer
-                        </button>
-                        <a
-                            href="{{ $inspectedRival['profile_url'] }}"
-                            class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-xs font-bold transition shadow-lg shadow-indigo-600/30"
-                        >
-                            <span>Voir le profil complet</span>
-                            <span>➔</span>
-                        </a>
-                    </div>
-                @else
-                    {{-- Profil Fantôme Céleste (Bot d'arène) --}}
-                    <div class="flex items-center gap-4">
-                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center border-2 border-indigo-500/40 bg-indigo-950/40 shadow-lg text-3xl shrink-0">
-                            🤖
                         </div>
-                        <div>
-                            <span class="text-[10px] uppercase font-extrabold tracking-wider text-indigo-400">Entité Astrale</span>
-                            <h3 class="text-xl font-black text-white font-display">
-                                {{ $inspectedRival['name'] }}
-                            </h3>
-                            <p class="text-xs text-slate-400 mt-0.5">
-                                Fantôme invoqué par l'Arène
-                            </p>
-                        </div>
-                    </div>
 
-                    <div class="p-3.5 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 space-y-2 text-xs">
-                        <p class="text-slate-300 leading-relaxed">
-                            Ce combattant est une projection astrale générée par la Roue pour éprouver votre valeur tactique. Ses attributs sont équilibrés selon votre division.
-                        </p>
-                        <div class="flex justify-between pt-2 border-t border-indigo-900/40 text-slate-400">
-                            <span>Élo estimé : <strong class="text-amber-300 font-mono">{{ $inspectedRival['elo'] }}</strong></span>
-                            <span>Puissance : <strong class="text-amber-400 font-mono">⚡ {{ $inspectedRival['power_score'] }}</strong></span>
+                        <div class="grid grid-cols-3 gap-2.5 text-center p-3 rounded-lg bg-parchment-bright border border-parchment-border">
+                            <div>
+                                <span class="font-display text-[10px] uppercase font-bold text-ink-muted block">Élo</span>
+                                <span class="font-display text-base font-bold text-brass-dark">{{ $inspectedRival['elo'] }}</span>
+                            </div>
+                            <div>
+                                <span class="font-display text-[10px] uppercase font-bold text-ink-muted block">Duels</span>
+                                <span class="font-display text-base font-bold text-ink">{{ $inspectedRival['battles'] ?? 0 }}</span>
+                            </div>
+                            <div>
+                                <span class="font-display text-[10px] uppercase font-bold text-ink-muted block">Winrate</span>
+                                <span class="font-display text-base font-bold text-forest">{{ $inspectedRival['winrate'] ?? 0 }}%</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="pt-3 border-t border-slate-800 flex justify-end">
-                        <button
-                            type="button"
-                            wire:click="closeOpponentModal"
-                            class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition cursor-pointer"
-                        >
-                            Compris
-                        </button>
-                    </div>
-                @endif
+                        <div class="space-y-3">
+                            <h4 class="font-display text-xs font-bold uppercase tracking-wider text-ink-sepia">
+                                Champions de prédilection
+                            </h4>
+                            @if (! empty($inspectedRival['favorites']))
+                                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 justify-items-center">
+                                    @foreach ($inspectedRival['favorites'] as $fav)
+                                        <x-folio-card
+                                            :card="$fav"
+                                            :showOwnerActions="false"
+                                            :folioKey="'rival-fav-'.($fav['id'] ?? $loop->index)"
+                                        />
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="font-body text-sm italic text-ink-muted p-4 rounded-lg bg-parchment-bright/70 border border-dashed border-parchment-border text-center">
+                                    Aucun favori exposé actuellement.
+                                </p>
+                            @endif
+                        </div>
+
+                        <div class="pt-4 border-t border-parchment-border flex flex-wrap items-center justify-between gap-3">
+                            <button
+                                type="button"
+                                wire:click="closeOpponentModal"
+                                class="btn-cartouche btn-cartouche--sm"
+                            >
+                                Fermer
+                            </button>
+                            @if (! empty($inspectedRival['profile_url']))
+                                <a href="{{ $inspectedRival['profile_url'] }}" class="btn-brass btn-brass--sm">
+                                    <span>Voir le profil complet</span>
+                                    <span>→</span>
+                                </a>
+                            @endif
+                        </div>
+                    @else
+                        <div class="space-y-4">
+                            <div>
+                                <h3 class="font-display text-xl font-bold text-ink">{{ $inspectedRival['name'] }}</h3>
+                                <p class="font-body text-sm italic text-ink-muted">Fantôme invoqué par l'Arène</p>
+                            </div>
+
+                            <div class="p-3.5 rounded-lg bg-parchment-bright border border-parchment-border space-y-2 text-sm">
+                                <p class="font-body text-ink-sepia leading-relaxed">
+                                    Ce combattant est une projection astrale générée par la Roue pour éprouver votre valeur tactique. Ses attributs sont équilibrés selon votre division.
+                                </p>
+                                <div class="flex justify-between pt-2 border-t border-parchment-border/70 font-display text-xs font-bold text-ink">
+                                    <span>Élo estimé : <strong class="text-brass-dark">{{ $inspectedRival['elo'] }}</strong></span>
+                                    <span>Puissance : <strong class="text-wax">✦ {{ $inspectedRival['power_score'] }}</strong></span>
+                                </div>
+                            </div>
+
+                            @if (! empty($inspectedRival['card']))
+                                <div class="flex justify-center">
+                                    <x-folio-card
+                                        :card="$inspectedRival['card']"
+                                        :showOwnerActions="false"
+                                        folioKey="rival-ghost-preview"
+                                    />
+                                </div>
+                            @endif
+
+                            <div class="pt-3 border-t border-parchment-border flex justify-end">
+                                <button
+                                    type="button"
+                                    wire:click="closeOpponentModal"
+                                    class="btn-brass btn-brass--sm"
+                                >
+                                    Compris
+                                </button>
+                            </div>
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     @endif

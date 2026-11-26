@@ -1,7 +1,9 @@
-// Livewire 3 gère et démarre automatiquement Alpine.js.
-// Ne pas appeler Alpine.start() ici pour éviter les instances en double.
 import battleAnimation from './battle-animation';
+import { codexVolvelle, initCodexUi } from './codex-ui';
+
+initCodexUi();
 
 document.addEventListener('alpine:init', () => {
     window.Alpine.data('battleAnimation', battleAnimation);
+    window.Alpine.data('codexVolvelle', codexVolvelle);
 });

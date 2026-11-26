@@ -1,15 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire;
 
 use App\Data\GameConfig;
-use App\Models\Battle;
+use App\Enums\Rarity;
 use App\Models\Character;
 use App\Models\User;
 use App\Services\ArenaService;
-use App\Services\EnergyManagerService;
-use Illuminate\Support\Facades\DB;
 use App\Services\BattleHistoryService;
+use App\Services\EnergyManagerService;
+use App\View\Presenters\FolioCardPresenter;
+use DomainException;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -18,6 +22,7 @@ use Livewire\Component;
 class BattleArena extends Component
 {
     public ?string $fighterId = null;
+
     public ?string $error = null;
 
     // Verrouillés : le client ne doit pas pouvoir affaiblir l'adversaire ou falsifier le résultat
@@ -31,19 +36,29 @@ class BattleArena extends Component
     #[Locked]
     public ?array $result = null;
 
-    // Tickets d'arène (affichage uniquement, la vérification se fait côté serveur au lancement du duel)
+    #[Locked]
     public int $arenaTickets = 0;
+
+    #[Locked]
     public int $maxTickets = 0;
+
+    #[Locked]
     public int $nextTicketSeconds = 0;
+
+    #[Locked]
     public bool $isAdmin = false;
-    // Modale de sélection de combattant
+
     public bool $showFighterModal = false;
+
     public string $search = '';
+
     public string $rarityFilter = '';
+
     public string $sortBy = 'power_desc';
 
-    // Modale d'inspection du rival
     public bool $showOpponentModal = false;
+
+    #[Locked]
     public ?array $inspectedRival = null;
 
     public function mount(): void
@@ -54,7 +69,7 @@ class BattleArena extends Component
         if ($this->fighterId) {
             // Anti-triche F5 : restaurer l'adversaire en cours depuis la session s'il existe
             $savedOpponent = session('arena_current_opponent');
-            if ($savedOpponent && !empty($savedOpponent['name'])) {
+            if ($savedOpponent && ! empty($savedOpponent['name'])) {
                 $this->opponent = $savedOpponent;
             } else {
                 $this->newOpponent();
@@ -73,7 +88,7 @@ class BattleArena extends Component
     {
         $collection = $this->fighters;
 
-        if (!empty($this->search)) {
+        if (! empty($this->search)) {
             $term = mb_strtolower(trim($this->search));
             $collection = $collection->filter(function ($char) use ($term) {
                 return str_contains(mb_strtolower($char->name), $term)
@@ -83,9 +98,10 @@ class BattleArena extends Component
             });
         }
 
-        if (!empty($this->rarityFilter)) {
+        if (! empty($this->rarityFilter)) {
             $collection = $collection->filter(function ($char) {
-                $val = $char->rarity instanceof \App\Enums\Rarity ? $char->rarity->value : (string) $char->rarity;
+                $val = $char->rarity instanceof Rarity ? $char->rarity->value : (string) $char->rarity;
+
                 return $val === $this->rarityFilter;
             });
         }
@@ -94,7 +110,7 @@ class BattleArena extends Component
             'power_asc' => $collection->sortBy('power_score'),
             'wins_desc' => $collection->sortByDesc('wins'),
             'date_desc' => $collection->sortByDesc('created_at'),
-            default     => $collection->sortByDesc('power_score'),
+            default => $collection->sortByDesc('power_score'),
         };
     }
 
@@ -120,9 +136,11 @@ class BattleArena extends Component
      */
     public function inspectOpponent(): void
     {
-        if (!$this->opponent) {
+        if (! $this->opponent) {
             return;
         }
+
+        $presenter = app(FolioCardPresenter::class);
 
         if (($this->opponent['kind'] ?? '') === 'player') {
             $user = User::where('name', $this->opponent['owner'] ?? '')->first();
@@ -133,49 +151,48 @@ class BattleArena extends Component
                 $battles = $stats['total'];
                 $wins = $stats['wins'];
                 $winrate = $stats['winrate'];
-                $favorites = $user->favoriteCharacters()->get()->map(fn ($c) => [
-                    'id'          => (string) $c->id,
-                    'name'        => $c->name,
-                    'rarity'      => $c->rarity->label(),
-                    'rarity_key'  => $c->rarity->value,
-                    'power_score' => $c->power_score,
-                    'race'        => $c->race_label,
-                    'weapon'      => $c->weapon_label,
-                ])->all();
+                $favorites = $user->favoriteCharacters()
+                    ->where('pending_reveal', false)
+                    ->get()
+                    ->map(fn (Character $c): array => $presenter->present($c))
+                    ->all();
 
                 $this->inspectedRival = [
-                    'kind'        => 'player',
-                    'name'        => $user->name,
-                    'elo'         => $user->elo,
-                    'league'      => [
-                        'name'  => $league->name,
-                        'icon'  => $league->icon(),
+                    'kind' => 'player',
+                    'name' => $user->name,
+                    'elo' => $user->elo,
+                    'league' => [
+                        'name' => $league->label(),
+                        'icon' => $league->icon(),
                         'color' => $league->color(),
+                        'ink_color' => FolioCardPresenter::leagueInkColor($league->value),
                     ],
-                    'level'       => $progress['level'],
-                    'title'       => $progress['title'],
-                    'battles'     => $battles,
-                    'wins'        => $wins,
-                    'winrate'     => $winrate,
-                    'favorites'   => $favorites,
+                    'level' => $progress['level'],
+                    'title' => $progress['title'],
+                    'battles' => $battles,
+                    'wins' => $wins,
+                    'winrate' => $winrate,
+                    'favorites' => $favorites,
                     'profile_url' => route('player.profile', $user->name),
                 ];
             } else {
                 $this->inspectedRival = [
                     'kind' => 'player',
                     'name' => $this->opponent['owner'] ?? 'Inconnu',
-                    'elo'  => $this->opponent['elo'] ?? 1000,
+                    'elo' => $this->opponent['elo'] ?? 1000,
+                    'favorites' => [],
                 ];
             }
         } else {
             $this->inspectedRival = [
-                'kind'        => 'ghost',
-                'name'        => $this->opponent['name'] ?? 'Fantôme Céleste',
-                'elo'         => $this->opponent['elo'] ?? 1000,
+                'kind' => 'ghost',
+                'name' => $this->opponent['name'] ?? 'Fantôme Céleste',
+                'elo' => $this->opponent['elo'] ?? 1000,
                 'power_score' => $this->opponent['power_score'] ?? 50,
-                'race_id'     => $this->opponent['race_id'] ?? null,
-                'weapon_id'   => $this->opponent['weapon_id'] ?? null,
-                'power_id'    => $this->opponent['power_id'] ?? null,
+                'race_id' => $this->opponent['race_id'] ?? null,
+                'weapon_id' => $this->opponent['weapon_id'] ?? null,
+                'power_id' => $this->opponent['power_id'] ?? null,
+                'card' => $presenter->present($this->opponent),
             ];
         }
 
@@ -202,10 +219,10 @@ class BattleArena extends Component
         return array_filter([
             'challenger' => match (true) {
                 $this->replayFighter !== null => ['label' => 'Ton combattant (replay)'] + $arena->describeFighter($this->replayFighter),
-                $this->fighter !== null       => ['label' => 'Ton combattant'] + $arena->describeFighter($this->fighter),
-                default                       => null,
+                $this->fighter !== null => ['label' => 'Ton combattant'] + $arena->describeFighter($this->fighter),
+                default => null,
             },
-            'opponent'   => $this->opponent ? ['label' => $this->opponentLabel()] + $arena->describeFighter($this->opponent) : null,
+            'opponent' => $this->opponent ? ['label' => $this->opponentLabel()] + $arena->describeFighter($this->opponent) : null,
         ]);
     }
 
@@ -223,7 +240,7 @@ class BattleArena extends Component
         $challenger = $this->cards['challenger'] ?? null;
         $opponent = $this->cards['opponent'] ?? null;
 
-        if (!$challenger || !$opponent) {
+        if (! $challenger || ! $opponent) {
             return null;
         }
 
@@ -231,28 +248,28 @@ class BattleArena extends Component
             'hp' => [
                 'label' => 'Points de Vie',
                 'short' => 'PV',
-                'icon'  => '❤️',
+                'icon' => '❤️',
                 'c_val' => (int) $challenger['hp'],
                 'o_val' => (int) $opponent['hp'],
             ],
             'strength' => [
                 'label' => 'Force d\'Attaque',
                 'short' => 'Force',
-                'icon'  => '⚔️',
+                'icon' => '⚔️',
                 'c_val' => (int) $challenger['strength'],
                 'o_val' => (int) $opponent['strength'],
             ],
             'speed' => [
                 'label' => 'Vitesse & Initiative',
                 'short' => 'Vitesse',
-                'icon'  => '⚡',
+                'icon' => '⚡',
                 'c_val' => (int) $challenger['speed'],
                 'o_val' => (int) $opponent['speed'],
             ],
             'defense' => [
                 'label' => 'Défense & Armure',
                 'short' => 'Défense',
-                'icon'  => '🛡️',
+                'icon' => '🛡️',
                 'c_val' => (int) $challenger['defense'],
                 'o_val' => (int) $opponent['defense'],
             ],
@@ -272,27 +289,27 @@ class BattleArena extends Component
         $initiative = match (true) {
             $speedDiff > 0 => [
                 'label' => 'Tu frappes en 1er',
-                'badge' => 'text-emerald-400 bg-emerald-950/70 border-emerald-800/60',
-                'icon'  => '⚡',
+                'badge' => 'codex-init-badge codex-init-badge--player',
+                'icon' => '⚡',
             ],
             $speedDiff < 0 => [
                 'label' => 'L\'adversaire frappe en 1er',
-                'badge' => 'text-rose-400 bg-rose-950/70 border-rose-800/60',
-                'icon'  => '⚠️',
+                'badge' => 'codex-init-badge codex-init-badge--opponent',
+                'icon' => '⚠️',
             ],
-            default        => [
+            default => [
                 'label' => 'Égalité (Tirage 50/50)',
-                'badge' => 'text-amber-400 bg-amber-950/70 border-amber-800/60',
-                'icon'  => '🪙',
+                'badge' => 'codex-init-badge codex-init-badge--draw',
+                'icon' => '🪙',
             ],
         };
 
         return [
-            'stats'       => $stats,
-            'power_diff'  => $powerDiff,
-            'initiative'  => $initiative,
-            'challenger'  => $challenger,
-            'opponent'    => $opponent,
+            'stats' => $stats,
+            'power_diff' => $powerDiff,
+            'initiative' => $initiative,
+            'challenger' => $challenger,
+            'opponent' => $opponent,
         ];
     }
 
@@ -322,12 +339,13 @@ class BattleArena extends Component
     public function rerollCost(): int
     {
         $user = auth()->user();
+
         return ($user && $user->has_free_arena_reroll) ? 0 : (GameConfig::matchmaking()['reroll_cost'] ?? 10);
     }
 
     public function selectFighter(string $characterId): void
     {
-        if (!$this->fighters->contains('id', $characterId)) {
+        if (! $this->fighters->contains('id', $characterId)) {
             return;
         }
 
@@ -348,30 +366,43 @@ class BattleArena extends Component
         $this->resetBattle();
     }
 
-    /** Changer d'adversaire avant le duel avec gestion du coût (1er gratuit après un combat, suivants payants). */
     public function rerollOpponent(): void
     {
-        if ($this->result !== null || !$this->fighter) {
+        if ($this->result !== null || ! $this->fighter) {
             return;
         }
 
         $user = auth()->user();
-        $cost = $this->rerollCost;
+        $defaultCost = (int) (GameConfig::matchmaking()['reroll_cost'] ?? 10);
 
-        if ($cost > 0) {
-            if ($user->coins < $cost) {
-                $this->error = "Pas assez de pièces ({$cost} 🪙 requis) pour chercher un autre adversaire.";
-                return;
+        $debit = DB::transaction(function () use ($user, $defaultCost): array {
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedUser->has_free_arena_reroll) {
+                $lockedUser->update(['has_free_arena_reroll' => false]);
+
+                return ['ok' => true, 'user' => $lockedUser];
             }
 
-            $user->decrement('coins', $cost);
-        } else {
-            // Le reroll gratuit accordé après un combat est consommé
-            $user->update(['has_free_arena_reroll' => false]);
+            if ($lockedUser->coins < $defaultCost) {
+                return ['ok' => false, 'cost' => $defaultCost, 'user' => $lockedUser];
+            }
+
+            $lockedUser->decrement('coins', $defaultCost);
+            $lockedUser->refresh();
+
+            return ['ok' => true, 'user' => $lockedUser];
+        });
+
+        $user->refresh();
+
+        if (! $debit['ok']) {
+            $this->error = "Pas assez de pièces ({$debit['cost']} 🪙 requis) pour chercher un autre adversaire.";
+
+            return;
         }
 
-        // Met à jour la barre HUD en temps réel sans rechargement de page
-        $this->dispatch('stats-updated', coins: $user->fresh()->coins, elo: $user->elo, spinCharges: $user->spin_charges);
+        $this->dispatch('stats-updated', coins: $user->coins, elo: $user->elo, spinCharges: $user->spin_charges);
 
         unset($this->rerollCost);
         $currentId = $this->opponent['id'] ?? null;
@@ -382,21 +413,26 @@ class BattleArena extends Component
 
     public function fight(): void
     {
-        if (!$this->fighter || !$this->opponent) {
+        if ($this->result !== null || $this->replayFighter !== null || ! $this->fighter || ! $this->opponent) {
             return;
         }
 
         $user = auth()->user();
 
-        // Ticket et combat dans la même transaction : si le combat échoue, le ticket est rendu
-        $outcome = DB::transaction(fn () => app(EnergyManagerService::class)->consumeArenaTicket($user)
-            ? app(ArenaService::class)->fight($user, $this->fighter, $this->opponent)
-            : null);
+        try {
+            $outcome = app(ArenaService::class)->fightWithTicket($user, $this->fighter, $this->opponent);
+        } catch (DomainException $e) {
+            $this->error = $e->getMessage();
+            unset($this->fighters, $this->fighter);
+
+            return;
+        }
 
         $this->refreshTickets();
 
         if ($outcome === null) {
             $this->error = "Plus de ticket d'arène ! Un nouveau ticket arrive dans {$this->nextTicketIn}.";
+
             return;
         }
 
@@ -413,7 +449,12 @@ class BattleArena extends Component
         $this->dispatch('battle-started',
             log: $outcome['log'],
             maxHp: $outcome['max_hp'],
-            stats: ['coins' => $user->coins, 'spinCharges' => $user->spin_charges, 'elo' => $user->elo],
+            stats: [
+                'coins' => $user->coins,
+                'spinCharges' => $user->spin_charges,
+                'elo' => $user->elo,
+                'arenaTickets' => $user->arena_tickets,
+            ],
         );
     }
 
@@ -430,7 +471,7 @@ class BattleArena extends Component
     public function replayBattle(int $battleId): void
     {
         $replay = app(BattleHistoryService::class)->replayData(auth()->user(), $battleId);
-        if (!$replay) {
+        if (! $replay) {
             return;
         }
 
@@ -453,7 +494,7 @@ class BattleArena extends Component
     public function render()
     {
         return view('livewire.battle-arena', [
-            'cards'      => $this->cards,
+            'cards' => $this->cards,
             'comparison' => $this->comparison,
         ]);
     }

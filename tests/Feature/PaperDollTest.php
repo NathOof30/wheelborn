@@ -2,14 +2,16 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Character;
-use App\Services\PaperDollService;
-use Livewire\Livewire;
+use App\Enums\PowerTier;
+use App\Enums\Rarity;
 use App\Livewire\CharacterWheel;
 use App\Livewire\CollectionGrid;
+use App\Models\Character;
+use App\Models\User;
+use App\Services\PaperDollService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use Tests\TestCase;
 
 class PaperDollTest extends TestCase
 {
@@ -17,8 +19,12 @@ class PaperDollTest extends TestCase
 
     public function test_paper_doll_resolves_existing_assets_correctly(): void
     {
-        // 1. Race Humain existe
+        // 1. Races illustrées existantes (Human, Elf, Golem, Vampire)
         $this->assertEquals('images/characters/races/human.webp', PaperDollService::getRaceAsset('human'));
+        $this->assertEquals('images/characters/races/elf.webp', PaperDollService::getRaceAsset('elf'));
+        $this->assertEquals('images/characters/races/golem.webp', PaperDollService::getRaceAsset('golem'));
+        $this->assertEquals('images/characters/races/vampire.webp', PaperDollService::getRaceAsset('vampire'));
+        $this->assertNull(PaperDollService::getRaceAsset('demon'));
 
         // 2. Armes existantes (Sword, Staff, Bow, Dagger, Hammer, Spear, Grimoire)
         $this->assertEquals('images/characters/weapons/sword.webp', PaperDollService::getWeaponAsset('sword'));
@@ -64,15 +70,19 @@ class PaperDollTest extends TestCase
         $this->assertEquals('images/characters/weapons/staff_auras/staff_ice.webp', PaperDollService::getAuraAsset('staff', 'ice'));
         $this->assertEquals('images/characters/weapons/staff_auras/staff_fire.webp', PaperDollService::getAuraAsset('baton', 'feu'));
 
-        // Auras non encore dessinées renvoient null (ex: bow + fire)
-        $this->assertNull(PaperDollService::getAuraAsset('bow', 'fire'));
+        // Auras de l'Arc (Bow) incluant bow_fire.webp et bow_regeneration.webp corrigé
+        $this->assertEquals('images/characters/weapons/bow_auras/bow_fire.webp', PaperDollService::getAuraAsset('bow', 'fire'));
+        $this->assertEquals('images/characters/weapons/bow_auras/bow_regeneration.webp', PaperDollService::getAuraAsset('bow', 'regeneration'));
+
+        // Auras non encore dessinées renvoient null (ex: gun + gravity)
+        $this->assertNull(PaperDollService::getAuraAsset('gun', 'gravity'));
 
         // 5. Détection des calques visuels disponibles
         $this->assertTrue(PaperDollService::hasVisualLayers('human', 'sword'));
         $this->assertTrue(PaperDollService::hasVisualLayers('human', 'gun')); // la race existe
         $this->assertTrue(PaperDollService::hasVisualLayers(null, 'sword', 'fire')); // l'aura existe
         $this->assertTrue(PaperDollService::hasVisualLayers(null, 'sword', 'invisibility')); // l'aura d'invisibilité existe
-        $this->assertFalse(PaperDollService::hasVisualLayers('elf', 'gun', 'gravity')); // aucun calque existant
+        $this->assertFalse(PaperDollService::hasVisualLayers('demon', 'gun', 'gravity')); // aucun calque existant
     }
 
     public function test_avatar_component_renders_layered_images_for_human_with_sword_or_staff(): void
@@ -86,14 +96,14 @@ class PaperDollTest extends TestCase
             'race_id' => 'human',
             'weapon_id' => 'sword',
             'power_id' => 'fire',
-            'power_tier' => \App\Enums\PowerTier::Common,
+            'power_tier' => PowerTier::Common,
             'hp' => 100,
             'max_hp' => 100,
             'strength' => 50,
             'speed' => 50,
             'defense' => 50,
             'power_score' => 250,
-            'rarity' => \App\Enums\Rarity::Rare,
+            'rarity' => Rarity::Rare,
             'is_lucky_spin' => false,
             'is_unstable' => false,
             'synergies_data' => [],
@@ -122,14 +132,14 @@ class PaperDollTest extends TestCase
             'race_id' => 'human',
             'weapon_id' => 'sword',
             'power_id' => 'ice',
-            'power_tier' => \App\Enums\PowerTier::Rare,
+            'power_tier' => PowerTier::Rare,
             'hp' => 100,
             'max_hp' => 100,
             'strength' => 50,
             'speed' => 50,
             'defense' => 50,
             'power_score' => 250,
-            'rarity' => \App\Enums\Rarity::Rare,
+            'rarity' => Rarity::Rare,
             'is_lucky_spin' => false,
             'is_unstable' => false,
             'synergies_data' => [],
@@ -150,14 +160,14 @@ class PaperDollTest extends TestCase
             'race_id' => 'human',
             'weapon_id' => 'sword',
             'power_id' => 'lightning',
-            'power_tier' => \App\Enums\PowerTier::Rare,
+            'power_tier' => PowerTier::Rare,
             'hp' => 100,
             'max_hp' => 100,
             'strength' => 50,
             'speed' => 50,
             'defense' => 50,
             'power_score' => 250,
-            'rarity' => \App\Enums\Rarity::Rare,
+            'rarity' => Rarity::Rare,
             'is_lucky_spin' => false,
             'is_unstable' => false,
             'synergies_data' => [],
@@ -176,21 +186,20 @@ class PaperDollTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Créer un Elfe avec Pistolet (aucun des deux n'a d'asset pour l'instant)
-        $elfGun = Character::create([
+        Character::create([
             'user_id' => $user->id,
-            'name' => 'Legolas',
-            'race_id' => 'elf',
+            'name' => 'Azazel',
+            'race_id' => 'demon',
             'weapon_id' => 'gun',
-            'power_id' => 'wind',
-            'power_tier' => \App\Enums\PowerTier::Common,
+            'power_id' => 'gravity',
+            'power_tier' => PowerTier::Mythic,
             'hp' => 90,
             'max_hp' => 90,
             'strength' => 45,
             'speed' => 60,
             'defense' => 35,
             'power_score' => 230,
-            'rarity' => \App\Enums\Rarity::Common,
+            'rarity' => Rarity::Common,
             'is_lucky_spin' => false,
             'is_unstable' => false,
             'synergies_data' => [],
@@ -199,11 +208,43 @@ class PaperDollTest extends TestCase
             'pending_reveal' => false,
         ]);
 
-        // Rendu dans CollectionGrid : Doit afficher le fallback placeholder sans planter
         Livewire::actingAs($user)
             ->test(CollectionGrid::class)
-            ->assertSee('Artwork en attente')
-            ->assertDontSee('images/characters/races/elf.webp');
+            ->assertSee('heraldic-blason')
+            ->assertSee('data-blason-race="demon"', false)
+            ->assertDontSee('images/characters/races/demon.webp');
+    }
+
+    public function test_avatar_component_does_not_render_floating_weapon_when_race_asset_is_missing(): void
+    {
+        $user = User::factory()->create();
+
+        Character::create([
+            'user_id' => $user->id,
+            'name' => 'Malakor',
+            'race_id' => 'demon',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => PowerTier::Common,
+            'hp' => 100,
+            'max_hp' => 100,
+            'strength' => 70,
+            'speed' => 50,
+            'defense' => 40,
+            'power_score' => 78,
+            'rarity' => Rarity::Epic,
+            'is_lucky_spin' => false,
+            'is_unstable' => false,
+            'synergies_data' => [],
+            'recycle_value' => 120,
+            'is_active_fighter' => false,
+            'pending_reveal' => false,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(CollectionGrid::class)
+            ->assertDontSee('images/characters/weapons/sword.webp')
+            ->assertDontSee('images/characters/weapons/sword_auras/sword_fire.webp');
     }
 
     public function test_admin_can_force_test_spin_with_sword_or_staff(): void
@@ -298,14 +339,14 @@ class PaperDollTest extends TestCase
             'race_id' => 'human',
             'weapon_id' => 'sword',
             'power_id' => 'invisibility',
-            'power_tier' => \App\Enums\PowerTier::Mythic,
+            'power_tier' => PowerTier::Mythic,
             'hp' => 100,
             'max_hp' => 100,
             'strength' => 50,
             'speed' => 50,
             'defense' => 50,
             'power_score' => 250,
-            'rarity' => \App\Enums\Rarity::Legendary,
+            'rarity' => Rarity::Legendary,
             'is_lucky_spin' => false,
             'is_unstable' => false,
             'synergies_data' => [],
@@ -322,4 +363,3 @@ class PaperDollTest extends TestCase
             ->assertDontSee('Artwork en attente');
     }
 }
-

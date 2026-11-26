@@ -7,42 +7,46 @@
 
         <title>{{ config('app.name', 'WHEELBORN') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=outfit:400,600,700,800|inter:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Crimson+Pro:ital,wght@0,500;0,600;0,700;1,500&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
 
-        <!-- Scripts & Styles -->
         @livewireStyles
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased min-h-screen flex flex-col cosmos-field">
-        <div class="min-h-screen flex flex-col relative z-10">
-            @include('layouts.navigation')
+    <body class="codex-body font-body antialiased min-h-screen flex flex-col">
+        @include('layouts.navigation')
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="glass border-b border-white/[0.04]">
-                    <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+        <div class="codex-stage flex-1">
+            <main class="codex-shell" aria-label="Codex Wheelborn">
+                <aside class="codex-spine" aria-hidden="true">
+                    <span class="spine-band"></span>
+                    <span class="spine-band"></span>
+                    <span class="spine-band"></span>
+                    <span class="spine-band"></span>
+                    <div class="codex-clasp codex-clasp--top"></div>
+                    <div class="codex-clasp codex-clasp--bottom"></div>
+                </aside>
 
-            <!-- Page Content — respiration verticale -->
-            <main class="flex-1">
-                {{ $slot }}
+                <div class="codex-vellum">
+                    @isset($header)
+                        <div class="codex-chapter-head">
+                            {{ $header }}
+                        </div>
+                    @endisset
+
+                    {{ $slot }}
+                </div>
+
+                <div class="codex-gilded-edge" aria-hidden="true"></div>
             </main>
-
-            <!-- Footer contemplatif -->
-            <footer class="border-t border-white/[0.04] py-10 text-center">
-                <p class="text-xs text-slate-600 tracking-wide">
-                    WHEELBORN — Projet Universitaire Full-Stack
-                </p>
-                <p class="text-[10px] text-slate-700 mt-1">
-                    Laravel 11 · Livewire 3 · Tailwind CSS
-                </p>
-            </footer>
         </div>
+
+        <footer class="codex-colophon">
+            <span>WHEELBORN — Nathanaël &amp; Mathéo</span>
+        </footer>
+
+        <div id="codex-tooltip-portal" class="codex-tooltip" role="tooltip" hidden></div>
 
         @livewireScripts
     </body>

@@ -118,21 +118,23 @@ class UserProfileTest extends TestCase
         $this->assertFalse($fav->fresh()->is_favorite);
     }
 
-    public function test_user_can_inspect_card_and_close_inspector(): void
+    public function test_user_can_toggle_lock_directly_from_showcase_universal_card(): void
     {
         $user = User::factory()->create();
 
         $card = $this->createCharacter($user, [
             'name' => 'Cosmo Guardian',
             'is_favorite' => true,
+            'is_locked' => false,
         ]);
 
         Livewire::actingAs($user)
             ->test(UserProfile::class)
-            ->call('inspectCharacter', (string) $card->id)
-            ->assertSet('inspectedCharacterId', (string) $card->id)
-            ->call('closeInspector')
-            ->assertSet('inspectedCharacterId', null);
+            ->assertSee('Cosmo Guardian')
+            ->assertSee('folio-card')
+            ->call('toggleLock', (string) $card->id);
+
+        $this->assertTrue($card->fresh()->is_locked);
     }
 
     public function test_public_player_profile_is_accessible_and_shows_player_info(): void
@@ -152,7 +154,7 @@ class UserProfileTest extends TestCase
 
         $response = $this
             ->actingAs($currentUser)
-            ->get('/players/' . $rival->name);
+            ->get('/players/'.$rival->name);
 
         $response->assertOk();
         $response->assertSeeLivewire(PublicPlayerProfile::class);
@@ -331,11 +333,11 @@ class UserProfileTest extends TestCase
             ->assertSee('33%');
     }
 
-    public function test_user_profile_modal_opens_full_detailed_sheet_with_passives_and_synergies(): void
+    public function test_user_profile_showcase_renders_universal_card_verso_with_passives_synergies_and_winrate(): void
     {
         $user = User::factory()->create();
 
-        $hero = Character::create([
+        Character::create([
             'user_id' => $user->id,
             'name' => 'Aurelius Solaire',
             'race_id' => 'human',
@@ -360,24 +362,18 @@ class UserProfileTest extends TestCase
                     'icon' => '🗡️🔥',
                     'description' => 'Brûle la cible au combat.',
                     'is_unstable' => false,
-                ]
+                ],
             ],
             'pending_reveal' => false,
         ]);
 
         Livewire::actingAs($user)
             ->test(UserProfile::class)
-            ->call('inspectCharacter', $hero->id)
-            ->assertSet('inspectedCharacterId', $hero->id)
             ->assertSee('Aurelius Solaire')
-            ->assertSee('Passifs Innés')
-            ->assertSee('Synergies Actives')
+            ->assertSee('verso-ability-row')
             ->assertSee('Lame Embrasée')
-            ->assertSee('Brûle la cible au combat')
+            ->assertSee('Brûle la cible au combat.')
             ->assertSee('83%') // 5/6 = 83%
-            ->assertSee('Fermer la fiche')
-            ->call('closeInspector')
-            ->assertSet('inspectedCharacterId', null);
+            ->assertDontSee('Fermer la fiche');
     }
 }
-

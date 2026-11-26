@@ -1,64 +1,93 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire;
 
-use Livewire\Attributes\Computed;
-use Livewire\Attributes\Locked;
-use Livewire\Component;
 use App\Data\PowerData;
 use App\Data\RaceData;
+use App\Data\SynergyData;
 use App\Data\WeaponData;
+use App\Enums\Rarity;
 use App\Models\Character;
 use App\Models\User;
 use App\Services\CharacterGeneratorService;
 use App\Services\EnergyManagerService;
+use App\Services\PaperDollService;
 use App\Services\RecycleService;
 use App\Services\WorkshopService;
+use App\Support\CodexIconRegistry;
+use App\View\Presenters\FolioCardPresenter;
+use DomainException;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
+use Livewire\Component;
+use Throwable;
 
 class CharacterWheel extends Component
 {
-    // Roues de tirage : durée de rotation (ms) de chaque roue, décalées pour un arrêt l'une après l'autre
-    private const WHEEL_DURATIONS = ['race' => 3800, 'weapon' => 4600, 'power' => 5400];
+    private const WHEEL_DURATIONS = ['race' => 1100, 'weapon' => 2500, 'power' => 4500];
 
-    // Tours complets ajoutés avant l'arrêt sur la part gagnante
     private const WHEEL_EXTRA_TURNS = 5;
 
-    // Champ du personnage lu par chaque roue
     private const WHEEL_FIELDS = ['race' => 'race_id', 'weapon' => 'weapon_id', 'power' => 'power_id'];
 
+    #[Locked]
     public int $spinCharges = 3;
+
+    #[Locked]
     public int $maxCharges = 3;
+
+    #[Locked]
     public int $pityCounter = 0;
+
+    #[Locked]
     public int $pityMax = 10;
+
+    #[Locked]
     public int $coins = 250;
+
+    #[Locked]
     public int $elo = 1000;
+
+    #[Locked]
     public int $nextRegenSeconds = 0;
+
+    #[Locked]
     public bool $isAdmin = false;
+
+    #[Locked]
     public bool $showAdminForge = false;
+
     public string $adminSelectedRace = 'human';
+
     public string $adminSelectedWeapon = 'sword';
+
     public string $adminSelectedPower = 'fire';
+
     public string $adminSelectedRarity = 'rare';
 
-    // Ticket d'Urgence (affichage uniquement, l'achat est vérifié par WorkshopService)
+    #[Locked]
     public ?int $emergencyCost = null;
+
+    #[Locked]
     public int $emergencyRemaining = 0;
 
-    // Vrai du lancement jusqu'à l'arrêt de la dernière roue : bloque un nouveau tirage et cache le résultat
     #[Locked]
     public bool $isSpinning = false;
 
-    // Angle cumulé de chaque roue (degrés). Il ne fait que croître pour que la transition CSS tourne toujours dans le même sens
     #[Locked]
     public array $wheelRotations = ['race' => 0, 'weapon' => 0, 'power' => 0];
 
-    // Angle avant le tirage courant pour initialiser l'animation CSS sans saut
     #[Locked]
     public array $previousRotations = ['race' => 0, 'weapon' => 0, 'power' => 0];
 
+    #[Locked]
     public ?array $revealedCharacter = null;
+
     public ?string $notification = null;
+
     public ?string $notificationType = null;
 
     public function mount(): void
@@ -67,19 +96,13 @@ class CharacterWheel extends Component
         $this->checkPendingReveal();
     }
 
-    /**
-     * T6.1 : Reprise automatique d'un tirage non finalisé (pending_reveal = true).
-     * Si l'utilisateur a quitté la page avant de choisir "Garder" ou "Recycler",
-     * le tirage est restauré immédiatement à l'écran.
-     */
     public function checkPendingReveal(): void
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
-        // Si déjà affiché, vérifier qu'il est toujours valide
         if ($this->revealedCharacter) {
             $stillValid = Character::where('id', $this->revealedCharacter['id'])
                 ->where('user_id', $user->id)
@@ -87,9 +110,10 @@ class CharacterWheel extends Component
                 ->whereNull('recycled_at')
                 ->exists();
 
-            if (!$stillValid) {
+            if (! $stillValid) {
                 $this->revealedCharacter = null;
             }
+
             return;
         }
 
@@ -103,9 +127,6 @@ class CharacterWheel extends Component
             return;
         }
 
-        // S'il existe plusieurs tirages orphelins (ex: sessions antérieures au patch),
-        // on conserve le plus récent à afficher, et on valide automatiquement les anciens
-        // dans la collection pour éviter de bloquer le joueur dans une boucle de tirages en attente.
         if ($pendings->count() > 1) {
             $latest = $pendings->first();
             Character::where('user_id', $user->id)
@@ -121,21 +142,19 @@ class CharacterWheel extends Component
             $this->notify('Tirage en attente récupéré ! Veuillez choisir de le garder ou de le recycler.', 'info');
         }
 
-        // Les roues affichent directement le tirage récupéré, sans animation
         $this->aimWheels($this->revealedCharacter, 0);
     }
 
     public function refreshState(): void
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
         $this->isAdmin = $user->isAdmin();
 
         if ($this->isAdmin) {
-            // Pour l'admin : argent et charges illimités
             if ($user->coins < 999999 || $user->spin_charges < 999) {
                 $user->update([
                     'coins' => max(999999, $user->coins),
@@ -149,11 +168,11 @@ class CharacterWheel extends Component
 
         $user->refresh();
 
-        $this->spinCharges = $user->spin_charges;
+        $this->spinCharges = (int) $user->spin_charges;
         $this->maxCharges = $this->isAdmin ? 999 : 3;
-        $this->pityCounter = $user->pity_counter;
-        $this->coins = $user->coins;
-        $this->elo = $user->elo;
+        $this->pityCounter = (int) $user->pity_counter;
+        $this->coins = (int) $user->coins;
+        $this->elo = (int) $user->elo;
         $this->nextRegenSeconds = app(EnergyManagerService::class)->getNextSpinRegenSeconds($user);
 
         $emergency = app(WorkshopService::class)->emergencySpinStatus($user);
@@ -161,18 +180,17 @@ class CharacterWheel extends Component
         $this->emergencyRemaining = $emergency['remaining'];
     }
 
-    /** T4.3 : Ticket d'Urgence, achat d'une charge de spin quand la réserve est vide. */
     public function buyEmergencySpin(): void
     {
         $user = auth()->user();
-        if (!$user || $this->isAdmin || $this->isSpinning) {
+        if (! $user || $this->isAdmin || $this->isSpinning) {
             return;
         }
 
         try {
             $purchase = app(WorkshopService::class)->buyEmergencySpin($user);
             $this->notify("🎟️ Ticket d'Urgence utilisé : +1 charge de tirage (-{$purchase['cost']} 🪙) !", 'success');
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             $this->notify($e->getMessage(), 'error');
         }
 
@@ -180,14 +198,10 @@ class CharacterWheel extends Component
         $this->dispatchStatsUpdated();
     }
 
-    /**
-     * T6.2 : Tirage atomique avec lock pessimiste de l'utilisateur (lockForUpdate)
-     * et protection contre les tirages simultanés ou non résolus (T6.1).
-     */
     public function spin(): void
     {
         $userId = auth()->id();
-        if (!$userId) {
+        if (! $userId) {
             return;
         }
 
@@ -195,9 +209,9 @@ class CharacterWheel extends Component
             return;
         }
 
-        // Si un tirage est déjà ouvert dans le composant, bloquer immédiatement
         if ($this->revealedCharacter) {
-            $this->notify('Veuillez d\'abord finaliser votre tirage en cours.', 'warning');
+            $this->notify("Veuillez d'abord finaliser votre tirage en cours.", 'warning');
+
             return;
         }
 
@@ -205,11 +219,9 @@ class CharacterWheel extends Component
         $launched = false;
 
         try {
-            DB::transaction(function () use ($userId, &$launched) {
-                // 1. Verrouillage pessimiste de l'utilisateur pour bloquer toute concurrence
+            DB::transaction(function () use ($userId, &$launched): void {
                 $user = User::where('id', $userId)->lockForUpdate()->firstOrFail();
 
-                // 2. Sécurité T6.1 : Vérifier s'il existe déjà un tirage en attente en base
                 $pendings = Character::where('user_id', $user->id)
                     ->where('pending_reveal', true)
                     ->whereNull('recycled_at')
@@ -228,23 +240,20 @@ class CharacterWheel extends Component
                     $this->revealedCharacter = $latest->toArray();
                     $this->aimWheels($this->revealedCharacter, 0);
                     $this->notify('Vous avez un tirage non finalisé en attente ! Choisissez de le garder ou de le recycler.', 'warning');
+
                     return;
                 }
 
-                // 3. Consommation sécurisée de l'énergie de tirage
                 $energy = app(EnergyManagerService::class);
-                if (!$user->isAdmin()) {
-                    if (!$energy->consumeSpin($user)) {
-                        $this->notify('Aucune charge de tirage disponible ! Attends la recharge.', 'error');
-                        return;
-                    }
+                if (! $user->isAdmin() && ! $energy->consumeSpin($user)) {
+                    $this->notify('Aucune charge de tirage disponible ! Attends la recharge.', 'error');
+
+                    return;
                 }
 
-                // 4. Génération du combattant
                 $isLucky = $user->pity_counter >= $this->pityMax;
                 $character = app(CharacterGeneratorService::class)->generate($user, $isLucky);
 
-                // 5. Gestion atomique de la jauge de pitié
                 if ($isLucky) {
                     $user->update(['pity_counter' => 0]);
                     $this->notify('🌟 SUPER SPIN DÉCLENCHÉ ! Tirage exceptionnel garanti !', 'success');
@@ -255,17 +264,20 @@ class CharacterWheel extends Component
                 $this->revealedCharacter = $character->fresh()->toArray();
                 $launched = true;
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             report($e);
             $this->notify('Une erreur est survenue lors du tirage. Vos charges ont été préservées.', 'error');
             $launched = false;
         }
 
         if ($launched) {
-            // Le résultat est déjà enregistré (pending_reveal) : les roues ne font que le mettre en scène.
-            // isSpinning reste vrai jusqu'à finishSpin(), appelé par la vue à l'arrêt de la dernière roue.
             $this->previousRotations = $this->wheelRotations;
             $this->aimWheels($this->revealedCharacter, self::WHEEL_EXTRA_TURNS);
+            $this->dispatch('codex-volvelle-spin',
+                wheels: $this->wheels,
+                rotations: $this->wheelRotations,
+                reveal: $this->volvelleRevealPayload($this->revealedCharacter),
+            );
         } else {
             $this->isSpinning = false;
         }
@@ -274,20 +286,18 @@ class CharacterWheel extends Component
         $this->dispatchStatsUpdated();
     }
 
-    /** Appelé par la vue quand la dernière roue s'est arrêtée : débloque l'interface et révèle le combattant. */
     public function finishSpin(): void
     {
         $this->isSpinning = false;
     }
 
-    /** Les 3 roues affichées : parts proportionnelles aux chances de tirage, couleurs, angle courant et résultat. */
     #[Computed]
     public function wheels(): array
     {
         $palettes = [
-            'race'   => ['label' => 'Race',    'colors' => ['#312e81', '#1e1b4b']],
-            'weapon' => ['label' => 'Arme',    'colors' => ['#78350f', '#451a03']],
-            'power'  => ['label' => 'Pouvoir', 'colors' => ['#581c87', '#3b0764']],
+            'race' => ['label' => 'Race', 'colors' => ['#E9DBBE', '#D9C8A2']],
+            'weapon' => ['label' => 'Arme', 'colors' => ['#F3E8D0', '#E0D0AE']],
+            'power' => ['label' => 'Pouvoir', 'colors' => ['#8A1A14', '#2A3A7A']],
         ];
 
         $wheels = [];
@@ -297,47 +307,58 @@ class CharacterWheel extends Component
             $stops = [];
             $segments = [];
             foreach ($this->wheelLayout($wheel) as $i => $part) {
-                $color = $palette['colors'][$i % count($palette['colors'])];
+                $color = $wheel === 'power'
+                    ? FolioCardPresenter::powerPigment((string) $part['id'])['pigment_hex']
+                    : $palette['colors'][$i % count($palette['colors'])];
                 $stops[] = sprintf('%s %sdeg %sdeg', $color, round($part['start'], 2), round($part['end'], 2));
                 $segments[] = [
-                    'id'     => $part['id'],
-                    'name'   => $part['name'],
-                    'icon'   => $part['icon'],
-                    'angle'  => round($part['center'], 2), // Centre de la part, depuis le haut, sens horaire
+                    'id' => $part['id'],
+                    'name' => $part['name'],
+                    'icon' => $part['icon'],
+                    'start' => round($part['start'], 2),
+                    'end' => round($part['end'], 2),
+                    'angle' => round($part['center'], 2),
                     'chance' => $part['chance'],
-                    'small'  => $part['end'] - $part['start'] < 20, // Part étroite : icône réduite pour ne pas déborder
+                    'small' => $part['end'] - $part['start'] < 20,
                 ];
             }
 
             $wheels[$wheel] = [
-                'label'    => $palette['label'],
+                'label' => $palette['label'],
                 'segments' => $segments,
-                'gradient' => 'conic-gradient(' . implode(', ', $stops) . ')',
+                'gradient' => 'conic-gradient('.implode(', ', $stops).')',
                 'rotation' => $this->wheelRotations[$wheel],
                 'duration' => self::WHEEL_DURATIONS[$wheel],
-                'result'   => collect($segments)->firstWhere('id', $resultId),
+                'result' => collect($segments)->firstWhere('id', $resultId),
             ];
         }
 
         return $wheels;
     }
 
+    #[Computed]
+    public function volvelleIcons(): array
+    {
+        return app(CodexIconRegistry::class)->allByCategory();
+    }
+
+    #[Computed]
+    public function volvellePigments(): array
+    {
+        return FolioCardPresenter::POWER_PIGMENTS;
+    }
+
     private function wheelItems(string $wheel): array
     {
         return array_values(match ($wheel) {
-            'race'   => RaceData::all(),
+            'race' => RaceData::all(),
             'weapon' => WeaponData::all(),
-            // Chances du joueur, Aimant à Pouvoirs Rares compris : la taille des parts suit les vraies probabilités
-            'power'  => auth()->check()
+            'power' => auth()->check()
                 ? app(CharacterGeneratorService::class)->powerPool(auth()->user())
                 : PowerData::all(),
         });
     }
 
-    /**
-     * Découpage d'une roue : chaque part occupe une portion de 360° proportionnelle à son poids de tirage (`weight`),
-     * la taille d'une part correspond donc à sa vraie chance de sortir.
-     */
     private function wheelLayout(string $wheel): array
     {
         $items = $this->wheelItems($wheel);
@@ -348,11 +369,11 @@ class CharacterWheel extends Component
         foreach ($items as $item) {
             $width = $item['weight'] / $totalWeight * 360;
             $layout[] = [
-                'id'     => $item['id'],
-                'name'   => $item['name'],
-                'icon'   => $item['icon'],
-                'start'  => $start,
-                'end'    => $start + $width,
+                'id' => $item['id'],
+                'name' => $item['name'],
+                'icon' => $item['icon'],
+                'start' => $start,
+                'end' => $start + $width,
                 'center' => $start + $width / 2,
                 'chance' => round($item['weight'] / $totalWeight * 100, 1),
             ];
@@ -362,26 +383,19 @@ class CharacterWheel extends Component
         return $layout;
     }
 
-    /** Oriente les 3 roues vers la race, l'arme et le pouvoir du personnage tiré. */
     private function aimWheels(array $character, int $extraTurns): void
     {
         foreach (self::WHEEL_FIELDS as $wheel => $field) {
-            $this->wheelRotations[$wheel] = $this->targetRotation($wheel, $character[$field] ?? '', $extraTurns);
+            $this->wheelRotations[$wheel] = $this->targetRotation($wheel, (string) ($character[$field] ?? ''), $extraTurns);
         }
     }
 
-    /**
-     * Angle final d'une roue pour que la part gagnante s'arrête sous le pointeur (en haut).
-     * Pour amener le centre de la part sous le pointeur, la roue doit tourner de 360 - ce centre (modulo 360).
-     * On repart de l'angle courant, on ajoute des tours complets et un léger décalage aléatoire
-     * (±35 % de la largeur de la part) pour que l'arrêt ne tombe pas toujours pile au centre.
-     */
     private function targetRotation(string $wheel, string $itemId, int $extraTurns): float
     {
         $part = collect($this->wheelLayout($wheel))->firstWhere('id', $itemId);
         $current = (float) $this->wheelRotations[$wheel];
 
-        if (!$part) {
+        if (! $part) {
             return $current;
         }
 
@@ -394,19 +408,42 @@ class CharacterWheel extends Component
     }
 
     /**
-     * T6.1 / T6.2 : Validation atomique de conservation du personnage dans la collection.
+     * @param  array<string, mixed>  $character
+     * @return array<string, mixed>
      */
+    private function volvelleRevealPayload(array $character): array
+    {
+        $raceId = (string) ($character['race_id'] ?? 'human');
+        $weaponId = (string) ($character['weapon_id'] ?? 'sword');
+        $powerId = (string) ($character['power_id'] ?? 'fire');
+
+        $race = RaceData::find($raceId);
+        $weapon = WeaponData::find($weaponId);
+        $power = PowerData::find($powerId);
+
+        return [
+            'race' => ['id' => $raceId, 'name' => (string) ($race['name'] ?? ucfirst($raceId))],
+            'weapon' => ['id' => $weaponId, 'name' => (string) ($weapon['name'] ?? ucfirst($weaponId))],
+            'power' => [
+                'id' => $powerId,
+                'name' => (string) ($power['name'] ?? ucfirst($powerId)),
+                'pigment_hex' => FolioCardPresenter::powerPigment($powerId)['pigment_hex'],
+            ],
+            'power_tier' => (string) ($power['tier'] ?? 'common'),
+        ];
+    }
+
     public function keepCharacter(): void
     {
         $userId = auth()->id();
-        if (!$userId || !$this->revealedCharacter || $this->isSpinning) {
+        if (! $userId || ! $this->revealedCharacter || $this->isSpinning) {
             return;
         }
 
-        $charId = $this->revealedCharacter['id'];
-        $charName = $this->revealedCharacter['name'];
+        $charId = (string) $this->revealedCharacter['id'];
+        $charName = (string) $this->revealedCharacter['name'];
 
-        DB::transaction(function () use ($userId, $charId) {
+        DB::transaction(function () use ($userId, $charId): void {
             $character = Character::where('id', $charId)
                 ->where('user_id', $userId)
                 ->whereNull('recycled_at')
@@ -422,37 +459,41 @@ class CharacterWheel extends Component
         $this->notify("{$charName} a rejoint votre collection !", 'success');
         $this->refreshState();
         $this->dispatchStatsUpdated();
+        $this->dispatch('codex-volvelle-reset');
     }
 
-    /**
-     * T6.1 / T6.2 : Recyclage immédiat du personnage tiré avec transaction et lock.
-     */
     public function recycleCharacter(): void
     {
         $user = auth()->user();
-        if (!$user || !$this->revealedCharacter || $this->isSpinning) {
+        if (! $user || ! $this->revealedCharacter || $this->isSpinning) {
             return;
         }
 
-        $charId = $this->revealedCharacter['id'];
+        $charId = (string) $this->revealedCharacter['id'];
 
         try {
             $coins = app(RecycleService::class)->recycle($user, $charId);
             $this->notify("+{$coins} 🪙 récupérées par recyclage !", 'success');
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->notify("Impossible de recycler ce combattant : {$e->getMessage()}", 'error');
         }
 
         $this->revealedCharacter = null;
         $this->refreshState();
         $this->dispatchStatsUpdated();
+        $this->dispatch('codex-volvelle-reset');
     }
 
-    // --- OUTILS ADMIN POUR LES TESTS ---
+    private function isCurrentUserAdmin(): bool
+    {
+        return (bool) auth()->user()?->isAdmin();
+    }
 
     public function adminAddCoins(int $amount = 50000): void
     {
-        if (!$this->isAdmin) return;
+        if (! $this->isCurrentUserAdmin()) {
+            return;
+        }
 
         auth()->user()->increment('coins', $amount);
         $this->refreshState();
@@ -462,7 +503,9 @@ class CharacterWheel extends Component
 
     public function adminTriggerSuperSpin(): void
     {
-        if (!$this->isAdmin) return;
+        if (! $this->isCurrentUserAdmin()) {
+            return;
+        }
 
         auth()->user()->update(['pity_counter' => 10]);
         $this->refreshState();
@@ -472,7 +515,9 @@ class CharacterWheel extends Component
 
     public function adminResetPity(): void
     {
-        if (!$this->isAdmin) return;
+        if (! $this->isCurrentUserAdmin()) {
+            return;
+        }
 
         auth()->user()->update(['pity_counter' => 0]);
         $this->refreshState();
@@ -480,33 +525,30 @@ class CharacterWheel extends Component
         $this->notify('Jauge de chance réinitialisée à 0.', 'info');
     }
 
-    /**
-     * Bascule l'affichage du panneau de la Forge de Personnages Admin.
-     */
     public function toggleAdminForge(): void
     {
-        if (!$this->isAdmin) return;
-        $this->showAdminForge = !$this->showAdminForge;
+        if (! $this->isCurrentUserAdmin()) {
+            return;
+        }
+        $this->showAdminForge = ! $this->showAdminForge;
     }
 
-    /**
-     * Invoque un combattant personnalisé selon les choix de la Forge Admin.
-     * $withAnimation = true anime les roues physiques jusqu'aux 3 positions choisies.
-     * $withAnimation = false révèle directement la carte sans délai d'attente.
-     */
     public function adminSpawnCustom(bool $withAnimation = false): void
     {
-        if (!$this->isAdmin) return;
-
-        $user = auth()->user();
-        if ($this->isSpinning || $this->revealedCharacter) {
-            $this->notify('Veuillez d\'abord finaliser votre tirage en cours.', 'warning');
+        if (! $this->isCurrentUserAdmin()) {
             return;
         }
 
-        $rarityEnum = \App\Enums\Rarity::tryFrom($this->adminSelectedRarity) ?? \App\Enums\Rarity::Rare;
+        $user = auth()->user();
+        if ($this->isSpinning || $this->revealedCharacter) {
+            $this->notify("Veuillez d'abord finaliser votre tirage en cours.", 'warning');
 
-        $character = app(\App\Services\CharacterGeneratorService::class)->generateCustom(
+            return;
+        }
+
+        $rarityEnum = Rarity::tryFrom($this->adminSelectedRarity) ?? Rarity::Rare;
+
+        $character = app(CharacterGeneratorService::class)->generateCustom(
             $user,
             $this->adminSelectedRace,
             $this->adminSelectedWeapon,
@@ -521,8 +563,18 @@ class CharacterWheel extends Component
             $this->isSpinning = true;
             $this->previousRotations = $this->wheelRotations;
             $this->aimWheels($this->revealedCharacter, self::WHEEL_EXTRA_TURNS);
+            $this->dispatch('codex-volvelle-spin',
+                wheels: $this->wheels,
+                rotations: $this->wheelRotations,
+                reveal: $this->volvelleRevealPayload($this->revealedCharacter),
+            );
             $this->notify("🎡 Tirage personnalisé lancé sur la Roue : {$character->name} !", 'info');
         } else {
+            $this->aimWheels($this->revealedCharacter, 0);
+            $this->dispatch('codex-volvelle-sync-steps',
+                steps: $this->volvelleRevealPayload($this->revealedCharacter),
+                rotations: $this->wheelRotations,
+            );
             $this->notify("🎯 Combattant personnalisé forgé : {$character->name} !", 'success');
         }
 
@@ -530,11 +582,12 @@ class CharacterWheel extends Component
         $this->dispatchStatsUpdated();
     }
 
-    /**
-     * Commande Admin de Test rétrocompatible : Force un tirage instantané.
-     */
     public function adminForceTestSpin(string $weaponId = 'sword', string $powerId = 'fire'): void
     {
+        if (! $this->isCurrentUserAdmin()) {
+            return;
+        }
+
         $this->adminSelectedRace = 'human';
         $this->adminSelectedWeapon = $weaponId;
         $this->adminSelectedPower = $powerId;
@@ -545,25 +598,25 @@ class CharacterWheel extends Component
     #[Computed]
     public function adminAllRaces(): array
     {
-        return \App\Data\RaceData::all();
+        return RaceData::all();
     }
 
     #[Computed]
     public function adminAllWeapons(): array
     {
-        return \App\Data\WeaponData::all();
+        return WeaponData::all();
     }
 
     #[Computed]
     public function adminAllPowers(): array
     {
-        return \App\Data\PowerData::all();
+        return PowerData::all();
     }
 
     #[Computed]
     public function adminDetectedSynergies(): array
     {
-        return \App\Data\SynergyData::detect(
+        return SynergyData::detect(
             $this->adminSelectedRace,
             $this->adminSelectedWeapon,
             $this->adminSelectedPower
@@ -574,10 +627,39 @@ class CharacterWheel extends Component
     public function adminAssetStatus(): array
     {
         return [
-            'race'   => \App\Services\PaperDollService::getRaceAsset($this->adminSelectedRace),
-            'weapon' => \App\Services\PaperDollService::getWeaponAsset($this->adminSelectedWeapon),
-            'aura'   => \App\Services\PaperDollService::getAuraAsset($this->adminSelectedWeapon, $this->adminSelectedPower),
+            'race' => PaperDollService::getRaceAsset($this->adminSelectedRace),
+            'weapon' => PaperDollService::getWeaponAsset($this->adminSelectedWeapon),
+            'aura' => PaperDollService::getAuraAsset($this->adminSelectedWeapon, $this->adminSelectedPower),
         ];
+    }
+
+    #[Computed]
+    public function adminPreviewCard(): array
+    {
+        $race = RaceData::find($this->adminSelectedRace);
+        $weapon = WeaponData::find($this->adminSelectedWeapon);
+        $synergies = $this->adminDetectedSynergies;
+
+        $hp = max(30, min(140, 70 + (int) ($race['mods']['hp'] ?? 0) + (int) ($weapon['mods']['hp'] ?? 0)));
+        $str = max(15, min(100, 60 + (int) ($race['mods']['strength'] ?? 0) + (int) ($weapon['mods']['strength'] ?? 0)));
+        $spd = max(10, min(100, 55 + (int) ($race['mods']['speed'] ?? 0) + (int) ($weapon['mods']['speed'] ?? 0)));
+        $def = max(10, min(100, 55 + (int) ($race['mods']['defense'] ?? 0) + (int) ($weapon['mods']['defense'] ?? 0)));
+
+        return app(FolioCardPresenter::class)->present([
+            'id' => 'admin-preview-'.$this->adminSelectedRace.'-'.$this->adminSelectedWeapon.'-'.$this->adminSelectedPower.'-'.$this->adminSelectedRarity,
+            'name' => 'Aperçu · '.($race['name'] ?? ucfirst($this->adminSelectedRace)),
+            'race_id' => $this->adminSelectedRace,
+            'weapon_id' => $this->adminSelectedWeapon,
+            'power_id' => $this->adminSelectedPower,
+            'rarity' => $this->adminSelectedRarity,
+            'hp' => $hp,
+            'max_hp' => $hp,
+            'strength' => $str,
+            'speed' => $spd,
+            'defense' => $def,
+            'power_score' => min(100, max(20, (int) round(($hp * 0.24) + ($str * 0.32) + ($def * 0.24) + ($spd * 0.20) + (count($synergies) * 3)))),
+            'synergies_data' => $synergies,
+        ]);
     }
 
     public function dispatchStatsUpdated(): void
@@ -603,11 +685,15 @@ class CharacterWheel extends Component
 
     public function render()
     {
+        $initialSteps = ($this->revealedCharacter && ! $this->isSpinning)
+            ? $this->volvelleRevealPayload($this->revealedCharacter)
+            : ['race' => null, 'weapon' => null, 'power' => null];
+
         return view('livewire.character-wheel', [
-            // Roue qui s'arrête en dernier : c'est elle qui prévient le serveur de la fin du tirage
             'lastWheel' => array_search(max(self::WHEEL_DURATIONS), self::WHEEL_DURATIONS, true),
             'maxDuration' => max(self::WHEEL_DURATIONS),
             'previousRotations' => $this->previousRotations,
+            'initialSteps' => $initialSteps,
         ]);
     }
 }

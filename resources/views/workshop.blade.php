@@ -1,19 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-display font-extrabold text-xl tracking-wide flex items-center gap-3">
-                <span class="text-2xl">🏛️</span>
-                <span class="bg-gradient-to-r from-emerald-300 to-teal-400 bg-clip-text text-transparent">Atelier du Destin</span>
-            </h2>
-            <span class="text-[10px] text-slate-600 font-medium tracking-wider uppercase hidden sm:inline-block">
-                Améliorations
-            </span>
-        </div>
+        <h2 class="codex-chapter-title">
+            <svg class="w-5 h-5 text-brass-dark shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 10 H17 L20 13 H15 L17 19 H7 L9 13 H4 Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+                <path d="M9 6 H15 V10 H9 Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+            </svg>
+            <span>Atelier du Destin</span>
+        </h2>
+        <span class="codex-chapter-sub hidden sm:inline">Enluminures Permanentes</span>
     </x-slot>
 
-    <div class="section-breathe">
-        <div class="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10">
-            <livewire:workshop />
-        </div>
-    </div>
+    <livewire:workshop />
 </x-app-layout>

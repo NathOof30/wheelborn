@@ -1,19 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-display font-extrabold text-xl tracking-wide flex items-center gap-3">
-                <span class="text-2xl">🏆</span>
-                <span class="heading-majestic">Classement de l'Arène</span>
-            </h2>
-            <span class="text-[10px] text-slate-600 font-medium tracking-wider uppercase hidden sm:inline-block">
-                Élo FIDE · 5 Ligues
-            </span>
-        </div>
+        <h2 class="codex-chapter-title">
+            <svg class="w-5 h-5 text-brass-dark shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 17 L6 8 L10 12 L12 6 L14 12 L18 8 L20 17 Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+                <line x1="5" y1="20" x2="19" y2="20" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+            </svg>
+            <span>Classement de l'Arène</span>
+        </h2>
+        <span class="codex-chapter-sub hidden sm:inline">Élo FIDE · 5 Ligues</span>
     </x-slot>
 
-    <div class="section-breathe">
-        <div class="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10">
-            <livewire:leaderboard />
-        </div>
-    </div>
+    <livewire:leaderboard />
 </x-app-layout>

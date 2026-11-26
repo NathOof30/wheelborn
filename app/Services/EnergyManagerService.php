@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use App\Models\User;
 use App\Data\GameConfig;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Gère les deux réserves d'énergie du joueur, qui fonctionnent de la même façon :
@@ -64,6 +67,14 @@ class EnergyManagerService
     }
 
     /**
+     * Consomme 1 ticket d'arène sur un utilisateur déjà verrouillé dans une transaction active.
+     */
+    public function consumeArenaTicketLocked(User $lockedUser): bool
+    {
+        return $this->consumeLocked($lockedUser, $this->arenaPool());
+    }
+
+    /**
      * Calcule le temps restant en secondes avant le prochain ticket d'arène.
      */
     public function getNextArenaRegenSeconds(User $user): int
@@ -92,73 +103,110 @@ class EnergyManagerService
 
     private function regen(User $user, array $pool): void
     {
+        ['stock' => $stock, 'timer' => $timer] = $pool;
+
+        $lockedUser = DB::transaction(function () use ($user, $pool): User {
+            $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $this->regenLocked($locked, $pool);
+
+            return $locked;
+        });
+
+        $this->syncPoolState($user, $lockedUser, $stock, $timer);
+    }
+
+    private function regenLocked(User $lockedUser, array $pool): void
+    {
         ['stock' => $stock, 'timer' => $timer, 'max' => $max, 'interval' => $interval] = $pool;
 
-        // Admin : réserve illimitée
-        if ($user->isAdmin()) {
-            if ($user->{$stock} < self::ADMIN_UNLIMITED) {
-                $user->update([$stock => self::ADMIN_UNLIMITED]);
+        if ($lockedUser->isAdmin()) {
+            if ($lockedUser->{$stock} < self::ADMIN_UNLIMITED) {
+                $lockedUser->update([$stock => self::ADMIN_UNLIMITED]);
             }
+
             return;
         }
 
-        // Réserve pleine : plus besoin de chrono
-        if ($user->{$stock} >= $max) {
-            if ($user->{$timer} !== null) {
-                $user->update([$timer => null]);
+        if ($lockedUser->{$stock} >= $max) {
+            if ($lockedUser->{$timer} !== null) {
+                $lockedUser->update([$timer => null]);
             }
+
             return;
         }
 
-        // Réserve entamée sans chrono : on le démarre maintenant
-        if (!$user->{$timer}) {
-            $user->update([$timer => now()]);
+        if (! $lockedUser->{$timer}) {
+            $lockedUser->update([$timer => now()]);
+
             return;
         }
 
-        // Rattrapage hors-ligne : autant d'unités que d'intervalles complets écoulés
-        $lastRegen = Carbon::parse($user->{$timer});
-        $elapsed = max(0, now()->timestamp - $lastRegen->timestamp);
+        $lastRegen = Carbon::parse($lockedUser->{$timer});
+        $elapsed = max(0, (int) (now()->timestamp - $lastRegen->timestamp));
 
         if ($elapsed >= $interval) {
             $recharged = intdiv($elapsed, $interval);
-            $newStock = min($max, $user->{$stock} + $recharged);
+            $newStock = min($max, (int) $lockedUser->{$stock} + $recharged);
 
-            $user->update([
+            $lockedUser->update([
                 $stock => $newStock,
-                // On garde le reste de l'intervalle en cours pour ne pas perdre de temps de recharge
-                $timer => $newStock >= $max ? null : $lastRegen->addSeconds($recharged * $interval),
+                $timer => $newStock >= $max ? null : $lastRegen->copy()->addSeconds($recharged * $interval),
             ]);
         }
     }
 
     private function consume(User $user, array $pool): bool
     {
-        ['stock' => $stock, 'timer' => $timer, 'max' => $max] = $pool;
+        ['stock' => $stock, 'timer' => $timer] = $pool;
 
         if ($user->isAdmin()) {
-            return true; // Admin : aucune décrémentation
+            return true;
         }
 
-        $this->regen($user, $pool);
+        [$consumed, $lockedUser] = DB::transaction(function () use ($user, $pool): array {
+            $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        // Déduction atomique : la condition "stock > 0" est vérifiée par la base dans la même requête,
-        // donc deux requêtes simultanées ne peuvent pas consommer la même unité.
-        $consumed = User::whereKey($user->id)->where($stock, '>', 0)->decrement($stock);
-        if (!$consumed) {
+            return [$this->consumeLocked($locked, $pool), $locked];
+        });
+
+        $this->syncPoolState($user, $lockedUser, $stock, $timer);
+
+        return $consumed;
+    }
+
+    private function consumeLocked(User $lockedUser, array $pool): bool
+    {
+        ['stock' => $stock, 'timer' => $timer, 'max' => $max] = $pool;
+
+        if ($lockedUser->isAdmin()) {
+            return true;
+        }
+
+        $this->regenLocked($lockedUser, $pool);
+
+        if ((int) $lockedUser->{$stock} <= 0) {
             return false;
         }
 
-        $wasFull = $user->{$stock} >= $max;
-        $user->{$stock}--;
-        $user->syncOriginalAttribute($stock);
+        $wasFull = (int) $lockedUser->{$stock} >= $max;
+        $newStock = (int) $lockedUser->{$stock} - 1;
+        $updates = [$stock => $newStock];
 
-        // Si on passe sous le maximum ou qu'aucun chrono n'est posé, on démarre la recharge
-        if ($wasFull || !$user->{$timer}) {
-            $user->update([$timer => now()]);
+        if ($wasFull || ! $lockedUser->{$timer}) {
+            $updates[$timer] = now();
         }
 
+        $lockedUser->update($updates);
+
         return true;
+    }
+
+    private function syncPoolState(User $target, User $source, string $stock, string $timer): void
+    {
+        $target->{$stock} = $source->{$stock};
+        $target->{$timer} = $source->{$timer};
+        $target->syncOriginalAttribute($stock);
+        $target->syncOriginalAttribute($timer);
     }
 
     private function secondsUntilNext(User $user, array $pool): int
@@ -169,7 +217,7 @@ class EnergyManagerService
             return 0;
         }
 
-        if (!$user->{$timer}) {
+        if (! $user->{$timer}) {
             return $interval;
         }
 

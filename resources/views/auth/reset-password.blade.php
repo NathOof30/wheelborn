@@ -1,41 +1,59 @@
 <x-guest-layout>
-    <div class="mb-6 text-center">
-        <h2 class="font-display font-extrabold text-xl text-white tracking-wide">Nouveau mot de passe</h2>
-        <p class="text-sm text-slate-500 mt-3 leading-relaxed">Choisissez un nouveau mot de passe pour votre compte.</p>
+    <div class="mb-6 text-center space-y-2">
+        <h1 class="font-display font-bold text-xl text-ink tracking-wide">Nouveau mot de passe</h1>
+        <p class="font-body text-sm italic text-ink-muted leading-relaxed">
+            Choisissez un nouveau mot de passe pour votre compte.
+        </p>
     </div>
 
-    <form method="POST" action="{{ route('password.store') }}">
+    <form method="POST" action="{{ route('password.store') }}" class="space-y-4">
         @csrf
 
-        <!-- Password Reset Token -->
         <input type="hidden" name="token" value="{{ $request->route('token') }}">
 
-        <!-- Email Address -->
         <div>
-            <label for="email" class="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
-            <input id="email" type="email" name="email" value="{{ old('email', $request->email) }}" required autofocus autocomplete="username"
-                class="block w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-200 px-4 py-3 text-sm placeholder-slate-600 focus:border-gold/50 focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all duration-300" />
+            <x-input-label for="email" value="Email" />
+            <x-text-input
+                id="email"
+                type="email"
+                name="email"
+                :value="old('email', $request->email)"
+                required
+                autofocus
+                autocomplete="username"
+                class="mt-1.5 block w-full"
+            />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
-        <!-- Password -->
-        <div class="mt-5">
-            <label for="password" class="block text-sm font-medium text-slate-400 mb-1.5">Nouveau mot de passe</label>
-            <input id="password" type="password" name="password" required autocomplete="new-password"
-                class="block w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-200 px-4 py-3 text-sm placeholder-slate-600 focus:border-gold/50 focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all duration-300" />
+        <div>
+            <x-input-label for="password" value="Nouveau mot de passe" />
+            <x-text-input
+                id="password"
+                type="password"
+                name="password"
+                required
+                autocomplete="new-password"
+                class="mt-1.5 block w-full"
+            />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
-        <!-- Confirm Password -->
-        <div class="mt-5">
-            <label for="password_confirmation" class="block text-sm font-medium text-slate-400 mb-1.5">Confirmer</label>
-            <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password"
-                class="block w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-200 px-4 py-3 text-sm placeholder-slate-600 focus:border-gold/50 focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all duration-300" />
+        <div>
+            <x-input-label for="password_confirmation" value="Confirmer" />
+            <x-text-input
+                id="password_confirmation"
+                type="password"
+                name="password_confirmation"
+                required
+                autocomplete="new-password"
+                class="mt-1.5 block w-full"
+            />
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <div class="mt-8">
-            <button type="submit" class="w-full px-7 py-3.5 rounded-2xl bg-gradient-to-r from-gold to-gold-light text-cosmos-deep font-display font-bold text-sm tracking-wider uppercase transition-all duration-300 hover:shadow-lg hover:shadow-gold/20 hover:scale-[1.01] active:scale-95">
+        <div class="pt-3">
+            <button type="submit" class="btn-brass w-full">
                 Réinitialiser le mot de passe
             </button>
         </div>

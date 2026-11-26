@@ -1,3 +1,45 @@
+@php
+    $showcaseCards = [
+        [
+            'id' => 'welcome-valerian',
+            'name' => 'Valérian Brise-Fer',
+            'race_id' => 'human',
+            'weapon_id' => 'sword',
+            'power_id' => 'fire',
+            'power_tier' => 'common',
+            'hp' => 118,
+            'max_hp' => 118,
+            'strength' => 86,
+            'speed' => 74,
+            'defense' => 78,
+            'power_score' => 92,
+            'rarity' => 'legendary',
+            'is_lucky_spin' => true,
+            'recycle_value' => 260,
+            'wins' => 14,
+            'losses' => 3,
+        ],
+        [
+            'id' => 'welcome-sylvaelle',
+            'name' => 'Sylvaëlle Foudre-Arc',
+            'race_id' => 'elf',
+            'weapon_id' => 'bow',
+            'power_id' => 'lightning',
+            'power_tier' => 'rare',
+            'hp' => 104,
+            'max_hp' => 104,
+            'strength' => 82,
+            'speed' => 94,
+            'defense' => 62,
+            'power_score' => 86,
+            'rarity' => 'epic',
+            'is_lucky_spin' => false,
+            'recycle_value' => 165,
+            'wins' => 9,
+            'losses' => 4,
+        ],
+    ];
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -5,36 +47,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WHEELBORN — Forgez votre destin</title>
     <meta name="description" content="WHEELBORN : Jeu de cartes à combattants aléatoires. Faites tourner la roue, forgez des guerriers uniques, combattez dans l'arène.">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=outfit:400,600,700,800|inter:400,500,600&display=swap" rel="stylesheet" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased min-h-screen flex flex-col cosmos-field">
-
-    {{-- ═══════════════════════════════════════════════════════════
-         NAVIGATION MINIMALE — FLOTTANTE, PRESQUE INVISIBLE
-         ═══════════════════════════════════════════════════════════ --}}
-    <header class="fixed top-0 inset-x-0 z-50">
-        <div class="max-w-6xl mx-auto px-6 sm:px-8 h-20 flex items-center justify-between">
-            <a href="/" class="flex items-center gap-3 group">
-                <span class="text-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">🎡</span>
-                <span class="font-display font-extrabold text-lg tracking-[0.12em] uppercase heading-majestic">
-                    WHEELBORN
-                </span>
+<body class="codex-body font-body antialiased min-h-screen flex flex-col">
+    {{-- En-tête minimaliste cuir & laiton --}}
+    <header class="codex-navbar">
+        <div class="codex-navbar-inner px-3 sm:px-5 gap-2">
+            <a href="/" class="codex-brand gap-1.5 sm:gap-2.5" aria-label="WHEELBORN — Accueil">
+                <svg class="codex-brand-crest w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 36 36" aria-hidden="true">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                    <circle cx="18" cy="18" r="10.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2.4 2"/>
+                    <circle cx="18" cy="18" r="5" fill="#8A1A14" stroke="currentColor" stroke-width="1.3"/>
+                    <path d="M18 1.5 L20.2 6.5 L15.8 6.5 Z" fill="currentColor"/>
+                </svg>
+                <span class="codex-brand-name text-xl sm:text-2xl">Wheelborn</span>
             </a>
 
-            <div class="flex items-center gap-3 text-sm font-medium">
+            <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
                 @if (Route::has('login'))
                     @auth
-                        <a href="{{ route('dashboard') }}" class="px-5 py-2.5 rounded-2xl bg-gold/90 text-cosmos-deep font-bold hover:bg-gold-light transition-all duration-300 hover:shadow-lg hover:shadow-gold/20">
-                            Jouer
+                        <a href="{{ route('dashboard') }}" class="btn-brass btn-brass--sm px-3 sm:px-4">
+                            Ouvrir le Jeu
                         </a>
                     @else
-                        <a href="{{ route('login') }}" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-200 transition-all duration-300">
+                        <a href="{{ route('login') }}" class="font-display text-[11px] sm:text-sm font-bold text-parchment-shade hover:text-parchment-bright px-2 sm:px-3 py-1.5 transition">
                             Connexion
                         </a>
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="px-5 py-2.5 rounded-2xl glass text-slate-200 font-medium hover:text-white hover:bg-white/[0.08] transition-all duration-300">
+                            <a href="{{ route('register') }}" class="btn-wax btn-wax--sm px-2.5 sm:px-3.5 text-[11px] sm:text-xs">
                                 S'inscrire
                             </a>
                         @endif
@@ -44,147 +89,152 @@
         </div>
     </header>
 
-    {{-- ═══════════════════════════════════════════════════════════
-         HERO — LE VIDE CONTEMPLATIF
-         Grande respiration verticale, texte majestueux centré,
-         le vide autour donne la sensation de grandeur.
-         ═══════════════════════════════════════════════════════════ --}}
-    <main class="flex-1 relative z-10">
-        <section class="min-h-screen flex flex-col justify-center items-center px-6 text-center">
+    {{-- Couverture de Grimoire --}}
+    <main class="codex-stage flex-1">
+        <div class="codex-shell">
+            <aside class="codex-spine" aria-hidden="true">
+                <span class="spine-band"></span>
+                <span class="spine-band"></span>
+                <span class="spine-band"></span>
+                <span class="spine-band"></span>
+                <span class="spine-band"></span>
+                <div class="codex-clasp codex-clasp--top"></div>
+                <div class="codex-clasp codex-clasp--bottom"></div>
+            </aside>
 
-            {{-- Orbe décorative subtile —  un halo doré lointain --}}
-            <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gold/[0.03] blur-[120px] pointer-events-none animate-breathe"></div>
+            <div class="codex-vellum space-y-12">
+                {{-- HERO : COUVERTURE ENLUMINÉE --}}
+                <section class="relative overflow-hidden rounded-xl border-2 border-brass/70 bg-parchment-bright/80 px-6 sm:px-10 py-12 sm:py-16 text-center shadow-inner">
+                    {{-- Volvelle décorative en rotation lente --}}
+                    <div class="pointer-events-none absolute -right-24 -top-24 sm:-right-16 sm:-top-20 w-72 h-72 sm:w-96 sm:h-96 opacity-[0.13] text-brass-dark" aria-hidden="true">
+                        <svg viewBox="0 0 240 240" class="w-full h-full animate-spin-slow">
+                            <circle cx="120" cy="120" r="112" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="120" cy="120" r="90" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 5"/>
+                            <circle cx="120" cy="120" r="64" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <circle cx="120" cy="120" r="34" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4"/>
+                            @for ($deg = 0; $deg < 360; $deg += 30)
+                                <line x1="120" y1="8" x2="120" y2="232" stroke="currentColor" stroke-width="1" transform="rotate({{ $deg }} 120 120)"/>
+                            @endfor
+                        </svg>
+                    </div>
 
-            {{-- Badge discret --}}
-            <div class="animate-fade-in-up">
-                <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass text-[11px] text-slate-400 font-medium tracking-wider uppercase">
-                    <span class="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></span>
-                    Projet Universitaire · Laravel 11 & Livewire 3
-                </span>
-            </div>
+                    <div class="relative z-10 max-w-2xl mx-auto space-y-6">
+                        <p class="font-display text-xs uppercase font-bold tracking-[0.22em] text-wax">
+                            Codex des Sceaux &amp; Duels d'Arène
+                        </p>
 
-            {{-- Respiration --}}
-            <div class="h-10 sm:h-14"></div>
+                        <h1 class="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-ink leading-[1.08] tracking-tight">
+                            Créez votre <span class="text-wax">combattant.</span>
+                        </h1>
 
-            {{-- Titre majestueux --}}
-            <h1 class="animate-fade-in-up animate-delay-200">
-                <span class="block font-display font-extrabold text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-white/95 leading-[0.95]">
-                    Créez votre
-                </span>
-                <span class="block font-display font-extrabold text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight leading-[0.95] mt-2 sm:mt-3">
-                    <span class="heading-majestic">combattant.</span>
-                </span>
-            </h1>
+                        <p class="font-body text-lg sm:text-xl text-ink-sepia leading-relaxed max-w-xl mx-auto">
+                            Faites tourner la Volvelle pour fusionner races, armes et pouvoirs élémentaires, révéler des synergies secrètes et gravir les ligues de l'Arène.
+                        </p>
 
-            {{-- Respiration --}}
-            <div class="h-8 sm:h-10"></div>
+                        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+                            @auth
+                                <a href="{{ route('dashboard') }}" class="btn-wax px-8 py-3.5 text-sm sm:text-base">
+                                    Ouvrir le Jeu
+                                </a>
+                            @else
+                                <a href="{{ route('register') }}" class="btn-wax px-8 py-3.5 text-sm sm:text-base">
+                                    Forger mon destin
+                                </a>
+                                <a href="{{ route('login') }}" class="btn-cartouche px-7 py-3.5 text-sm">
+                                    Connexion
+                                </a>
+                            @endauth
+                        </div>
+                    </div>
+                </section>
 
-            {{-- Sous-titre — contemplatif --}}
-            <p class="text-contemplative text-center mx-auto text-base sm:text-lg animate-fade-in-up animate-delay-300">
-                Faites tourner la roue pour fusionner des races, armes et pouvoirs élémentaires.
-                Découvrez des synergies secrètes. Affrontez le destin dans l'arène.
-            </p>
-
-            {{-- Grande respiration avant le CTA --}}
-            <div class="h-12 sm:h-16"></div>
-
-            {{-- CTA --}}
-            <div class="flex flex-col sm:flex-row items-center gap-4 animate-fade-in-up animate-delay-400">
-                @auth
-                    <a href="{{ route('dashboard') }}" class="group px-10 py-4 rounded-2xl bg-gradient-to-r from-gold to-gold-light text-cosmos-deep font-display font-extrabold text-sm uppercase tracking-[0.15em] transition-all duration-500 hover:shadow-2xl hover:shadow-gold/25 hover:scale-[1.03] active:scale-95">
-                        <span class="flex items-center gap-3">
-                            <span class="text-lg group-hover:rotate-180 transition-transform duration-700">🎡</span>
-                            Ouvrir le Jeu
-                        </span>
-                    </a>
-                @else
-                    <a href="{{ route('register') }}" class="group px-10 py-4 rounded-2xl bg-gradient-to-r from-gold to-gold-light text-cosmos-deep font-display font-extrabold text-sm uppercase tracking-[0.15em] transition-all duration-500 hover:shadow-2xl hover:shadow-gold/25 hover:scale-[1.03] active:scale-95">
-                        <span class="flex items-center gap-3">
-                            <span class="text-lg group-hover:rotate-180 transition-transform duration-700">🎡</span>
-                            Forger mon destin
-                        </span>
-                    </a>
-                    <a href="{{ route('login') }}" class="px-8 py-4 rounded-2xl glass text-slate-300 font-medium text-sm hover:text-white hover:bg-white/[0.06] transition-all duration-300">
-                        Déjà inscrit ? Connexion
-                    </a>
-                @endauth
-            </div>
-
-            {{-- Indicateur de scroll subtil --}}
-            <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-fade-in animate-delay-700">
-                <div class="flex flex-col items-center gap-2 text-slate-600">
-                    <span class="text-[10px] uppercase tracking-[0.2em] font-medium">Découvrir</span>
-                    <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                    </svg>
-                </div>
-            </div>
-        </section>
-
-        {{-- ═══════════════════════════════════════════════════════════
-             SECTION FEATURES — RESPIRÉE
-             ═══════════════════════════════════════════════════════════ --}}
-        <section class="section-wide relative">
-            {{-- Séparateur lumineux --}}
-            <div class="divider-glow max-w-md mx-auto mb-20 sm:mb-26"></div>
-
-            <div class="max-w-5xl mx-auto px-6">
-                {{-- Sous-titre de section --}}
-                <div class="text-center mb-16 sm:mb-22">
-                    <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-white/90 tracking-wide">
-                        Trois piliers du destin
-                    </h2>
-                    <p class="text-contemplative text-center mx-auto mt-4 text-sm sm:text-base">
-                        Chaque partie est une nouvelle histoire. Le hasard forge, la stratégie tranche.
-                    </p>
-                </div>
-
-                {{-- Feature cards — flottantes, aérées --}}
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
-                    {{-- Card 1 : Roue --}}
-                    <div class="group glass-card rounded-3xl p-8 sm:p-10 text-center transition-all duration-500 hover:bg-white/[0.04] hover:border-gold/20 hover:shadow-xl hover:shadow-gold/5 hover:-translate-y-1">
-                        <div class="text-4xl mb-6 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">🎡</div>
-                        <h3 class="font-display font-bold text-white text-lg mb-3 tracking-wide">Roue Aléatoire</h3>
-                        <p class="text-sm text-slate-500 leading-relaxed">
-                            8 Races, 8 Armes et 8 Pouvoirs élémentaires. Pity system garanti toutes les 10 tentatives.
+                {{-- VITRINE INTERACTIVE : 2 VRAIES CARTES UNIVERSELLES FLIPPABLES --}}
+                <section class="space-y-6">
+                    <div class="text-center max-w-xl mx-auto space-y-1.5">
+                        <h2 class="font-display text-2xl sm:text-3xl font-bold text-ink">
+                            Des combattants gravés dans le parchemin
+                        </h2>
+                        <p class="font-body text-base italic text-ink-muted">
+                            Cliquez sur une carte pour la retourner et découvrir ses passifs et synergies actives.
                         </p>
                     </div>
 
-                    {{-- Card 2 : Duels --}}
-                    <div class="group glass-card rounded-3xl p-8 sm:p-10 text-center transition-all duration-500 hover:bg-white/[0.04] hover:border-rose-500/20 hover:shadow-xl hover:shadow-rose-500/5 hover:-translate-y-1">
-                        <div class="text-4xl mb-6 transition-transform duration-500 group-hover:scale-110">⚔️</div>
-                        <h3 class="font-display font-bold text-white text-lg mb-3 tracking-wide">Duels & Élo</h3>
-                        <p class="text-sm text-slate-500 leading-relaxed">
-                            Système de combat FIDE. De la ligue Bronze à la ligue Maître selon vos victoires.
+                    <div class="flex flex-wrap items-start justify-center gap-8">
+                        @foreach ($showcaseCards as $demoCard)
+                            <x-folio-card
+                                :card="$demoCard"
+                                :showOwnerActions="false"
+                                :folioKey="$demoCard['id']"
+                            />
+                        @endforeach
+                    </div>
+                </section>
+
+                <hr class="codex-divider max-w-md mx-auto">
+
+                {{-- TROIS PILIERS DU DESTIN --}}
+                <section class="space-y-6">
+                    <div class="text-center max-w-xl mx-auto space-y-1.5">
+                        <h2 class="font-display text-2xl sm:text-3xl font-bold text-ink">
+                            Trois piliers du destin
+                        </h2>
+                        <p class="font-body text-base italic text-ink-muted">
+                            Le hasard forge, la stratégie tranche.
                         </p>
                     </div>
 
-                    {{-- Card 3 : Recyclage --}}
-                    <div class="group glass-card rounded-3xl p-8 sm:p-10 text-center transition-all duration-500 hover:bg-white/[0.04] hover:border-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1">
-                        <div class="text-4xl mb-6 transition-transform duration-500 group-hover:scale-110">♻️</div>
-                        <h3 class="font-display font-bold text-white text-lg mb-3 tracking-wide">Recyclage & Atelier</h3>
-                        <p class="text-sm text-slate-500 leading-relaxed">
-                            Recyclez les combattants en pièces d'or pour débloquer des améliorations permanentes.
-                        </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <article class="codex-panel codex-panel--framed p-6 text-center space-y-3">
+                            <div class="mx-auto w-12 h-12 rounded-full bg-parchment-shade/80 border border-brass-dark/50 flex items-center justify-center text-wax">
+                                <svg class="w-6 h-6" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                                    <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/>
+                                    <circle cx="12" cy="12" r="1.8" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-display text-lg font-bold text-ink">Roue Aléatoire</h3>
+                            <p class="font-body text-sm text-ink-sepia leading-relaxed">
+                                8 Races, 8 Armes et 8 Pouvoirs élémentaires. Pity garanti toutes les 10 tentatives.
+                            </p>
+                        </article>
+
+                        <article class="codex-panel codex-panel--framed p-6 text-center space-y-3">
+                            <div class="mx-auto w-12 h-12 rounded-full bg-parchment-shade/80 border border-brass-dark/50 flex items-center justify-center text-wax">
+                                <svg class="w-6 h-6" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M5 19 L18 6 M14 5 H19 V10 M5 5 L19 19 M19 19 L16 19 M5 16 L8 19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-display text-lg font-bold text-ink">Duels &amp; Élo</h3>
+                            <p class="font-body text-sm text-ink-sepia leading-relaxed">
+                                Combats tactiques et classement FIDE : gravissez les ligues de Bronze jusqu'à Maître.
+                            </p>
+                        </article>
+
+                        <article class="codex-panel codex-panel--framed p-6 text-center space-y-3">
+                            <div class="mx-auto w-12 h-12 rounded-full bg-parchment-shade/80 border border-brass-dark/50 flex items-center justify-center text-wax">
+                                <svg class="w-6 h-6" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M4 13 H18 L21 9 H14 L13 7 H6 Z M9 13 V19 M15 13 V19 M6 19 H18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-display text-lg font-bold text-ink">Recyclage &amp; Atelier</h3>
+                            <p class="font-body text-sm text-ink-sepia leading-relaxed">
+                                Recyclez vos combattants en pièces d'or pour débloquer des améliorations permanentes.
+                            </p>
+                        </article>
                     </div>
-                </div>
+                </section>
             </div>
-        </section>
 
-        {{-- ═══════════════════════════════════════════════════════════
-             RESPIRATION FINALE — avant le footer
-             ═══════════════════════════════════════════════════════════ --}}
-        <div class="h-20 sm:h-30"></div>
+            <div class="codex-gilded-edge" aria-hidden="true"></div>
+        </div>
     </main>
 
-    {{-- Footer --}}
-    <footer class="relative z-10 border-t border-white/[0.04] py-10 text-center">
-        <p class="text-xs text-slate-600 tracking-wide">
-            WHEELBORN — Projet Universitaire Full-Stack
-        </p>
-        <p class="text-[10px] text-slate-700 mt-1">
-            Nathanaël & Mathéo · Laravel 11 · Livewire 3 · Tailwind CSS
-        </p>
+    {{-- Colophon sobre --}}
+    <footer class="codex-colophon">
+        <span>WHEELBORN — Nathanaël &amp; Mathéo</span>
     </footer>
+
+    {{-- Portal Tooltip Parchemin unique sur <body> pour les cartes vitrine --}}
+    <div id="codex-tooltip-portal" class="codex-tooltip" role="tooltip" hidden></div>
 </body>
 </html>

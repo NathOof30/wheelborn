@@ -1,105 +1,110 @@
 <div class="space-y-6">
-    {{-- Notification Toast / Banner --}}
+    {{-- Notification Codex --}}
     @if ($notification)
-        <div class="p-4 rounded-xl flex items-center justify-between border shadow-lg transition-all duration-300 {{ $notificationType === 'success' ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200' : ($notificationType === 'error' ? 'bg-rose-950/80 border-rose-500/50 text-rose-200' : 'bg-slate-900 border-indigo-500/40 text-indigo-200') }}">
-            <div class="flex items-center gap-3">
-                <span class="text-xl">
-                    @if ($notificationType === 'success') ✨
-                    @elseif ($notificationType === 'error') ⚠️
-                    @else ℹ️
-                    @endif
-                </span>
-                <span class="text-sm font-medium">{{ $notification }}</span>
-            </div>
-            <button wire:click="dismissNotification" class="text-slate-400 hover:text-white text-lg px-2">
-                ✕
-            </button>
+        <div
+            role="status"
+            class="codex-alert {{ $notificationType === 'success' ? 'codex-alert--success' : ($notificationType === 'error' ? 'codex-alert--error' : ($notificationType === 'warning' ? 'codex-alert--warning' : 'codex-alert--info')) }}"
+        >
+            <span>{{ $notification }}</span>
+            <button type="button" wire:click="dismissNotification" class="font-display font-bold px-2 py-0.5 rounded hover:bg-black/5 cursor-pointer" aria-label="Fermer">&times;</button>
         </div>
     @endif
 
-    {{-- Collector HUD Summary Bar --}}
-    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
+    {{-- Barre KPI & Raretés Codex --}}
+    <div class="codex-panel p-4 sm:p-5">
         <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            {{-- Compteur Global, Lock & Meilleur Power --}}
             <div class="flex flex-wrap items-center gap-3">
-                <div class="flex items-center gap-2.5 bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
-                    <span class="text-xl">🛡️</span>
+                <div class="codex-well px-3.5 py-2 flex items-center gap-2.5">
+                    <svg class="w-5 h-5 text-brass-dark shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 2.5 L19.5 5.5 V11.5 C19.5 16.5 16.2 19.8 12 21.5 C7.8 19.8 4.5 16.5 4.5 11.5 V5.5 Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+                    </svg>
                     <div>
-                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Effectif</span>
-                        <span class="text-base font-extrabold text-white font-mono">
+                        <span class="block font-display text-[11px] uppercase font-bold tracking-wider text-ink-muted">Effectif</span>
+                        <span class="font-display text-sm font-bold text-ink tabular-nums">
                             {{ $totalCount }} {{ Str::plural('Héros', $totalCount) }}
                         </span>
                     </div>
                 </div>
 
                 @if ($lockedCount > 0)
-                    <div class="flex items-center gap-2 bg-slate-950/80 px-3.5 py-2 rounded-xl border border-amber-500/30 text-amber-300" title="Héros protégés contre le recyclage">
-                        <span class="text-lg">🔒</span>
+                    <div class="codex-well px-3.5 py-2 flex items-center gap-2.5" title="Héros protégés contre le recyclage">
+                        <svg class="w-4 h-4 text-ink-sepia shrink-0" viewBox="0 0 20 20" aria-hidden="true">
+                            <rect x="4.5" y="9" width="11" height="8.5" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M7 9 V6.4 C7 4.4 8.3 3 10 3 C11.7 3 13 4.4 13 6.4 V9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
                         <div>
-                            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Verrouillés</span>
-                            <span class="text-base font-extrabold font-mono text-amber-400">
-                                {{ $lockedCount }}
-                            </span>
+                            <span class="block font-display text-[11px] uppercase font-bold tracking-wider text-ink-muted">Verrouillés</span>
+                            <span class="font-display text-sm font-bold text-ink tabular-nums">{{ $lockedCount }}</span>
                         </div>
                     </div>
                 @endif
 
                 @if ($maxPowerScore > 0)
-                    <div class="flex items-center gap-2.5 bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
-                        <span class="text-xl">⚡</span>
+                    <div class="codex-well px-3.5 py-2 flex items-center gap-2.5">
+                        <svg class="w-4 h-4 text-brass-dark shrink-0" viewBox="0 0 20 20" aria-hidden="true">
+                            <polygon points="10,1.5 12.6,7.4 18.5,10 12.6,12.6 10,18.5 7.4,12.6 1.5,10 7.4,7.4" fill="currentColor"/>
+                        </svg>
                         <div>
-                            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Record Puissance</span>
-                            <span class="text-base font-extrabold text-amber-400 font-mono">
-                                {{ $maxPowerScore }} pts
-                            </span>
+                            <span class="block font-display text-[11px] uppercase font-bold tracking-wider text-ink-muted">Record Puissance</span>
+                            <span class="font-display text-sm font-bold text-brass-dark tabular-nums">{{ $maxPowerScore }} pts</span>
                         </div>
                     </div>
                 @endif
             </div>
 
-            {{-- Répartition par Rareté & Bouton Recyclage en Masse --}}
-            <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
+            {{-- Pilules Rareté + Bouton Recyclage en masse --}}
+            <div class="flex flex-wrap items-center gap-2">
                 <button
+                    type="button"
                     wire:click="setRarity('legendary')"
-                    class="px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all duration-150 {{ $rarity === 'legendary' ? 'bg-amber-400/25 border-amber-400 text-amber-300 ring-2 ring-amber-400/30 shadow-[0_0_12px_rgba(251,191,36,0.3)]' : 'bg-amber-400/10 text-amber-300 border-amber-400/30 hover:bg-amber-400/20' }}"
+                    class="filter-chip tabular-nums {{ $rarity === 'legendary' ? 'is-active' : '' }}"
+                    style="--chip-hex: #74520A;"
                     title="Filtrer les Légendaires"
                 >
-                    <span>👑</span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#74520A] {{ $rarity === 'legendary' ? 'bg-[#FBF1DC]' : '' }}"></span>
                     <span>{{ $rarityCounts['legendary'] ?? 0 }} Légendaires</span>
                 </button>
+
                 <button
+                    type="button"
                     wire:click="setRarity('epic')"
-                    class="px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all duration-150 {{ $rarity === 'epic' ? 'bg-purple-500/25 border-purple-400 text-purple-300 ring-2 ring-purple-400/30 shadow-[0_0_12px_rgba(192,132,252,0.3)]' : 'bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20' }}"
+                    class="filter-chip tabular-nums {{ $rarity === 'epic' ? 'is-active' : '' }}"
+                    style="--chip-hex: #54274A;"
                     title="Filtrer les Épiques"
                 >
-                    <span>🔮</span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#54274A] {{ $rarity === 'epic' ? 'bg-[#FBF1DC]' : '' }}"></span>
                     <span>{{ $rarityCounts['epic'] ?? 0 }} Épiques</span>
                 </button>
+
                 <button
+                    type="button"
                     wire:click="setRarity('rare')"
-                    class="px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all duration-150 {{ $rarity === 'rare' ? 'bg-cyan-500/25 border-cyan-400 text-cyan-300 ring-2 ring-cyan-400/30 shadow-[0_0_12px_rgba(56,189,248,0.3)]' : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/20' }}"
+                    class="filter-chip tabular-nums {{ $rarity === 'rare' ? 'is-active' : '' }}"
+                    style="--chip-hex: #2A3A7A;"
                     title="Filtrer les Rares"
                 >
-                    <span>💎</span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#2A3A7A] {{ $rarity === 'rare' ? 'bg-[#FBF1DC]' : '' }}"></span>
                     <span>{{ $rarityCounts['rare'] ?? 0 }} Rares</span>
                 </button>
+
                 <button
+                    type="button"
                     wire:click="setRarity('common')"
-                    class="px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all duration-150 {{ $rarity === 'common' ? 'bg-slate-700 border-slate-500 text-white ring-2 ring-slate-400/30' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' }}"
+                    class="filter-chip tabular-nums {{ $rarity === 'common' ? 'is-active' : '' }}"
+                    style="--chip-hex: #6B4A2A;"
                     title="Filtrer les Communs"
                 >
-                    <span>⚔️</span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#6B4A2A] {{ $rarity === 'common' ? 'bg-[#FBF1DC]' : '' }}"></span>
                     <span>{{ $rarityCounts['common'] ?? 0 }} Communs</span>
                 </button>
 
-                {{-- BOUTON DÉDIÉ RECYCLAGE EN MASSE AVANCÉ (T1.4) --}}
                 @if ($totalCount > 0)
                     <button
+                        type="button"
                         wire:click="openBatchModal"
-                        class="ml-auto lg:ml-2 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-extrabold border border-amber-400 shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-all duration-150 transform hover:scale-105 cursor-pointer"
+                        class="btn-brass btn-brass--sm ml-auto lg:ml-2"
                         title="Ouvrir le menu de recyclage en masse avancé"
                     >
-                        <span>♻️</span>
                         <span>Recyclage en masse</span>
                     </button>
                 @endif
@@ -107,13 +112,12 @@
         </div>
     </div>
 
-    {{-- BARRE DE FILTRES ET DE TRI DYNAMIQUE (T1.2 & T1.3) --}}
-    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-lg backdrop-blur-md space-y-3">
+    {{-- Barre de Filtres et de Tri complète --}}
+    <div class="codex-panel p-4 space-y-3">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-            {{-- Recherche textuelle en direct par nom --}}
             <div class="md:col-span-4 relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-muted">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
@@ -121,668 +125,345 @@
                     type="text"
                     wire:model.live.debounce.250ms="search"
                     placeholder="Rechercher par nom de héros..."
-                    class="w-full pl-10 pr-9 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/50 transition duration-150"
+                    class="codex-input w-full pl-9 pr-8"
                 />
-                @if (!empty($search))
+                @if (! empty($search))
                     <button
+                        type="button"
                         wire:click="$set('search', '')"
-                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white"
+                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-ink-muted hover:text-ink cursor-pointer"
                         title="Effacer la recherche"
+                        aria-label="Effacer la recherche"
                     >
-                        ✕
+                        &times;
                     </button>
                 @endif
             </div>
 
-            {{-- Filtre Race --}}
             <div class="md:col-span-2">
-                <select
-                    wire:model.live="race"
-                    class="w-full py-2 px-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-indigo-400/80 focus:ring-1 focus:ring-indigo-400/50 transition duration-150 cursor-pointer"
-                >
-                    <option value="">👤 Toutes les races</option>
+                <select wire:model.live="race" class="codex-select w-full" aria-label="Filtrer par race">
+                    <option value="">Toutes les races</option>
                     @foreach ($races as $r)
-                        <option value="{{ $r['id'] }}">{{ $r['icon'] }} {{ $r['name'] }}</option>
+                        <option value="{{ $r['id'] }}">{{ $r['name'] }}</option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- Filtre Arme --}}
             <div class="md:col-span-2">
-                <select
-                    wire:model.live="weapon"
-                    class="w-full py-2 px-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition duration-150 cursor-pointer"
-                >
-                    <option value="">⚔️ Toutes les armes</option>
+                <select wire:model.live="weapon" class="codex-select w-full" aria-label="Filtrer par arme">
+                    <option value="">Toutes les armes</option>
                     @foreach ($weapons as $w)
-                        <option value="{{ $w['id'] }}">{{ $w['icon'] }} {{ $w['name'] }}</option>
+                        <option value="{{ $w['id'] }}">{{ $w['name'] }}</option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- Tri Dynamique --}}
             <div class="md:col-span-4">
-                <select
-                    wire:model.live="sortBy"
-                    class="w-full py-2 px-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-amber-300 font-semibold focus:outline-none focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/50 transition duration-150 cursor-pointer"
-                >
-                    <option value="power_desc">⚡ Puissance (Max → Min)</option>
-                    <option value="power_asc">⚡ Puissance (Min → Max)</option>
-                    <option value="rarity">👑 Rareté (Légendaire → Commun)</option>
-                    <option value="date_desc">🕒 Plus récents d'abord</option>
-                    <option value="date_asc">⏳ Plus anciens d'abord</option>
-                    <option value="wins_desc">🏆 Victoires en Arène</option>
+                <select wire:model.live="sortBy" class="codex-select w-full" aria-label="Trier la collection">
+                    <option value="power_desc">Puissance (Max → Min)</option>
+                    <option value="power_asc">Puissance (Min → Max)</option>
+                    <option value="rarity">Rareté (Légendaire → Commun)</option>
+                    <option value="date_desc">Plus récents d'abord</option>
+                    <option value="date_asc">Plus anciens d'abord</option>
+                    <option value="wins_desc">Victoires en Arène</option>
                 </select>
             </div>
         </div>
 
-        {{-- Ligne 2 : Filtres rapides complémentaires & Résumé --}}
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/60 text-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-parchment-border/70">
             <div class="flex items-center gap-2 flex-wrap">
-                {{-- Toggle Synergies actives --}}
                 <button
+                    type="button"
                     wire:click="toggleOnlySynergies"
-                    class="px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-1.5 transition-all duration-150 {{ $onlySynergies ? 'bg-indigo-600/30 border-indigo-500 text-indigo-300 ring-1 ring-indigo-400/40 shadow-[0_0_10px_rgba(99,102,241,0.3)]' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' }}"
+                    class="filter-chip {{ $onlySynergies ? 'is-active' : '' }}"
+                    style="--chip-hex: #74520A;"
                 >
-                    <span>✨</span>
-                    <span>Avec synergies actives</span>
-                    @if ($onlySynergies)
-                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-                    @endif
+                    <span>✦ Avec synergies actives</span>
                 </button>
 
-                {{-- Toggle Protégés / Verrouillés (T1.3) --}}
                 <button
+                    type="button"
                     wire:click="toggleOnlyLocked"
-                    class="px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-1.5 transition-all duration-150 {{ $onlyLocked ? 'bg-amber-500/25 border-amber-500 text-amber-300 ring-1 ring-amber-400/40 shadow-[0_0_10px_rgba(251,191,36,0.3)]' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' }}"
+                    class="filter-chip {{ $onlyLocked ? 'is-active' : '' }}"
+                    style="--chip-hex: #52381F;"
                 >
-                    <span>🔒</span>
                     <span>Verrouillés</span>
-                    @if ($onlyLocked)
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                    @endif
                 </button>
 
-                {{-- Toggle Favoris (Vitrine Top 3) (T9.2) --}}
                 <button
+                    type="button"
                     wire:click="toggleOnlyFavorites"
-                    class="px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-1.5 transition-all duration-150 {{ $onlyFavorites ? 'bg-amber-400/25 border-amber-400 text-amber-300 ring-1 ring-amber-400/40 shadow-[0_0_10px_rgba(251,191,36,0.3)]' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' }}"
-                    title="Afficher les combattants de ta vitrine de profil"
+                    class="filter-chip tabular-nums {{ $onlyFavorites ? 'is-active' : '' }}"
+                    style="--chip-hex: #74520A;"
+                    title="Afficher les combattants de votre vitrine de profil"
                 >
-                    <span>⭐</span>
-                    <span>Favoris ({{ $favoriteCount }}/3)</span>
-                    @if ($onlyFavorites)
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></span>
-                    @endif
+                    <span>★ Favoris ({{ $favoriteCount }}/3)</span>
                 </button>
 
-                {{-- Filtre Rareté actif --}}
-                @if (!empty($rarity))
+                @if (! empty($rarity))
                     <button
+                        type="button"
                         wire:click="$set('rarity', '')"
-                        class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1"
+                        class="filter-chip is-active"
+                        style="--chip-hex: #8A1A14;"
                         title="Annuler le filtre de rareté"
                     >
-                        <span>Filtre rareté : <strong>{{ ucfirst($rarity) }}</strong></span>
-                        <span class="text-rose-400 font-bold ml-1">✕</span>
+                        <span>Rareté : {{ \App\Enums\Rarity::tryFrom($rarity)?->label() ?? ucfirst($rarity) }} &times;</span>
                     </button>
                 @endif
             </div>
 
             <div class="flex items-center gap-3">
-                <span class="text-slate-400 font-mono">
+                <span class="font-display text-xs font-bold text-ink-sepia tabular-nums">
                     @if ($this->hasActiveFilters())
-                        <strong class="text-amber-400 font-bold">{{ $filteredCount }}</strong> / {{ $totalCount }} {{ Str::plural('héros', $totalCount) }}
+                        <strong class="text-wax">{{ $filteredCount }}</strong> / {{ $totalCount }} {{ Str::plural('héros', $totalCount) }}
                     @else
-                        <strong class="text-slate-300 font-bold">{{ $totalCount }}</strong> {{ Str::plural('héros', $totalCount) }}
+                        <strong class="text-ink">{{ $totalCount }}</strong> {{ Str::plural('héros', $totalCount) }}
                     @endif
                 </span>
 
                 @if ($this->hasActiveFilters())
                     <button
+                        type="button"
                         wire:click="resetFilters"
-                        class="px-2.5 py-1 rounded-md text-rose-300 bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/60 transition duration-150 flex items-center gap-1 font-semibold"
+                        class="btn-cartouche btn-cartouche--sm"
                         title="Réinitialiser tous les filtres"
                     >
-                        <span>↺</span>
-                        <span>Effacer les filtres</span>
+                        ↺ Effacer les filtres
                     </button>
                 @endif
             </div>
         </div>
     </div>
 
-    {{-- Grille des Héros ou États Vides --}}
+    {{-- Grille Universelle ou États Vides --}}
     @if ($totalCount === 0)
-        {{-- État vide 1 : Caserne vide (aucun héros tiré) --}}
-        <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-12 text-center max-w-xl mx-auto shadow-2xl">
-            <div class="text-6xl mb-4 animate-bounce">⚔️</div>
-            <h2 class="text-2xl font-black text-white">Votre caserne est déserte !</h2>
-            <p class="text-slate-400 text-sm mt-2 leading-relaxed">
-                Vous ne possédez encore aucun combattant. Rendez-vous sur la Roue du Destin pour invoquer votre tout premier héros hybride !
+        <div class="codex-panel p-10 text-center max-w-xl mx-auto flex flex-col items-center gap-4">
+            <svg class="w-24 h-28 text-brass-dark opacity-70" viewBox="0 0 120 150" aria-hidden="true">
+                <rect x="14" y="10" width="92" height="130" rx="6" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 4"/>
+                <circle cx="60" cy="68" r="24" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <polygon points="60,48 65,64 81,68 65,72 60,88 55,72 39,68 55,64" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            </svg>
+            <h2 class="font-display font-bold text-xl text-ink">Votre caserne est déserte !</h2>
+            <p class="text-base text-ink-sepia max-w-md">
+                Aucun combattant n'a encore été scellé dans votre grimoire. Tournez la Roue du Destin pour invoquer votre premier héros.
             </p>
-            <div class="mt-6">
-                <a
-                    href="{{ route('dashboard') }}"
-                    class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-amber-500/25 transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                    <span>🎡</span>
-                    <span>Faire tourner la Roue du Destin</span>
-                </a>
-            </div>
+            <a href="{{ route('dashboard') }}" class="btn-brass mt-1">
+                Faire tourner la Roue du Destin
+            </a>
         </div>
     @elseif ($filteredCount === 0)
-        {{-- État vide 2 : Filtres sans aucun résultat --}}
-        <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-10 text-center max-w-lg mx-auto shadow-xl">
-            <div class="text-5xl mb-3 text-slate-600">🔍</div>
-            <h3 class="text-xl font-bold text-white">Aucun héros trouvé</h3>
-            <p class="text-slate-400 text-sm mt-1.5">
-                Aucun de vos combattants ne correspond aux critères de recherche sélectionnés.
+        <div class="codex-panel p-10 text-center max-w-lg mx-auto flex flex-col items-center gap-3">
+            <h3 class="font-display font-bold text-lg text-ink">Aucun héros trouvé</h3>
+            <p class="text-sm text-ink-sepia">
+                Aucun de vos combattants ne correspond aux critères sélectionnés.
             </p>
-            <div class="mt-5">
-                <button
-                    wire:click="resetFilters"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-xs font-bold transition duration-150"
-                >
-                    <span>↺</span>
-                    <span>Réinitialiser les filtres</span>
-                </button>
-            </div>
+            <button type="button" wire:click="resetFilters" class="btn-cartouche btn-cartouche--sm mt-2">
+                ↺ Réinitialiser les filtres
+            </button>
         </div>
     @else
-        {{-- GRILLE COLLECTOR : CARTES RECTO / VERSO (T1.5) --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div class="folios-grid">
             @foreach ($characters as $character)
-                @php
-                    $rarityKey = $character->rarity instanceof \App\Enums\Rarity ? $character->rarity->value : $character->rarity;
-                    $borderStyles = match($rarityKey) {
-                        'legendary' => 'border-amber-400/80 bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950 shadow-[0_0_25px_rgba(251,191,36,0.25)] hover:shadow-[0_0_35px_rgba(251,191,36,0.4)]',
-                        'epic'      => 'border-purple-500/70 bg-gradient-to-b from-purple-950/30 via-slate-900 to-slate-950 shadow-[0_0_20px_rgba(192,132,252,0.2)] hover:shadow-[0_0_30px_rgba(192,132,252,0.35)]',
-                        'rare'      => 'border-cyan-400/60 bg-gradient-to-b from-cyan-950/30 via-slate-900 to-slate-950 shadow-[0_0_20px_rgba(56,189,248,0.18)] hover:shadow-[0_0_30px_rgba(56,189,248,0.3)]',
-                        default     => 'border-slate-800 bg-slate-900/90 hover:border-slate-700',
-                    };
-                    $badgeStyle = match($rarityKey) {
-                        'legendary' => 'bg-amber-400 text-slate-950 font-black shadow-[0_0_10px_rgba(251,191,36,0.5)]',
-                        'epic'      => 'bg-purple-500 text-white font-bold',
-                        'rare'      => 'bg-cyan-500 text-slate-950 font-bold',
-                        default     => 'bg-slate-700 text-slate-200 font-medium',
-                    };
-                    $stars = match($rarityKey) {
-                        'legendary' => 5,
-                        'epic'      => 4,
-                        'rare'      => 3,
-                        default     => 2,
-                    };
-                @endphp
-
-                {{-- Composant Carte avec 3D Flip au Clic --}}
-                <div
-                    x-data="{ flipped: false }"
-                    class="perspective-1000 w-full group select-none transition-transform duration-300 hover:-translate-y-1"
-                    style="height: 440px; min-height: 440px;"
-                >
-                    <div
-                        class="relative w-full h-full preserve-3d card-flip-transition"
-                        :class="{ 'rotate-y-180': flipped }"
-                        style="height: 440px; min-height: 440px;"
-                    >
-                        {{-- ========================================================================= --}}
-                        {{-- FACE RECTO (CLIC POUR FLIP VERS LE VERSO)                                  --}}
-                        {{-- ========================================================================= --}}
-                        <div
-                            @click="flipped = true"
-                            class="absolute inset-0 w-full h-full rounded-3xl border {{ $borderStyles }} overflow-hidden p-4 flex flex-col justify-between backface-hidden shadow-xl cursor-pointer"
-                            :class="{ 'pointer-events-none': flipped }"
-                            style="height: 440px; min-height: 440px;"
-                            title="Cliquer pour retourner la carte"
-                        >
-                            {{-- En-tête Recto --}}
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider {{ $badgeStyle }}">
-                                    {{ $character->rarity->label() }}
-                                </span>
-
-                                <div class="flex items-center gap-1.5">
-                                    @if ($character->is_favorite)
-                                        <span class="text-amber-300 text-xs bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-400/50 shadow-[0_0_8px_rgba(251,191,36,0.3)] font-bold flex items-center gap-0.5" title="Héros favori (vitrine de profil)">
-                                            ⭐ <span class="hidden sm:inline">Vitrine</span>
-                                        </span>
-                                    @endif
-                                    @if ($character->is_locked)
-                                        <span class="text-amber-400 text-xs bg-slate-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 shadow-sm" title="Protégé contre le recyclage">
-                                            🔒 Verrouillé
-                                        </span>
-                                    @endif
-                                    <div class="flex items-center gap-1 bg-slate-950/80 px-2.5 py-0.5 rounded-lg border border-slate-800">
-                                        <span class="text-xs text-amber-400">⚡</span>
-                                        <span class="font-extrabold text-sm text-white font-mono">{{ $character->power_score }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Scène Visuelle : Avatar Composite Paper Doll ou Fallback --}}
-                            <div class="flex-1 my-1.5 flex items-center justify-center">
-                                <x-character-avatar :character="$character" class="max-w-[210px]" />
-                            </div>
-
-                            {{-- Pied de carte Recto : Titre & Décoration --}}
-                            <div class="text-center pt-2 border-t border-slate-800/80">
-                                {{-- Étoiles de Rareté --}}
-                                <div class="flex items-center justify-center gap-1 mb-1">
-                                    @for ($s = 1; $s <= 5; $s++)
-                                        <span class="text-xs {{ $s <= $stars ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]' : 'text-slate-800' }}">
-                                            ★
-                                        </span>
-                                    @endfor
-                                </div>
-                                <h3 class="text-sm font-black text-white truncate tracking-tight group-hover:text-amber-300 transition-colors">
-                                    {{ $character->name }}
-                                </h3>
-                                <p class="text-[11px] text-slate-400 truncate mt-0.5 font-medium">
-                                    {{ $character->race_data['name'] ?? ucfirst($character->race_id) }} • {{ $character->weapon_data['name'] ?? ucfirst($character->weapon_id) }}
-                                    <span class="text-indigo-400 font-semibold">({{ $character->power_data['name'] ?? ucfirst($character->power_id) }})</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        {{-- ========================================================================= --}}
-                        {{-- FACE VERSO (RÉVÉLÉE AU CLIC - STATISTIQUES & ACTIONS)                     --}}
-                        {{-- ========================================================================= --}}
-                        <div
-                            @click="if (!$event.target.closest('button, a')) flipped = false"
-                            class="absolute inset-0 w-full h-full rounded-3xl border {{ $borderStyles }} bg-slate-950/95 backdrop-blur-md overflow-hidden p-4 flex flex-col justify-between backface-hidden rotate-y-180 shadow-2xl cursor-pointer"
-                            :class="{ 'pointer-events-auto': flipped, 'pointer-events-none': !flipped }"
-                            style="height: 440px; min-height: 440px;"
-                        >
-                            <div>
-                                {{-- En-tête Verso : Nom, Rareté, Bouton Retourner & Cadenas --}}
-                                <div class="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="px-2 py-0.5 rounded text-[9px] uppercase tracking-wider {{ $badgeStyle }} shrink-0">
-                                            {{ $character->rarity->label() }}
-                                        </span>
-                                        <h4 class="text-xs font-black text-white truncate" title="{{ $character->name }}">
-                                            {{ $character->name }}
-                                        </h4>
-                                    </div>
-                                    <div class="flex items-center gap-1 shrink-0">
-                                        {{-- Bouton Favori / Vitrine (T9.2) --}}
-                                        <button
-                                            type="button"
-                                            wire:click.stop="toggleFavorite('{{ $character->id }}')"
-                                            wire:loading.attr="disabled"
-                                            class="p-1 rounded-lg text-xs transition-all duration-150 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed {{ $character->is_favorite ? 'bg-amber-400/20 text-amber-300 border border-amber-400/50 shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-amber-400' }}"
-                                            title="{{ $character->is_favorite ? 'Favori (cliquer pour retirer de la vitrine)' : 'Ajouter aux favoris (vitrine de profil)' }}"
-                                        >
-                                            {{ $character->is_favorite ? '⭐' : '☆' }}
-                                        </button>
-
-                                        {{-- Bouton Cadenas (T1.3 / T6.2) --}}
-                                        <button
-                                            type="button"
-                                            wire:click.stop="toggleLock('{{ $character->id }}')"
-                                            wire:loading.attr="disabled"
-                                            class="p-1 rounded-lg text-xs transition-all duration-150 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed {{ $character->is_locked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50 shadow-[0_0_8px_rgba(251,191,36,0.4)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-slate-300' }}"
-                                            title="{{ $character->is_locked ? 'Verrouillé (cliquer pour déverrouiller)' : 'Déverrouillé (cliquer pour verrouiller)' }}"
-                                        >
-                                            {{ $character->is_locked ? '🔒' : '🔓' }}
-                                        </button>
-                                    </div>
-                                </div>
-
-                            {{-- Tri-Slot Compact --}}
-                            <div class="grid grid-cols-3 gap-1 py-1 px-2 rounded-xl bg-slate-900 border border-slate-800/80 mb-2.5 text-center text-[11px]">
-                                <div>
-                                    <span class="text-sm block">{{ $character->race_data['icon'] ?? '👤' }}</span>
-                                    <span class="text-[9px] text-slate-400 truncate block">{{ $character->race_data['name'] ?? ucfirst($character->race_id) }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-sm block">{{ $character->weapon_data['icon'] ?? '⚔️' }}</span>
-                                    <span class="text-[9px] text-slate-400 truncate block">{{ $character->weapon_data['name'] ?? ucfirst($character->weapon_id) }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-sm block">{{ $character->power_data['icon'] ?? '🔮' }}</span>
-                                    <span class="text-[9px] text-indigo-300 truncate block">{{ $character->power_data['name'] ?? ucfirst($character->power_id) }}</span>
-                                </div>
-                            </div>
-
-                            {{-- Barres de stats techniques --}}
-                            <div class="space-y-1 mb-2.5 bg-slate-900/60 p-2 rounded-xl border border-slate-800/50 text-[10px]">
-                                <div>
-                                    <div class="flex justify-between mb-0.5">
-                                        <span class="text-rose-400 font-semibold">❤️ PV</span>
-                                        <span class="font-mono text-white">{{ $character->hp }}</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-rose-500 h-full rounded-full" style="width: {{ min(100, ($character->hp / 140) * 100) }}%"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between mb-0.5">
-                                        <span class="text-amber-400 font-semibold">⚔️ Force</span>
-                                        <span class="font-mono text-white">{{ $character->strength }}</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-amber-500 h-full rounded-full" style="width: {{ min(100, ($character->strength / 100) * 100) }}%"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between mb-0.5">
-                                        <span class="text-cyan-400 font-semibold">⚡ Vitesse</span>
-                                        <span class="font-mono text-white">{{ $character->speed }}</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-cyan-500 h-full rounded-full" style="width: {{ min(100, ($character->speed / 100) * 100) }}%"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between mb-0.5">
-                                        <span class="text-emerald-400 font-semibold">🛡️ Défense</span>
-                                        <span class="font-mono text-white">{{ $character->defense }}</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div class="bg-emerald-500 h-full rounded-full" style="width: {{ min(100, ($character->defense / 100) * 100) }}%"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Synergies actives --}}
-                            @if (!empty($character->synergies_data))
-                                <div class="mb-2 space-y-1">
-                                    @foreach ($character->synergies_data as $syn)
-                                        <div class="px-2 py-0.5 rounded text-[10px] font-bold border flex items-center justify-between {{ !empty($syn['is_unstable']) ? 'bg-amber-950/60 border-amber-600/70 text-amber-200' : 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200' }}">
-                                            <span>{{ $syn['icon'] ?? '✨' }} {{ $syn['name'] }}</span>
-                                            @if (!empty($syn['is_unstable']))
-                                                <span class="text-[9px] text-amber-400 font-mono">Instable</span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="mb-2 px-2 py-1 rounded bg-slate-900/50 border border-slate-800/40 text-center">
-                                    <span class="text-[10px] text-slate-500 italic">Aucune synergie active</span>
-                                </div>
-                            @endif
-                        </div>
-
-                        {{-- Pied de carte Verso : Bouton Inspecter + Palmarès + Recycler --}}
-                        <div class="pt-2 border-t border-slate-800 space-y-2">
-                            {{-- BOUTON INSPECTER CLÉ (T1.5) --}}
-                            <button
-                                type="button"
-                                wire:click="inspectCharacter('{{ $character->id }}')"
-                                class="w-full py-1.5 px-3 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-indigo-200 hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                            >
-                                <span>🔍</span>
-                                <span>Fiche détaillée & Passifs</span>
-                            </button>
-
-                            <div class="flex items-center justify-between gap-1 text-[11px]">
-                                <span class="text-slate-400 font-mono" title="Palmarès arène">
-                                    🏆 {{ $character->wins }}V - {{ $character->losses }}D
-                                </span>
-
-                                @if ($character->is_locked || $character->is_favorite)
-                                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed select-none" title="{{ $character->is_favorite ? 'Protégé (carte favorite de profil)' : 'Protégé contre le recyclage' }}">
-                                        {{ $character->is_favorite ? '⭐ Favori' : '🔒 Protégé' }}
-                                    </span>
-                                @else
-                                    <button
-                                        type="button"
-                                        wire:click.stop="recycleCharacter('{{ $character->id }}')"
-                                        wire:loading.attr="disabled"
-                                        wire:confirm="Voulez-vous vraiment recycler {{ $character->name }} pour +{{ $character->recycle_value }} 🪙 ?"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                        title="Recycler"
-                                    >
-                                        <span>🪙</span>
-                                        <span>+{{ $character->recycle_value }}</span>
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endforeach
+                <x-folio-card
+                    :card="$character"
+                    :showOwnerActions="true"
+                    wire:key="collection-card-{{ $character->id }}"
+                    folioKey="collection-{{ $character->id }}"
+                />
+            @endforeach
         </div>
 
-        {{-- Pagination --}}
-        <div class="pt-6">
-            {{ $characters->links() }}
+        <div class="pt-4">
+            {{ $characters->links('vendor.pagination.codex') }}
         </div>
     @endif
 
-    {{-- ========================================================================= --}}
-    {{-- MODALE GRAND FORMAT D'INSPECTION DÉTAILLÉE DE COMBATTANT (T1.5)           --}}
-    {{-- ========================================================================= --}}
-    <x-character-modal :character="$inspectedCharacter" />
-
-    {{-- MODALE COMPLÈTE & AVANCÉE DE RECYCLAGE EN MASSE (T1.4) --}}
+    {{-- Modale Recyclage en Masse Avancé (DA Codex) --}}
     @if ($showBatchModal)
-        <div class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+        <div
+            class="codex-modal-backdrop overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="batch-modal-title"
+            x-data
+            x-on:keydown.escape.window="$wire.closeBatchModal()"
+        >
             <div
-                class="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-200"
-                @click.away="$wire.closeBatchModal()"
+                class="codex-modal-panel max-w-2xl my-6"
+                @click.outside="$wire.closeBatchModal()"
             >
-                {{-- En-tête de la Modale --}}
-                <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                    <div class="flex items-center gap-3.5">
-                        <div class="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner">
-                            ♻️
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-black text-white tracking-tight">Recyclage en Masse Avancé</h3>
-                            <p class="text-xs text-slate-400">Filtrez précisément les héros à recycler en pièces d'or</p>
-                        </div>
+                <div class="flex items-center justify-between p-5 border-b border-parchment-border bg-parchment-shade/40">
+                    <div>
+                        <h3 id="batch-modal-title" class="font-display font-bold text-lg text-ink">
+                            Recyclage en Masse Avancé
+                        </h3>
+                        <p class="text-sm text-ink-sepia">
+                            Filtrez précisément les combattants non protégés à convertir en pièces d'or.
+                        </p>
                     </div>
                     <button
+                        type="button"
                         wire:click="closeBatchModal"
-                        class="text-slate-400 hover:text-white p-2 text-lg rounded-xl hover:bg-slate-800 transition"
+                        class="btn-cartouche btn-cartouche--sm"
+                        aria-label="Fermer"
                     >
-                        ✕
+                        &times;
                     </button>
                 </div>
 
-                {{-- Corps du Formulaire de Filtrage Avancé --}}
-                <div class="py-5 space-y-5 text-xs">
+                <div class="p-5 space-y-5">
                     {{-- 1. Raretés ciblées --}}
                     <div>
                         <div class="flex justify-between items-center mb-2">
-                            <label class="uppercase font-bold text-slate-400 tracking-wider">
+                            <span class="font-display text-xs font-bold uppercase tracking-wider text-ink-sepia">
                                 1. Raretés à recycler :
-                            </label>
-                            <span class="text-slate-500">Cliquer pour cocher/décocher</span>
+                            </span>
+                            <span class="text-xs text-ink-muted">Cliquer pour cocher / décocher</span>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            <button
-                                type="button"
-                                wire:click="toggleBatchRarity('common')"
-                                class="p-2.5 rounded-xl border text-center transition-all duration-150 {{ in_array('common', $batchRarities, true) ? 'bg-slate-800 border-slate-400 text-white ring-2 ring-slate-400/40 shadow-sm' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700' }}"
-                            >
-                                <span class="block font-bold text-sm">⚔️ Commun</span>
-                                <span class="text-[10px] text-slate-400 font-mono">{{ in_array('common', $batchRarities, true) ? '✓ Sélectionné' : 'Ignorer' }}</span>
-                            </button>
-                            <button
-                                type="button"
-                                wire:click="toggleBatchRarity('rare')"
-                                class="p-2.5 rounded-xl border text-center transition-all duration-150 {{ in_array('rare', $batchRarities, true) ? 'bg-cyan-950/60 border-cyan-400 text-cyan-200 ring-2 ring-cyan-400/40 shadow-sm' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700' }}"
-                            >
-                                <span class="block font-bold text-sm">💎 Rare</span>
-                                <span class="text-[10px] text-cyan-300 font-mono">{{ in_array('rare', $batchRarities, true) ? '✓ Sélectionné' : 'Ignorer' }}</span>
-                            </button>
-                            <button
-                                type="button"
-                                wire:click="toggleBatchRarity('epic')"
-                                class="p-2.5 rounded-xl border text-center transition-all duration-150 {{ in_array('epic', $batchRarities, true) ? 'bg-purple-950/60 border-purple-400 text-purple-200 ring-2 ring-purple-400/40 shadow-sm' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700' }}"
-                            >
-                                <span class="block font-bold text-sm">🔮 Épique</span>
-                                <span class="text-[10px] text-purple-300 font-mono">{{ in_array('epic', $batchRarities, true) ? '✓ Sélectionné' : 'Ignorer' }}</span>
-                            </button>
-                            <button
-                                type="button"
-                                wire:click="toggleBatchRarity('legendary')"
-                                class="p-2.5 rounded-xl border text-center transition-all duration-150 {{ in_array('legendary', $batchRarities, true) ? 'bg-amber-950/60 border-amber-400 text-amber-200 ring-2 ring-amber-400/40 shadow-sm' : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700' }}"
-                            >
-                                <span class="block font-bold text-sm">👑 Légendaire</span>
-                                <span class="text-[10px] text-amber-300 font-mono">{{ in_array('legendary', $batchRarities, true) ? '✓ Sélectionné' : 'Ignorer' }}</span>
-                            </button>
+                            @foreach ([
+                                ['key' => 'common', 'label' => 'Commun', 'hex' => '#6B4A2A'],
+                                ['key' => 'rare', 'label' => 'Rare', 'hex' => '#2A3A7A'],
+                                ['key' => 'epic', 'label' => 'Épique', 'hex' => '#54274A'],
+                                ['key' => 'legendary', 'label' => 'Légendaire', 'hex' => '#74520A'],
+                            ] as $rOpt)
+                                @php $checked = in_array($rOpt['key'], $batchRarities, true); @endphp
+                                <button
+                                    type="button"
+                                    wire:click="toggleBatchRarity('{{ $rOpt['key'] }}')"
+                                    class="p-2.5 rounded-md border text-center transition cursor-pointer {{ $checked ? 'text-[#FBF1DC] shadow-sm' : 'bg-parchment-bright text-ink border-parchment-border hover:border-brass-dark' }}"
+                                    @if ($checked) style="background-color: {{ $rOpt['hex'] }}; border-color: {{ $rOpt['hex'] }};" @endif
+                                >
+                                    <span class="block font-display font-bold text-sm">{{ $rOpt['label'] }}</span>
+                                    <span class="text-xs opacity-90">{{ $checked ? '✓ Sélectionné' : 'Ignorer' }}</span>
+                                </button>
+                            @endforeach
                         </div>
                     </div>
 
-                    {{-- 2. Filtres avancés par Score, Race et Arme --}}
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800">
-                        {{-- Plafond de Score de Puissance --}}
+                    {{-- 2. Score Max, Race, Arme --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 codex-well p-3.5">
                         <div>
-                            <label class="block text-slate-300 font-bold mb-1.5 flex items-center justify-between">
-                                <span>⚡ Power Score Max :</span>
-                                @if (!empty($batchMaxPower))
-                                    <span class="text-amber-400 font-mono">≤ {{ $batchMaxPower }}</span>
-                                @else
-                                    <span class="text-slate-500">Tous</span>
-                                @endif
+                            <label for="batch-max-power" class="flex items-center justify-between font-display text-xs font-bold text-ink-sepia mb-1.5">
+                                <span>Power Score Max</span>
+                                <span class="text-brass-dark tabular-nums">{{ ! empty($batchMaxPower) ? '≤ '.$batchMaxPower : 'Tous' }}</span>
                             </label>
                             <input
+                                id="batch-max-power"
                                 type="number"
                                 wire:model.live.debounce.150ms="batchMaxPower"
-                                placeholder="ex: 60 (optionnel)"
+                                placeholder="ex: 60"
                                 min="0"
                                 max="200"
-                                class="w-full py-1.5 px-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
+                                class="codex-input w-full text-sm tabular-nums"
                             />
-                            <div class="flex gap-1 mt-1.5">
-                                <button type="button" wire:click="$set('batchMaxPower', '50')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300">≤ 50</button>
-                                <button type="button" wire:click="$set('batchMaxPower', '65')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300">≤ 65</button>
-                                <button type="button" wire:click="$set('batchMaxPower', '80')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300">≤ 80</button>
-                                <button type="button" wire:click="$set('batchMaxPower', '')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-rose-300">Tous</button>
+                            <div class="flex gap-1 mt-1.5 flex-wrap">
+                                <button type="button" wire:click="$set('batchMaxPower', '50')" class="px-1.5 py-0.5 rounded border border-parchment-border bg-parchment-bright hover:border-brass-dark text-xs font-display font-bold text-ink cursor-pointer">≤ 50</button>
+                                <button type="button" wire:click="$set('batchMaxPower', '65')" class="px-1.5 py-0.5 rounded border border-parchment-border bg-parchment-bright hover:border-brass-dark text-xs font-display font-bold text-ink cursor-pointer">≤ 65</button>
+                                <button type="button" wire:click="$set('batchMaxPower', '80')" class="px-1.5 py-0.5 rounded border border-parchment-border bg-parchment-bright hover:border-brass-dark text-xs font-display font-bold text-ink cursor-pointer">≤ 80</button>
+                                <button type="button" wire:click="$set('batchMaxPower', '')" class="px-1.5 py-0.5 rounded border border-wax/40 bg-wax/10 hover:bg-wax hover:text-[#FBF1DC] text-xs font-display font-bold text-wax cursor-pointer">Tous</button>
                             </div>
                         </div>
 
-                        {{-- Filtre Race spécifique --}}
                         <div>
-                            <label class="block text-slate-300 font-bold mb-1.5">
-                                👤 Race ciblée :
+                            <label for="batch-race" class="block font-display text-xs font-bold text-ink-sepia mb-1.5">
+                                Race ciblée
                             </label>
-                            <select
-                                wire:model.live="batchRace"
-                                class="w-full py-1.5 px-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-400 text-xs cursor-pointer"
-                            >
+                            <select id="batch-race" wire:model.live="batchRace" class="codex-select w-full text-sm">
                                 <option value="">Toutes les races</option>
                                 @foreach ($races as $r)
-                                    <option value="{{ $r['id'] }}">{{ $r['icon'] }} {{ $r['name'] }}</option>
+                                    <option value="{{ $r['id'] }}">{{ $r['name'] }}</option>
                                 @endforeach
                             </select>
-                            <span class="text-[10px] text-slate-500 block mt-1">Cible une race spécifique</span>
                         </div>
 
-                        {{-- Filtre Arme spécifique --}}
                         <div>
-                            <label class="block text-slate-300 font-bold mb-1.5">
-                                ⚔️ Arme ciblée :
+                            <label for="batch-weapon" class="block font-display text-xs font-bold text-ink-sepia mb-1.5">
+                                Arme ciblée
                             </label>
-                            <select
-                                wire:model.live="batchWeapon"
-                                class="w-full py-1.5 px-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-cyan-400 text-xs cursor-pointer"
-                            >
+                            <select id="batch-weapon" wire:model.live="batchWeapon" class="codex-select w-full text-sm">
                                 <option value="">Toutes les armes</option>
                                 @foreach ($weapons as $w)
-                                    <option value="{{ $w['id'] }}">{{ $w['icon'] }} {{ $w['name'] }}</option>
+                                    <option value="{{ $w['id'] }}">{{ $w['name'] }}</option>
                                 @endforeach
                             </select>
-                            <span class="text-[10px] text-slate-500 block mt-1">Cible une arme spécifique</span>
                         </div>
                     </div>
 
-                    {{-- 3. Sécurité : Préservation des synergies --}}
-                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-                        <div class="flex items-center gap-2.5">
-                            <span class="text-base">✨</span>
-                            <div>
-                                <span class="font-bold text-slate-200 block">Exclure les combattants avec synergie</span>
-                                <span class="text-[11px] text-slate-500">Empêche de détruire accidentellement vos cartes à synergies actives</span>
-                            </div>
+                    {{-- 3. Exclusion synergies --}}
+                    <label class="flex items-center justify-between gap-3 codex-well p-3 cursor-pointer">
+                        <div>
+                            <span class="font-display text-xs font-bold text-ink block">Exclure les combattants avec synergie</span>
+                            <span class="text-sm text-ink-sepia">Préserve les cartes possédant des synergies actives.</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                wire:model.live="batchExcludeSynergies"
-                                class="sr-only peer"
-                            />
-                            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                    </div>
+                        <input
+                            type="checkbox"
+                            wire:model.live="batchExcludeSynergies"
+                            class="w-5 h-5 rounded border-brass-dark text-brass-dark focus:ring-brass"
+                        />
+                    </label>
 
-                    {{-- 4. Aperçu visuel en direct des cartes ciblées --}}
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
-                        <div class="flex justify-between items-center pb-2 border-b border-slate-800/80">
-                            <span class="text-slate-400 font-medium">Héros ciblés : <strong class="text-white font-mono text-sm">{{ $batchPreview['count'] }}</strong></span>
-                            <span class="text-slate-400 font-medium">Gain d'or total : <strong class="text-amber-400 font-black font-mono text-base">+{{ number_format($batchPreview['coins'], 0, ',', ' ') }} 🪙</strong></span>
+                    {{-- 4. Aperçu temps réel --}}
+                    <div class="codex-well p-4 space-y-3">
+                        <div class="flex flex-wrap justify-between items-center gap-2 pb-2 border-b border-parchment-border">
+                            <span class="text-sm text-ink-sepia">
+                                Héros ciblés : <strong class="font-display font-bold text-ink tabular-nums">{{ $batchPreview['count'] }}</strong>
+                            </span>
+                            <span class="text-sm text-ink-sepia">
+                                Gain d'or total : <strong class="font-display font-bold text-brass-dark tabular-nums">+{{ number_format($batchPreview['coins'], 0, ',', ' ') }} 🪙</strong>
+                            </span>
                         </div>
 
-                        {{-- Liste scrollable des héros ciblés pour vérification visuelle --}}
                         @if ($batchPreview['count'] > 0)
-                            <div class="max-h-36 overflow-y-auto space-y-1.5 pr-1 text-[11px]">
+                            <div class="max-h-40 overflow-y-auto space-y-1.5 pr-1">
                                 @foreach ($batchPreview['characters'] as $c)
-                                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/60 hover:border-slate-700">
+                                    <div class="flex items-center justify-between px-3 py-1.5 rounded bg-parchment-bright border border-parchment-border/80 text-sm">
                                         <div class="flex items-center gap-2 min-w-0">
-                                            <span class="shrink-0">{{ $c->race_data['icon'] ?? '👤' }}</span>
-                                            <span class="font-bold text-white truncate max-w-[140px] sm:max-w-[200px]">{{ $c->name }}</span>
-                                            <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 uppercase font-mono">{{ $c->rarity->label() }}</span>
+                                            <span class="font-display font-bold text-ink truncate max-w-[180px]">{{ $c->name }}</span>
+                                            <span class="text-xs font-display font-bold px-1.5 py-0.5 rounded bg-parchment-shade text-ink-sepia">{{ $c->rarity->label() }}</span>
                                         </div>
-                                        <div class="flex items-center gap-3 shrink-0">
-                                            <span class="text-slate-400 font-mono">⚡ {{ $c->power_score }}</span>
-                                            <span class="text-amber-400 font-bold font-mono">+{{ $c->recycle_value }} 🪙</span>
+                                        <div class="flex items-center gap-3 shrink-0 font-display text-xs font-bold tabular-nums">
+                                            <span class="text-ink-sepia">{{ $c->power_score }} pts</span>
+                                            <span class="text-brass-dark">+{{ $c->recycle_value }} 🪙</span>
                                         </div>
                                     </div>
                                 @endforeach
                             </div>
                         @else
-                            <div class="py-4 text-center text-slate-500">
-                                <span>Aucun combattant ne correspond aux critères sélectionnés.</span>
-                            </div>
+                            <p class="py-3 text-center text-sm italic text-ink-muted">
+                                Aucun combattant ne correspond aux critères sélectionnés.
+                            </p>
                         @endif
                     </div>
 
-                    {{-- Alerte Sécurité Verrouillage --}}
-                    <div class="bg-amber-950/20 border border-amber-600/30 rounded-xl p-3 flex items-start gap-2.5 text-[11px] text-amber-200">
-                        <span class="text-base shrink-0">🔒</span>
-                        <p class="leading-relaxed">
-                            <strong>Protection automatique garantie :</strong> Vos <strong>{{ $lockedCount }} héros verrouillés</strong> ainsi que vos héros déployés en arène sont strictement exclus du recyclage.
-                        </p>
+                    <div class="codex-alert codex-alert--warning text-sm">
+                        <span>
+                            <strong>Protection automatique :</strong> vos <strong>{{ $lockedCount }} héros verrouillés</strong>, vos favoris et vos combattants actifs en arène sont exclus.
+                        </span>
                     </div>
                 </div>
 
-                {{-- Actions de la Modale --}}
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800">
-                    <button
-                        type="button"
-                        wire:click="resetBatchFilters"
-                        class="text-xs text-slate-400 hover:text-slate-200 underline"
-                    >
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-5 border-t border-parchment-border bg-parchment-shade/30">
+                    <button type="button" wire:click="resetBatchFilters" class="text-sm font-display font-bold text-ink-sepia hover:text-wax underline cursor-pointer">
                         ↺ Réinitialiser les critères
                     </button>
 
                     <div class="flex items-center gap-2.5 w-full sm:w-auto">
-                        <button
-                            type="button"
-                            wire:click="closeBatchModal"
-                            class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition"
-                        >
+                        <button type="button" wire:click="closeBatchModal" class="btn-cartouche btn-cartouche--sm flex-1 sm:flex-initial">
                             Annuler
                         </button>
                         <button
                             type="button"
                             wire:click="confirmBatchRecycle"
                             wire:loading.attr="disabled"
-                            @if ($batchPreview['count'] === 0) disabled @endif
-                            class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                            @disabled($batchPreview['count'] === 0)
+                            class="btn-brass btn-brass--sm flex-1 sm:flex-initial tabular-nums"
                         >
                             <span wire:loading.remove wire:target="confirmBatchRecycle">
                                 Recycler {{ $batchPreview['count'] }} {{ Str::plural('héros', $batchPreview['count']) }} (+{{ number_format($batchPreview['coins'], 0, ',', ' ') }} 🪙)
                             </span>
-                            <span wire:loading wire:target="confirmBatchRecycle">
-                                Recyclage en cours...
-                            </span>
+                            <span wire:loading wire:target="confirmBatchRecycle">Recyclage...</span>
                         </button>
                     </div>
                 </div>

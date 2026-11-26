@@ -1,58 +1,71 @@
 <x-guest-layout>
-    <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    {{-- Titre --}}
-    <div class="mb-8 text-center">
-        <h2 class="font-display font-extrabold text-xl text-white tracking-wide">Connexion</h2>
-        <p class="text-sm text-slate-500 mt-2">Retrouvez vos combattants et votre rang.</p>
+    <div class="mb-6 text-center space-y-1">
+        <h1 class="font-display font-bold text-xl text-ink tracking-wide">Connexion</h1>
+        <p class="font-body text-sm italic text-ink-muted">Retrouvez vos combattants et votre rang.</p>
     </div>
 
-    <form method="POST" action="{{ route('login') }}">
+    <form method="POST" action="{{ route('login') }}" class="space-y-5">
         @csrf
 
-        <!-- Email Address or Username -->
         <div>
-            <label for="email" class="block text-sm font-medium text-slate-400 mb-1.5">Email ou Pseudo</label>
-            <input id="email" type="text" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                class="block w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-200 px-4 py-3 text-sm placeholder-slate-600 focus:border-gold/50 focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all duration-300"
-                placeholder="ex: hero@wheelborn.test ou NathOof" />
+            <x-input-label for="email" value="Email ou Pseudo" />
+            <x-text-input
+                id="email"
+                type="text"
+                name="email"
+                :value="old('email')"
+                required
+                autofocus
+                autocomplete="username"
+                class="mt-1.5 block w-full"
+                placeholder="ex: hero@wheelborn.test ou NathOof"
+            />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
-        <!-- Password -->
-        <div class="mt-5">
-            <label for="password" class="block text-sm font-medium text-slate-400 mb-1.5">Mot de passe</label>
-            <input id="password" type="password" name="password" required autocomplete="current-password"
-                class="block w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-200 px-4 py-3 text-sm placeholder-slate-600 focus:border-gold/50 focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all duration-300" />
+        <div>
+            <x-input-label for="password" value="Mot de passe" />
+            <x-text-input
+                id="password"
+                type="password"
+                name="password"
+                required
+                autocomplete="current-password"
+                class="mt-1.5 block w-full"
+            />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-5">
+        <div>
             <label for="remember_me" class="inline-flex items-center cursor-pointer">
-                <input id="remember_me" type="checkbox" class="rounded border-white/10 bg-white/[0.04] text-gold shadow-sm focus:ring-gold/30 focus:ring-offset-0" name="remember">
-                <span class="ms-2 text-sm text-slate-500">Se souvenir de moi</span>
+                <input
+                    id="remember_me"
+                    type="checkbox"
+                    name="remember"
+                    class="rounded border-parchment-border bg-parchment-bright text-wax shadow-sm focus:ring-brass-dark"
+                >
+                <span class="ms-2 font-body text-sm text-ink-sepia">Se souvenir de moi</span>
             </label>
         </div>
 
-        <div class="flex items-center justify-between mt-8">
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
             @if (Route::has('password.request'))
-                <a class="text-sm text-slate-500 hover:text-slate-300 transition-colors duration-300" href="{{ route('password.request') }}">
+                <a class="font-body text-sm text-ink-muted hover:text-wax underline-offset-2 hover:underline transition" href="{{ route('password.request') }}">
                     Mot de passe oublié ?
                 </a>
             @endif
 
-            <button type="submit" class="px-7 py-3 rounded-2xl bg-gradient-to-r from-gold to-gold-light text-cosmos-deep font-display font-bold text-sm tracking-wider uppercase transition-all duration-300 hover:shadow-lg hover:shadow-gold/20 hover:scale-[1.02] active:scale-95">
+            <button type="submit" class="btn-wax">
                 Connexion
             </button>
         </div>
     </form>
 
-    {{-- Lien vers inscription --}}
-    <div class="mt-8 pt-6 border-t border-white/[0.04] text-center">
-        <a href="{{ route('register') }}" class="text-sm text-slate-500 hover:text-gold-light transition-colors duration-300">
-            Pas encore de compte ? <span class="font-medium text-slate-300">S'inscrire</span>
+    <div class="mt-6 pt-5 border-t border-parchment-border text-center">
+        <a href="{{ route('register') }}" class="font-body text-sm text-ink-sepia hover:text-wax transition">
+            Pas encore de compte ? <span class="font-display font-bold text-ink underline-offset-2 hover:underline">S'inscrire</span>
         </a>
     </div>
 </x-guest-layout>

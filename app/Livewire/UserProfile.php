@@ -1,21 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire;
 
-use App\Data\GameConfig;
 use App\Models\Achievement;
 use App\Models\Character;
 use App\Models\User;
 use App\Services\RecycleService;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class UserProfile extends Component
 {
     public string $activeTab = 'overview'; // 'overview' ou 'settings'
-    public ?string $inspectedCharacterId = null;
 
     public ?string $notification = null;
+
     public ?string $notificationType = null;
 
     public function mount(): void
@@ -39,19 +41,23 @@ class UserProfile extends Component
     public function toggleFavorite(string $characterId): void
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
-        DB::transaction(function () use ($user, $characterId) {
+        DB::transaction(function () use ($user, $characterId): void {
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+
             $character = Character::where('id', $characterId)
-                ->where('user_id', $user->id)
+                ->where('user_id', $lockedUser->id)
+                ->where('pending_reveal', false)
                 ->whereNull('recycled_at')
                 ->lockForUpdate()
                 ->first();
 
-            if (!$character) {
-                $this->notify("Combattant introuvable.", 'error');
+            if (! $character) {
+                $this->notify('Combattant introuvable.', 'error');
+
                 return;
             }
 
@@ -59,13 +65,15 @@ class UserProfile extends Component
                 $character->update(['is_favorite' => false]);
                 $this->notify("⭐ {$character->name} a été retiré de ta vitrine.", 'info');
             } else {
-                $count = Character::where('user_id', $user->id)
+                $count = Character::where('user_id', $lockedUser->id)
+                    ->where('pending_reveal', false)
                     ->whereNull('recycled_at')
                     ->where('is_favorite', true)
                     ->count();
 
                 if ($count >= 3) {
-                    $this->notify("Vitrine pleine ! Tu as déjà 3 héros favoris sélectionnés.", 'warning');
+                    $this->notify('Vitrine pleine ! Tu as déjà 3 héros favoris sélectionnés.', 'warning');
+
                     return;
                 }
 
@@ -75,39 +83,41 @@ class UserProfile extends Component
         });
     }
 
-    /**
-     * Bascule le verrou de sécurité anti-recyclage.
-     */
     public function toggleLock(string $characterId): void
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
-        $character = Character::where('id', $characterId)
-            ->where('user_id', $user->id)
-            ->whereNull('recycled_at')
-            ->first();
+        DB::transaction(function () use ($user, $characterId): void {
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        if (!$character) {
-            return;
-        }
+            $character = Character::where('id', $characterId)
+                ->where('user_id', $lockedUser->id)
+                ->where('pending_reveal', false)
+                ->whereNull('recycled_at')
+                ->lockForUpdate()
+                ->first();
 
-        $character->update(['is_locked' => !$character->is_locked]);
-        $this->notify(
-            $character->is_locked ? "🔒 {$character->name} est désormais protégé." : "🔓 {$character->name} est déverrouillé.",
-            'info'
-        );
+            if (! $character) {
+                return;
+            }
+
+            $nextLocked = ! $character->is_locked;
+            $character->update(['is_locked' => $nextLocked]);
+
+            $this->notify(
+                $nextLocked ? "🔒 {$character->name} est désormais protégé." : "🔓 {$character->name} est déverrouillé.",
+                'info'
+            );
+        });
     }
 
-    /**
-     * Recyclage unitaire d'un héros depuis la modale d'inspection.
-     */
     public function recycleCharacter(string $characterId): void
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
@@ -116,41 +126,34 @@ class UserProfile extends Component
             ->whereNull('recycled_at')
             ->first();
 
-        if (!$character) {
+        if (! $character) {
             return;
         }
 
         if ($character->is_locked || $character->is_favorite) {
-            $this->notify("Impossible de recycler une carte protégée ou en vitrine.", 'warning');
+            $this->notify('Impossible de recycler une carte protégée ou en vitrine.', 'warning');
+
             return;
         }
 
-        $recycleService = app(RecycleService::class);
-        $coins = $recycleService->recycle($user, $character);
+        try {
+            $coins = app(RecycleService::class)->recycle($user, (string) $character->id);
+            $user->refresh();
 
-        $this->closeInspector();
-        $this->notify("♻️ {$character->name} a été recyclé avec succès pour +{$coins} 🪙 !", 'success');
+            $this->notify("♻️ {$character->name} a été recyclé avec succès pour +{$coins} 🪙 !", 'success');
+            $this->dispatch('stats-updated',
+                coins: $user->coins,
+                spinCharges: $user->spin_charges,
+                elo: $user->elo
+            );
+        } catch (DomainException $e) {
+            $this->notify($e->getMessage(), 'warning');
+        }
     }
 
-    /**
-     * Retire un combattant de la vitrine des favoris.
-     */
     public function removeFavorite(string $characterId): void
     {
         $this->toggleFavorite($characterId);
-    }
-
-    /**
-     * Ouvre la modale d'inspection grand format d'un héros de la vitrine.
-     */
-    public function inspectCharacter(string $characterId): void
-    {
-        $this->inspectedCharacterId = $characterId;
-    }
-
-    public function closeInspector(): void
-    {
-        $this->inspectedCharacterId = null;
     }
 
     public function notify(string $message, string $type = 'info'): void
@@ -169,7 +172,7 @@ class UserProfile extends Component
     {
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return view('livewire.user-profile');
         }
 
@@ -177,10 +180,8 @@ class UserProfile extends Component
         $levelProgress = $user->currentLevelProgress();
         $league = $user->getLeague();
 
-        // Vitrine : Top 3 cartes favorites
-        $favoriteCharacters = $user->favoriteCharacters()->get();
+        $favoriteCharacters = $user->favoriteCharacters()->where('pending_reveal', false)->get();
 
-        // Statistiques d'Arène fidèles
         $battleStats = $user->battleStats();
         $battlesCount = $battleStats['total'];
         $winsCount = $battleStats['wins'];
@@ -188,11 +189,11 @@ class UserProfile extends Component
         $drawsCount = $battleStats['draws'];
         $winrate = $battleStats['winrate'];
 
-        // Statistiques de Collection
-        $heroesCount = $user->characters()->count();
-        $legendariesCount = $user->characters()->where('rarity', 'legendary')->count();
-        $epicsCount = $user->characters()->where('rarity', 'epic')->count();
-        $maxPowerScore = $user->characters()->max('power_score') ?? 0;
+        $activeCharacters = $user->characters()->where('pending_reveal', false);
+        $heroesCount = (clone $activeCharacters)->count();
+        $legendariesCount = (clone $activeCharacters)->where('rarity', 'legendary')->count();
+        $epicsCount = (clone $activeCharacters)->where('rarity', 'epic')->count();
+        $maxPowerScore = (clone $activeCharacters)->max('power_score') ?? 0;
 
         // Statistiques d'Économie & Recyclage
         $recycledCount = $user->allCharacters()->whereNotNull('recycled_at')->count();
@@ -202,7 +203,7 @@ class UserProfile extends Component
         $workshopUpgrades = $user->workshopUpgrades;
         $workshopLevels = [
             'rare_magnet' => $workshopUpgrades?->rare_magnet_level ?? 0,
-            'hero_forge'  => $workshopUpgrades?->hero_forge_level ?? 0,
+            'hero_forge' => $workshopUpgrades?->hero_forge_level ?? 0,
             'arena_bonus' => $workshopUpgrades?->arena_bonus_level ?? 0,
         ];
 
@@ -213,45 +214,35 @@ class UserProfile extends Component
         foreach (Achievement::DEFINITIONS as $key => $definition) {
             $unlocked = isset($unlockedAchievements[$key]);
             $achievementsList[] = [
-                'key'         => $key,
-                'name'        => $definition['name'],
-                'icon'        => $definition['icon'],
+                'key' => $key,
+                'name' => $definition['name'],
+                'icon' => $definition['icon'],
                 'description' => $definition['description'],
-                'title'       => $definition['title'],
-                'reward'      => $definition['reward'],
+                'title' => $definition['title'],
+                'reward' => $definition['reward'],
                 'is_unlocked' => $unlocked,
                 'unlocked_at' => $unlocked ? $unlockedAchievements[$key]->unlocked_at?->format('d/m/Y') : null,
             ];
         }
 
-        // Héros inspecté dans la modale grand format
-        $inspectedCharacter = $this->inspectedCharacterId
-            ? Character::where('id', $this->inspectedCharacterId)
-                ->where('user_id', $user->id)
-                ->whereNull('recycled_at')
-                ->first()
-            : null;
-
         return view('livewire.user-profile', [
-            'user'                 => $user,
-            'levelProgress'        => $levelProgress,
-            'league'               => $league,
-            'favoriteCharacters'   => $favoriteCharacters,
-            'battlesCount'         => $battlesCount,
-            'winsCount'            => $winsCount,
-            'lossesCount'          => $lossesCount,
-            'drawsCount'           => $drawsCount,
-            'winrate'              => $winrate,
-            'heroesCount'          => $heroesCount,
-            'legendariesCount'     => $legendariesCount,
-            'epicsCount'           => $epicsCount,
-            'maxPowerScore'        => $maxPowerScore,
-            'recycledCount'        => $recycledCount,
-            'coinsEarnedTotal'     => $coinsEarnedTotal,
-            'workshopLevels'       => $workshopLevels,
-            'achievementsList'     => $achievementsList,
-            'inspectedCharacter'   => $inspectedCharacter,
+            'user' => $user,
+            'levelProgress' => $levelProgress,
+            'league' => $league,
+            'favoriteCharacters' => $favoriteCharacters,
+            'battlesCount' => $battlesCount,
+            'winsCount' => $winsCount,
+            'lossesCount' => $lossesCount,
+            'drawsCount' => $drawsCount,
+            'winrate' => $winrate,
+            'heroesCount' => $heroesCount,
+            'legendariesCount' => $legendariesCount,
+            'epicsCount' => $epicsCount,
+            'maxPowerScore' => $maxPowerScore,
+            'recycledCount' => $recycledCount,
+            'coinsEarnedTotal' => $coinsEarnedTotal,
+            'workshopLevels' => $workshopLevels,
+            'achievementsList' => $achievementsList,
         ]);
     }
 }
-

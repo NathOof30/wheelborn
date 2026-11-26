@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire;
 
 use App\Data\GameConfig;
@@ -15,7 +17,10 @@ use Livewire\Component;
  */
 class Workshop extends Component
 {
+    #[Locked]
     public int $coins = 0;
+
+    #[Locked]
     public bool $isAdmin = false;
 
     // Amélioration qui vient d'être achetée : sa carte joue l'animation de déblocage
@@ -23,6 +28,7 @@ class Workshop extends Component
     public ?string $justUnlocked = null;
 
     public ?string $notification = null;
+
     public ?string $notificationType = null;
 
     public function mount(): void
@@ -56,6 +62,7 @@ class Workshop extends Component
         } catch (DomainException $e) {
             $this->justUnlocked = null;
             $this->notify($e->getMessage(), 'error');
+
             return;
         }
 
@@ -88,9 +95,9 @@ class Workshop extends Component
         $definition = GameConfig::workshop()[$upgrade];
 
         return match ($upgrade) {
-            'rare_magnet' => '+' . ($level * $definition['bonus_per_level']) . ' % de chances de pouvoir mythique',
-            'hero_forge'  => '+' . ($level * $definition['bonus_hp']) . ' PV et +' . ($level * $definition['bonus_str']) . ' Force à chaque tirage',
-            'arena_bonus' => 'Or des victoires d\'arène ×' . str_replace('.', ',', (string) $definition['multipliers'][$level - 1]),
+            'rare_magnet' => '+'.($level * $definition['bonus_per_level']).' % de chances de pouvoir mythique',
+            'hero_forge' => '+'.($level * $definition['bonus_hp']).' PV et +'.($level * $definition['bonus_str']).' Force à chaque tirage',
+            'arena_bonus' => 'Or des victoires d\'arène ×'.str_replace('.', ',', (string) $definition['multipliers'][$level - 1]),
         };
     }
 

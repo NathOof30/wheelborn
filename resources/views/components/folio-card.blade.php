@@ -1,7 +1,18 @@
+@props([
+    'card',
+    'showOwnerActions' => false,
+    'animateStamp' => false,
+    'recycleMethod' => 'recycleCharacter',
+    'favoriteMethod' => 'toggleFavorite',
+    'lockMethod' => 'toggleLock',
+    'folioKey' => null,
+])
+
 @php
-    /** @var array<string, mixed> $folio */
-    /** @var \App\Support\NewDaIconRegistry $iconRegistry */
-    $interactiveActions = (bool) ($interactiveActions ?? false);
+    $presenter = app(\App\View\Presenters\FolioCardPresenter::class);
+    $iconRegistry = app(\App\Support\CodexIconRegistry::class);
+    $folio = $presenter->present($card);
+
     $synergies = $folio['synergies'] ?? [];
     $synergyCount = count($synergies);
     $hasUnstable = collect($synergies)->contains('is_unstable', true);
@@ -15,29 +26,52 @@
         ->filter()
         ->implode(' • ');
     $synergyEyebrow = $hasUnstable ? 'SYNERGIE · INSTABLE' : 'SYNERGIE · ACCORD';
-    $hpMax = max(140, (int) ($folio['hp'] ?? 100));
-    $hpPct = min(100, (int) round((($folio['hp'] ?? 0) / $hpMax) * 100));
+
+    $hpVal = (int) ($folio['hp'] ?? 0);
+    $hpMax = max(140, $hpVal);
+    $hpPct = min(100, (int) round(($hpVal / $hpMax) * 100));
+
+    $strVal = (int) ($folio['strength'] ?? 0);
+    $strMax = max(100, $strVal);
+    $strPct = min(100, (int) round(($strVal / $strMax) * 100));
+
+    $spdVal = (int) ($folio['speed'] ?? 0);
+    $spdMax = max(100, $spdVal);
+    $spdPct = min(100, (int) round(($spdVal / $spdMax) * 100));
+
+    $defVal = (int) ($folio['defense'] ?? 0);
+    $defMax = max(100, $defVal);
+    $defPct = min(100, (int) round(($defVal / $defMax) * 100));
+
     $abilities = $folio['abilities'] ?? [];
     $wins = (int) ($folio['wins'] ?? 0);
     $losses = (int) ($folio['losses'] ?? 0);
     $battles = $wins + $losses;
     $winrate = $folio['winrate'] ?? ($battles > 0 ? (int) round(($wins / $battles) * 100) : null);
+
     $isLuckySpin = ! empty($folio['is_lucky_spin']);
     $isFavorite = ! empty($folio['is_favorite']);
     $isLocked = ! empty($folio['is_locked']);
-    $isProtected = $isLocked || $isFavorite;
+    $isActiveFighter = ! empty($folio['is_active_fighter']);
+    $isProtected = $isLocked || $isFavorite || $isActiveFighter;
     $isTeleportAura = ! empty($folio['layers']['is_teleportation_aura']);
+    $stampClass = $animateStamp ? 'wax-stamp-drop' : '';
+    $resolvedKey = $folioKey ?: 'folio-'.$folio['id'];
+    $safeNameForConfirm = str_replace(["'", '"', "\n", "\r"], ['’', '', ' ', ' '], (string) $folio['name']);
 @endphp
+
 <article
-    class="folio-card"
+    {{ $attributes->merge(['class' => 'folio-card']) }}
     data-folio-id="{{ $folio['id'] }}"
+    data-folio-key="{{ $resolvedKey }}"
     data-rarity="{{ $folio['rarity'] }}"
-    data-interactive="{{ $interactiveActions ? 'true' : 'false' }}"
+    data-interactive="{{ $showOwnerActions ? 'true' : 'false' }}"
     tabindex="0"
     aria-roledescription="carte recto-verso"
     aria-label="{{ $folio['name'] }} — cliquer pour retourner"
 >
     <div class="folio-card-inner">
+        {{-- RECTO --}}
         <div class="folio-face folio-face--front" aria-hidden="false">
             <div class="folio-head">
                 <div class="folio-title-block">
@@ -60,7 +94,7 @@
                         </span>
                     @endif
                 </div>
-                <span class="power-medallion tabular-nums" title="Power Score">{{ $folio['power_score'] }}</span>
+                <span class="power-medallion tabular-nums {{ $stampClass }}" title="Power Score">{{ $folio['power_score'] }}</span>
             </div>
 
             <div class="codex-portrait-frame">
@@ -72,11 +106,11 @@
                         data-lucky-mark
                         data-no-flip
                         tabindex="0"
-                        data-tooltip-eyebrow="GRAND RITUEL"
+                        data-tooltip-eyebrow="SUPER SPIN"
                         data-tooltip-title="Pull chanceux"
-                        data-tooltip-desc="Invoqué lors d'un Grand Rituel 10/10 aux chances d'élite garanties."
+                        data-tooltip-desc="Invoqué lors d'un Super Spin 10/10 aux chances d'élite garanties."
                         data-tooltip-tone="lucky"
-                        aria-label="Pull chanceux (Grand Rituel)"
+                        aria-label="Pull chanceux (Super Spin)"
                     >
                         <svg viewBox="0 0 20 20" aria-hidden="true">
                             <path d="M10 1.5 L12.1 7.9 L18.5 10 L12.1 12.1 L10 18.5 L7.9 12.1 L1.5 10 L7.9 7.9 Z" fill="currentColor"/>
@@ -119,7 +153,7 @@
             </div>
 
             <div class="folio-foot folio-foot--front">
-                <span class="rarity-seal-pill" style="--seal-hex: {{ $folio['seal_hex'] }};" title="{{ $folio['rarity_label'] }}">
+                <span class="rarity-seal-pill {{ $stampClass }}" style="--seal-hex: {{ $folio['seal_hex'] }};" title="{{ $folio['rarity_label'] }}">
                     <span class="rarity-wax-dot" aria-hidden="true"></span>
                     <span>{{ $folio['rarity_label'] }}</span>
                 </span>
@@ -139,7 +173,8 @@
             </div>
         </div>
 
-        <div class="folio-face folio-face--back" aria-hidden="true">
+        {{-- VERSO --}}
+        <div class="folio-face folio-face--back" aria-hidden="true" inert>
             <div class="folio-head">
                 <div class="folio-title-block">
                     <h3 class="folio-name">{{ $folio['name'] }}</h3>
@@ -166,39 +201,43 @@
 
             <div class="stat-bars tabular-nums">
                 <div class="stat-bar-row">
-                    <span class="stat-bar-label">
+                    <span class="stat-bar-label" title="Points de Vie">
                         <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17 C4.5 13 2.5 9.5 2.5 6.5 C2.5 4 4.5 2.5 6.8 2.5 C8.3 2.5 9.4 3.3 10 4.4 C10.6 3.3 11.7 2.5 13.2 2.5 C15.5 2.5 17.5 4 17.5 6.5 C17.5 9.5 15.5 13 10 17 Z" fill="currentColor"/></svg>
-                        PV
+                        <span aria-hidden="true">PV</span>
+                        <span class="sr-only">Points de Vie</span>
                     </span>
                     <div class="stat-track"><div class="stat-fill stat-fill--hp" style="width: {{ $hpPct }}%;"></div></div>
-                    <span class="stat-val">{{ $folio['hp'] }}<small>/{{ $hpMax }}</small></span>
+                    <span class="stat-val">{{ $hpVal }}<small>/{{ $hpMax }}</small></span>
                 </div>
 
                 <div class="stat-bar-row">
-                    <span class="stat-bar-label">
+                    <span class="stat-bar-label" title="Force">
                         <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 L13 6 V13 H7 V6 Z M5 13 H15 M10 13 V18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
-                        FOR
+                        <span aria-hidden="true">FOR</span>
+                        <span class="sr-only">Force</span>
                     </span>
-                    <div class="stat-track"><div class="stat-fill" style="width: {{ min(100, $folio['strength']) }}%;"></div></div>
-                    <span class="stat-val">{{ $folio['strength'] }}<small>/100</small></span>
+                    <div class="stat-track"><div class="stat-fill" style="width: {{ $strPct }}%;"></div></div>
+                    <span class="stat-val">{{ $strVal }}<small>/{{ $strMax }}</small></span>
                 </div>
 
                 <div class="stat-bar-row">
-                    <span class="stat-bar-label">
+                    <span class="stat-bar-label" title="Vitesse">
                         <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><polygon points="11.5,2 4.5,11 9.5,11 8.5,18 15.5,9 10.5,9" fill="currentColor"/></svg>
-                        VIT
+                        <span aria-hidden="true">VIT</span>
+                        <span class="sr-only">Vitesse</span>
                     </span>
-                    <div class="stat-track"><div class="stat-fill" style="width: {{ min(100, $folio['speed']) }}%;"></div></div>
-                    <span class="stat-val">{{ $folio['speed'] }}<small>/100</small></span>
+                    <div class="stat-track"><div class="stat-fill" style="width: {{ $spdPct }}%;"></div></div>
+                    <span class="stat-val">{{ $spdVal }}<small>/{{ $spdMax }}</small></span>
                 </div>
 
                 <div class="stat-bar-row">
-                    <span class="stat-bar-label">
+                    <span class="stat-bar-label" title="Défense">
                         <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 L16.5 4.8 V10 C16.5 14 13.5 16.8 10 18 C6.5 16.8 3.5 14 3.5 10 V4.8 Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
-                        DEF
+                        <span aria-hidden="true">DEF</span>
+                        <span class="sr-only">Défense</span>
                     </span>
-                    <div class="stat-track"><div class="stat-fill" style="width: {{ min(100, $folio['defense']) }}%;"></div></div>
-                    <span class="stat-val">{{ $folio['defense'] }}<small>/100</small></span>
+                    <div class="stat-track"><div class="stat-fill" style="width: {{ $defPct }}%;"></div></div>
+                    <span class="stat-val">{{ $defVal }}<small>/{{ $defMax }}</small></span>
                 </div>
             </div>
 
@@ -244,18 +283,19 @@
                     <span class="folio-record tabular-nums" title="{{ $wins }} victoires · {{ $losses }} défaites ({{ $winrate }}%)">
                         {{ $wins }}V · {{ $losses }}D <small>{{ $winrate }}%</small>
                     </span>
-                @elseif (! $interactiveActions)
+                @elseif (! $showOwnerActions)
                     <span class="folio-record folio-record--empty">Inédit</span>
                 @else
                     <span class="folio-record folio-record--empty">0 duel</span>
                 @endif
 
-                @if ($interactiveActions)
+                @if ($showOwnerActions)
                     <div class="folio-verso-actions" data-no-flip>
                         <button
                             type="button"
+                            wire:click.stop="{{ $favoriteMethod }}('{{ $folio['id'] }}')"
+                            wire:loading.attr="disabled"
                             class="folio-act-btn folio-act-btn--fav {{ $isFavorite ? 'is-active' : '' }}"
-                            data-folio-action="favorite"
                             data-no-flip
                             tabindex="-1"
                             aria-pressed="{{ $isFavorite ? 'true' : 'false' }}"
@@ -266,8 +306,9 @@
                         </button>
                         <button
                             type="button"
+                            wire:click.stop="{{ $lockMethod }}('{{ $folio['id'] }}')"
+                            wire:loading.attr="disabled"
                             class="folio-act-btn folio-act-btn--lock {{ $isLocked ? 'is-active' : '' }}"
-                            data-folio-action="lock"
                             data-no-flip
                             tabindex="-1"
                             aria-pressed="{{ $isLocked ? 'true' : 'false' }}"
@@ -276,24 +317,34 @@
                         >
                             <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="9" width="11" height="8.5" rx="1.8" fill="{{ $isLocked ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1.7"/><path d="M7 9 V6.4 C7 4.4 8.3 3 10 3 C11.7 3 13 4.4 13 6.4 V9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
                         </button>
-                        <button
-                            type="button"
-                            class="folio-act-transmute tabular-nums {{ $isProtected ? 'is-protected' : '' }}"
-                            data-folio-action="transmute"
-                            data-no-flip
-                            tabindex="-1"
-                            @disabled($isProtected)
-                            title="{{ $isProtected ? 'Protégé (verrouillé ou favori)' : 'Transmuter pour +'.$folio['recycle_value'].' écus' }}"
-                        >
-                            @if ($isProtected)
+                        @if ($isProtected)
+                            <button
+                                type="button"
+                                class="folio-act-transmute tabular-nums is-protected"
+                                data-no-flip
+                                tabindex="-1"
+                                disabled
+                                title="Protégé (verrouillé, favori ou actif en arène)"
+                            >
                                 <span>Protégé</span>
-                            @else
-                                <span>+{{ $folio['recycle_value'] }}</span>
-                            @endif
-                        </button>
+                            </button>
+                        @else
+                            <button
+                                type="button"
+                                wire:click.stop="{{ $recycleMethod }}('{{ $folio['id'] }}')"
+                                wire:loading.attr="disabled"
+                                wire:confirm="Voulez-vous vraiment recycler {{ $safeNameForConfirm }} pour +{{ $folio['recycle_value'] }} 🪙 ?"
+                                class="folio-act-transmute tabular-nums"
+                                data-no-flip
+                                tabindex="-1"
+                                title="Recycler pour +{{ $folio['recycle_value'] }} 🪙"
+                            >
+                                <span>+{{ $folio['recycle_value'] }} 🪙</span>
+                            </button>
+                        @endif
                     </div>
                 @else
-                    <span class="recycle-pill tabular-nums" title="Valeur de transmutation">
+                    <span class="recycle-pill tabular-nums" title="Valeur de recyclage">
                         <svg class="hud-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><polygon points="10,5.5 13,10 10,14.5 7,10" fill="currentColor"/></svg>
                         +{{ $folio['recycle_value'] }}
                     </span>

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Data\GameConfig;
@@ -8,10 +10,12 @@ use App\Data\RaceData;
 use App\Data\SynergyData;
 use App\Data\WeaponData;
 use App\Enums\League;
+use App\Enums\Rarity;
 use App\Events\ArenaBattleFinished;
 use App\Models\Battle;
 use App\Models\Character;
 use App\Models\User;
+use DomainException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -23,15 +27,15 @@ use Illuminate\Support\Facades\DB;
 class ArenaService
 {
     // Données qui influencent le combat (elles suffisent à le recalculer), plus power_score pour l'afficher en replay
-    private const SNAPSHOT_FIELDS = ['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'luck', 'power_score'];
+    private const SNAPSHOT_FIELDS = ['id', 'name', 'race_id', 'weapon_id', 'power_id', 'rarity', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'luck', 'power_score'];
 
     public function __construct(
         private BattleEngineService $engine,
         private BotGeneratorService $bots,
         private EloService $elo,
         private WorkshopService $workshop,
-    ) {
-    }
+        private EnergyManagerService $energy,
+    ) {}
 
     /** Combattants du joueur pouvant entrer dans l'arène. */
     public function availableFighters(User $user): Collection
@@ -92,6 +96,7 @@ class ArenaService
                 return true;
             }
             $candId = (string) ($cand['id'] ?? $cand['name']);
+
             return $candId !== (string) $excludeOpponentId;
         });
 
@@ -102,8 +107,8 @@ class ArenaService
         // 6. Choix de l'adversaire :
         // Pour la proposition initiale (hors reroll), on privilégie en priorité un vrai joueur non récent
         if ($excludeOpponentId === null) {
-            $freshReal = array_values(array_filter($available, fn ($c) => $c['kind'] === 'player' && !$c['is_recent']));
-            if (!empty($freshReal)) {
+            $freshReal = array_values(array_filter($available, fn ($c) => $c['kind'] === 'player' && ! $c['is_recent']));
+            if (! empty($freshReal)) {
                 return $freshReal[0];
             }
         }
@@ -111,107 +116,148 @@ class ArenaService
         // Lors d'un reroll (ou si aucun vrai joueur frais n'est dispo) :
         // On tire au sort parmi l'ensemble des candidats disponibles non récents (vrais joueurs + bots)
         // pour garantir une diversité totale et éviter le ping-pong entre 2 cartes
-        $freshOthers = array_values(array_filter($available, fn ($c) => !$c['is_recent']));
-        if (!empty($freshOthers)) {
+        $freshOthers = array_values(array_filter($available, fn ($c) => ! $c['is_recent']));
+        if (! empty($freshOthers)) {
             return $freshOthers[array_rand($freshOthers)];
         }
 
         // Fallback ultime si tous les candidats sont marqués récents
         $availableValues = array_values($available);
+
         return $availableValues[array_rand($availableValues)];
     }
 
     /** Lance un duel, puis enregistre le combat et la progression du joueur (Élo, pièces, XP, palmarès). */
     public function fight(User $user, Character $fighter, array $opponent): array
     {
+        return $this->executeFight($user, $fighter, $opponent, consumeTicket: false);
+    }
+
+    /**
+     * Consomme 1 ticket d'arène et exécute le duel dans une transaction unique (User verrouillé avant Character).
+     * Retourne null si le joueur n'a plus de ticket disponible.
+     */
+    public function fightWithTicket(User $user, Character $fighter, array $opponent): ?array
+    {
+        return $this->executeFight($user, $fighter, $opponent, consumeTicket: true);
+    }
+
+    private function executeFight(User $user, Character $fighter, array $opponent, bool $consumeTicket): ?array
+    {
         $outcome = $this->engine->simulate($fighter, $opponent);
         $won = $outcome['winner'] === 'challenger';
         $draw = $outcome['winner'] === BattleEngineService::DRAW;
 
-        // Match nul : l'Élo ne bouge pas
-        $oldElo = $user->elo;
         $challengerPower = (int) $fighter->power_score;
         $opponentPower = (int) ($opponent['power_score'] ?? 50);
-        $newElo = $draw ? $oldElo : $this->elo->newRating($oldElo, $opponent['elo'], $won, $challengerPower, $opponentPower);
 
-        // Changement de ligue : promotion si on monte, relégation si on descend
-        $oldLeague = League::fromElo($oldElo);
-        $newLeague = League::fromElo($newElo);
-        $leagueChange = match (true) {
-            $newLeague->isHigherThan($oldLeague) => 'promotion',
-            $oldLeague->isHigherThan($newLeague) => 'relegation',
-            default                              => null,
-        };
+        $txResult = DB::transaction(function () use ($user, $fighter, $opponent, $outcome, $won, $draw, $challengerPower, $opponentPower, $consumeTicket): ?array {
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        // Match nul : petit lot de consolation
-        $rewards = GameConfig::rewards();
-        [$coins, $xp] = match (true) {
-            $draw   => [$rewards['draw_coins'], $rewards['draw_xp']],
-            $won    => [$rewards['win_coins_base'], $rewards['win_xp']],
-            default => [$rewards['loss_coins_base'], $rewards['loss_xp']],
-        };
+            $lockedFighter = Character::whereKey($fighter->id)
+                ->where('user_id', $lockedUser->id)
+                ->where('pending_reveal', false)
+                ->whereNull('recycled_at')
+                ->lockForUpdate()
+                ->first();
 
-        // Coffre de Guerre (Atelier) : multiplie l'or des victoires uniquement
-        if ($won) {
-            $coins = (int) round($coins * $this->workshop->arenaCoinMultiplier($user));
-        }
+            if (! $lockedFighter) {
+                throw new DomainException('Ce combattant n\'est plus disponible pour combattre.');
+            }
 
-        DB::transaction(function () use ($user, $fighter, $opponent, $outcome, $won, $draw, $oldElo, $newElo, $coins, $xp) {
+            if ($consumeTicket && ! $this->energy->consumeArenaTicketLocked($lockedUser)) {
+                return null;
+            }
+
+            $oldElo = (int) $lockedUser->elo;
+            $newElo = $draw ? $oldElo : $this->elo->newRating($oldElo, (int) $opponent['elo'], $won, $challengerPower, $opponentPower);
+
+            $oldLeague = League::fromElo($oldElo);
+            $newLeague = League::fromElo($newElo);
+            $leagueChange = match (true) {
+                $newLeague->isHigherThan($oldLeague) => 'promotion',
+                $oldLeague->isHigherThan($newLeague) => 'relegation',
+                default => null,
+            };
+
+            $rewards = GameConfig::rewards();
+            [$coins, $xp] = match (true) {
+                $draw => [$rewards['draw_coins'], $rewards['draw_xp']],
+                $won => [$rewards['win_coins_base'], $rewards['win_xp']],
+                default => [$rewards['loss_coins_base'], $rewards['loss_xp']],
+            };
+
+            if ($won) {
+                $coins = (int) round($coins * $this->workshop->arenaCoinMultiplier($lockedUser));
+            }
+
             Battle::create([
-                'player_id'      => $user->id,
-                'challenger_id'  => $fighter->id,
-                'opponent_id'    => $opponent['kind'] === 'player' ? $opponent['id'] : null, // Fantôme : pas de carte en base
-                'opponent_name'  => $opponent['name'],
-                'opponent_elo'   => $opponent['elo'],
-                'winner_id'      => $outcome['winner_id'],
-                'seed'           => $outcome['seed'],
-                'turns_count'    => $outcome['turns'],
+                'player_id' => $lockedUser->id,
+                'challenger_id' => $lockedFighter->id,
+                'opponent_id' => $opponent['kind'] === 'player' ? $opponent['id'] : null,
+                'opponent_name' => $opponent['name'],
+                'opponent_elo' => $opponent['elo'],
+                'winner_id' => $outcome['winner_id'],
+                'seed' => $outcome['seed'],
+                'turns_count' => $outcome['turns'],
                 'player_old_elo' => $oldElo,
                 'player_new_elo' => $newElo,
-                'elo_delta'      => $newElo - $oldElo,
-                'coins_awarded'  => $coins,
-                'xp_awarded'     => $xp,
-                'turns_log'      => $outcome['log'],
+                'elo_delta' => $newElo - $oldElo,
+                'coins_awarded' => $coins,
+                'xp_awarded' => $xp,
+                'turns_log' => $outcome['log'],
                 'fighters_snapshot' => [
-                    'challenger' => $this->snapshot($fighter),
-                    'opponent'   => $this->snapshot($opponent),
+                    'challenger' => $this->snapshot($lockedFighter),
+                    'opponent' => $this->snapshot($opponent),
                 ],
             ]);
 
-            // Un match nul compte comme un combat joué, sans victoire ni défaite
-            $fighter->increment('battles_count');
-            if (!$draw) {
-                $fighter->increment($won ? 'wins' : 'losses');
+            $lockedFighter->increment('battles_count');
+            if (! $draw) {
+                $lockedFighter->increment($won ? 'wins' : 'losses');
             }
 
-            $newXp = $user->xp + $xp;
+            $newXp = (int) $lockedUser->xp + $xp;
             $newLevel = User::calculateLevelForXp($newXp);
 
-            $user->update([
+            $lockedUser->update([
                 'elo' => $newElo,
-                'coins' => $user->coins + $coins,
+                'coins' => (int) $lockedUser->coins + $coins,
                 'xp' => $newXp,
                 'level' => $newLevel,
                 'has_free_arena_reroll' => true,
             ]);
+
+            return [
+                'elo_delta' => $newElo - $oldElo,
+                'league_change' => $leagueChange
+                    ? ['type' => $leagueChange, 'label' => $newLeague->label(), 'icon' => $newLeague->icon(), 'color' => $newLeague->color()]
+                    : null,
+                'coins' => $coins,
+                'xp' => $xp,
+            ];
         });
 
-        // Succès liés à l'arène (« Premier Sang »)
+        $user->refresh();
+        $fighter->refresh();
+
+        if ($txResult === null) {
+            return null;
+        }
+
         ArenaBattleFinished::dispatch($user, $won, $draw);
 
         return [
-            'won'       => $won,
-            'draw'      => $draw,
-            'turns'     => $outcome['turns'],
-            'reason'    => $outcome['reason'],
-            'elo_delta' => $newElo - $oldElo,
-            'league_change' => $leagueChange
-                ? ['type' => $leagueChange, 'label' => $newLeague->label(), 'icon' => $newLeague->icon(), 'color' => $newLeague->color()]
-                : null,
-            'coins'     => $coins,
-            'xp'        => $xp,
-            'max_hp'    => ['challenger' => $fighter->max_hp, 'opponent' => $opponent['max_hp']],
-            'log'       => $outcome['log'],
+            'won' => $won,
+            'draw' => $draw,
+            'turns' => $outcome['turns'],
+            'reason' => $outcome['reason'],
+            'elo_delta' => $txResult['elo_delta'],
+            'league_change' => $txResult['league_change'],
+            'coins' => $txResult['coins'],
+            'xp' => $txResult['xp'],
+            'max_hp' => ['challenger' => $fighter->max_hp, 'opponent' => $opponent['max_hp']],
+            'log' => $outcome['log'],
         ];
     }
 
@@ -244,38 +290,38 @@ class ArenaService
         $synergies = SynergyData::detect($data['race_id'], $data['weapon_id'], $data['power_id']);
 
         $rarityVal = $data['rarity'] ?? 'common';
-        if ($rarityVal instanceof \App\Enums\Rarity) {
+        if ($rarityVal instanceof Rarity) {
             $rarityKey = $rarityVal->value;
             $rarityLabel = $rarityVal->label();
         } else {
             $rarityKey = (string) $rarityVal;
-            $rarityLabel = match($rarityKey) {
+            $rarityLabel = match ($rarityKey) {
                 'legendary' => 'Légendaire',
-                'epic'      => 'Épique',
-                'rare'      => 'Rare',
-                default     => 'Commune',
+                'epic' => 'Épique',
+                'rare' => 'Rare',
+                default => 'Commune',
             };
         }
 
         return [
-            'character'      => $source,
-            'name'           => $data['name'],
-            'elo'            => $data['elo'] ?? null,
-            'race'           => RaceData::find($data['race_id']),
-            'weapon'         => WeaponData::find($data['weapon_id']),
-            'power'          => PowerData::find($data['power_id']),
-            'hp'             => (int) ($data['max_hp'] ?? $data['hp']),
-            'strength'       => (int) $data['strength'],
-            'speed'          => (int) $data['speed'],
-            'defense'        => (int) $data['defense'],
-            'power_score'    => (int) ($data['power_score'] ?? 0), // Absent des combats enregistrés avant le replay
-            'rarity_key'     => $rarityKey,
-            'rarity_label'   => $rarityLabel,
-            'synergies'      => array_column($synergies, 'name'),
+            'character' => $source,
+            'name' => $data['name'],
+            'elo' => $data['elo'] ?? null,
+            'race' => RaceData::find($data['race_id']),
+            'weapon' => WeaponData::find($data['weapon_id']),
+            'power' => PowerData::find($data['power_id']),
+            'hp' => (int) ($data['max_hp'] ?? $data['hp']),
+            'strength' => (int) $data['strength'],
+            'speed' => (int) $data['speed'],
+            'defense' => (int) $data['defense'],
+            'power_score' => (int) ($data['power_score'] ?? 0), // Absent des combats enregistrés avant le replay
+            'rarity_key' => $rarityKey,
+            'rarity_label' => $rarityLabel,
+            'synergies' => array_column($synergies, 'name'),
             'synergies_data' => $synergies,
-            'wins'           => $data['wins'] ?? 0,
-            'losses'         => $data['losses'] ?? 0,
-            'is_locked'      => (bool) ($data['is_locked'] ?? false),
+            'wins' => $data['wins'] ?? 0,
+            'losses' => $data['losses'] ?? 0,
+            'is_locked' => (bool) ($data['is_locked'] ?? false),
         ];
     }
 
@@ -285,19 +331,24 @@ class ArenaService
      */
     private function playerOpponent(Character $card): array
     {
-        return $card->only(['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'power_score'])
+        return $card->only(['id', 'name', 'race_id', 'weapon_id', 'power_id', 'hp', 'max_hp', 'strength', 'speed', 'defense', 'power_score', 'wins', 'losses', 'is_lucky_spin', 'is_favorite', 'is_locked'])
             + [
                 'rarity' => $card->rarity->value,
-                'elo'    => $card->user->elo,
-                'owner'  => $card->user->name,
-                'kind'   => 'player',
+                'elo' => $card->user->elo,
+                'owner' => $card->user->name,
+                'kind' => 'player',
             ];
     }
 
     /** Stats figées d'un combattant au moment du duel. */
     private function snapshot(Character|array $source): array
     {
-        return array_intersect_key($this->attributes($source), array_flip(self::SNAPSHOT_FIELDS));
+        $snapshot = array_intersect_key($this->attributes($source), array_flip(self::SNAPSHOT_FIELDS));
+        if (isset($snapshot['rarity']) && $snapshot['rarity'] instanceof Rarity) {
+            $snapshot['rarity'] = $snapshot['rarity']->value;
+        }
+
+        return $snapshot;
     }
 
     private function attributes(Character|array $source): array
