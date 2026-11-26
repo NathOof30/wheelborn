@@ -9,7 +9,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/newda', NewDaShowcaseController::class)->name('newda.showcase');
+Route::prefix('newda')->name('newda.')->group(function () {
+    Route::get('/', [NewDaShowcaseController::class, 'invocation'])->name('invocation');
+    Route::get('/grimoire', [NewDaShowcaseController::class, 'grimoire'])->name('grimoire');
+    Route::get('/arene', [NewDaShowcaseController::class, 'arena'])->name('arena');
+    Route::get('/rang', [NewDaShowcaseController::class, 'leaderboard'])->name('leaderboard');
+    Route::get('/atelier', [NewDaShowcaseController::class, 'workshop'])->name('workshop');
+});
 
 Route::get('/dashboard', function () {
     return view('dashboard');
