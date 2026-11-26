@@ -190,6 +190,11 @@ class NewDaShowcaseController extends Controller
         $hud = $this->buildHud($user);
         $workshopLevels = $this->readWorkshopLevels($user);
 
+        $initialPool = $connectedSnapshot !== null ? $connectedSnapshot['folios'] : $showcaseFolios;
+        $initialLeftFolio = $initialPool[0] ?? null;
+        $initialRightIndex = count($initialPool) > 4 ? 4 : (count($initialPool) > 1 ? 1 : 0);
+        $initialRightFolio = count($initialPool) >= 2 ? ($initialPool[$initialRightIndex] ?? null) : null;
+
         $codexPayload = $this->basePayload('arena', $user, $hud, $icons, $powerSigils, $workshopLevels, $connectedSnapshot) + [
             'showcaseFolios' => $showcaseFolios,
             'config' => [
@@ -203,6 +208,8 @@ class NewDaShowcaseController extends Controller
             'pageTitle' => 'Arène — Wheelborn',
             'hud' => $hud,
             'showcaseFolios' => $showcaseFolios,
+            'initialLeftFolio' => $initialLeftFolio,
+            'initialRightFolio' => $initialRightFolio,
             'connectedSnapshot' => $connectedSnapshot,
             'connectedMeta' => $connectedSnapshot,
             'iconRegistry' => $this->iconRegistry,
@@ -506,6 +513,9 @@ class NewDaShowcaseController extends Controller
                 ],
                 isLocked: (bool) $character->is_locked,
                 isFavorite: (bool) $character->is_favorite,
+                isLuckySpin: (bool) $character->is_lucky_spin,
+                wins: (int) ($character->wins ?? 0),
+                losses: (int) ($character->losses ?? 0),
                 overridePowerScore: (int) $character->power_score,
                 overrideRecycleValue: (int) $character->recycle_value,
             );
@@ -640,7 +650,7 @@ class NewDaShowcaseController extends Controller
      * @param  list<array<string, mixed>>  $powers
      * @return array{
      *     races: array<string, string>,
-     *     equipment: array<string, array<string, array{weapon: ?string, aura: ?string, is_invisibility: bool, is_pale_aura: bool}>>
+     *     equipment: array<string, array<string, array{weapon: ?string, aura: ?string, is_invisibility: bool, is_pale_aura: bool, is_teleportation_aura: bool}>>
      * }
      */
     private function buildPaperDollMap(array $races, array $weapons, array $powers): array
@@ -669,6 +679,7 @@ class NewDaShowcaseController extends Controller
                     'aura' => $aura !== null ? asset($aura) : null,
                     'is_invisibility' => $aura !== null && PaperDollService::isInvisibilityAura($powerId, $aura),
                     'is_pale_aura' => $aura !== null && in_array($powerId, ['ice', 'lightning'], true),
+                    'is_teleportation_aura' => $aura !== null && $powerId === 'teleportation',
                 ];
             }
         }
@@ -705,20 +716,26 @@ class NewDaShowcaseController extends Controller
                 'defense' => 76,
                 'is_locked' => false,
                 'is_favorite' => true,
+                'is_lucky_spin' => false,
+                'wins' => 7,
+                'losses' => 2,
             ],
             [
                 'folio_number' => '002',
-                'name' => 'Syrus l\'Archiviste',
-                'race_id' => 'human',
-                'weapon_id' => 'staff',
+                'name' => 'Sylvae des Hauts-Bois',
+                'race_id' => 'elf',
+                'weapon_id' => 'bow',
                 'power_id' => 'ice',
                 'rarity' => Rarity::Epic,
-                'hp' => 96,
-                'strength' => 66,
-                'speed' => 74,
-                'defense' => 68,
+                'hp' => 84,
+                'strength' => 74,
+                'speed' => 92,
+                'defense' => 58,
                 'is_locked' => true,
                 'is_favorite' => false,
+                'is_lucky_spin' => false,
+                'wins' => 5,
+                'losses' => 1,
             ],
             [
                 'folio_number' => '003',
@@ -733,6 +750,9 @@ class NewDaShowcaseController extends Controller
                 'defense' => 78,
                 'is_locked' => true,
                 'is_favorite' => true,
+                'is_lucky_spin' => true,
+                'wins' => 12,
+                'losses' => 3,
             ],
             [
                 'folio_number' => '004',
@@ -747,6 +767,9 @@ class NewDaShowcaseController extends Controller
                 'defense' => 54,
                 'is_locked' => false,
                 'is_favorite' => false,
+                'is_lucky_spin' => false,
+                'wins' => 2,
+                'losses' => 2,
             ],
             [
                 'folio_number' => '005',
@@ -761,6 +784,9 @@ class NewDaShowcaseController extends Controller
                 'defense' => 48,
                 'is_locked' => false,
                 'is_favorite' => false,
+                'is_lucky_spin' => false,
+                'wins' => 9,
+                'losses' => 4,
             ],
             [
                 'folio_number' => '006',
@@ -775,6 +801,9 @@ class NewDaShowcaseController extends Controller
                 'defense' => 92,
                 'is_locked' => false,
                 'is_favorite' => true,
+                'is_lucky_spin' => true,
+                'wins' => 14,
+                'losses' => 2,
             ],
         ];
 
@@ -797,6 +826,9 @@ class NewDaShowcaseController extends Controller
                 ],
                 isLocked: $item['is_locked'],
                 isFavorite: $item['is_favorite'],
+                isLuckySpin: $item['is_lucky_spin'],
+                wins: $item['wins'],
+                losses: $item['losses'],
             );
         }
 
@@ -895,6 +927,9 @@ class NewDaShowcaseController extends Controller
                         ],
                         isLocked: false,
                         isFavorite: true,
+                        isLuckySpin: $rarity === Rarity::Legendary,
+                        wins: $item['wins'],
+                        losses: $item['losses'],
                     ),
                 ];
 
@@ -962,6 +997,9 @@ class NewDaShowcaseController extends Controller
                 ],
                 isLocked: (bool) $topCharacter->is_locked,
                 isFavorite: (bool) $topCharacter->is_favorite,
+                isLuckySpin: (bool) $topCharacter->is_lucky_spin,
+                wins: (int) ($topCharacter->wins ?? 0),
+                losses: (int) ($topCharacter->losses ?? 0),
                 overridePowerScore: (int) $topCharacter->power_score,
                 overrideRecycleValue: (int) $topCharacter->recycle_value,
             );
@@ -1001,6 +1039,9 @@ class NewDaShowcaseController extends Controller
         array $stats,
         bool $isLocked,
         bool $isFavorite,
+        bool $isLuckySpin = false,
+        int $wins = 0,
+        int $losses = 0,
         ?int $overridePowerScore = null,
         ?int $overrideRecycleValue = null,
     ): array {
@@ -1017,7 +1058,7 @@ class NewDaShowcaseController extends Controller
         $resolved = PaperDollService::resolveLayers($raceId, $weaponId, $powerId, $rarity->value);
         $hasPortrait = ! empty($resolved['race']);
 
-        // Un non-Humain affiche un blason gravé ; aucun calque d'arme isolé sans silhouette de race.
+        // Une race sans silhouette WebP affiche un blason gravé ; aucun calque d'arme isolé sans corps.
         $layers = $hasPortrait
             ? [
                 'race' => asset((string) $resolved['race']),
@@ -1025,6 +1066,7 @@ class NewDaShowcaseController extends Controller
                 'aura' => $resolved['aura'] !== null ? asset($resolved['aura']) : null,
                 'is_invisibility' => $resolved['aura'] !== null && PaperDollService::isInvisibilityAura($powerId, $resolved['aura']),
                 'is_pale_aura' => $resolved['aura'] !== null && in_array($powerId, ['ice', 'lightning'], true),
+                'is_teleportation_aura' => $resolved['aura'] !== null && $powerId === 'teleportation',
             ]
             : [
                 'race' => null,
@@ -1032,9 +1074,44 @@ class NewDaShowcaseController extends Controller
                 'aura' => null,
                 'is_invisibility' => false,
                 'is_pale_aura' => false,
+                'is_teleportation_aura' => false,
             ];
 
         $seal = self::RARITY_SEALS[$rarity->value] ?? self::RARITY_SEALS['common'];
+
+        $raceName = (string) $race['name'];
+        $racePassive = (string) ($race['passive'] ?? '');
+        $racePassiveDesc = (string) ($race['passive_desc'] ?? '');
+        $weaponName = (string) $weapon['name'];
+        $weaponPassive = (string) ($weapon['passive'] ?? '');
+        $weaponPassiveDesc = (string) ($weapon['passive_desc'] ?? '');
+        $powerName = (string) $power['name'];
+        $powerTier = (string) ($power['tier'] ?? 'common');
+        $powerTierLabel = (string) ($power['tier_label'] ?? 'Commun');
+        $powerEffectLabel = (string) ($power['effect']['label'] ?? $powerName);
+        $powerDescription = (string) ($power['description'] ?? '');
+
+        $abilities = $this->buildAbilitiesList(
+            raceId: $raceId,
+            raceName: $raceName,
+            racePassive: $racePassive,
+            racePassiveDesc: $racePassiveDesc,
+            weaponId: $weaponId,
+            weaponName: $weaponName,
+            weaponPassive: $weaponPassive,
+            weaponPassiveDesc: $weaponPassiveDesc,
+            powerId: $powerId,
+            powerName: $powerName,
+            powerTier: $powerTier,
+            powerTierLabel: $powerTierLabel,
+            powerEffectLabel: $powerEffectLabel,
+            powerDescription: $powerDescription,
+            powerPigmentHex: (string) $power['pigment_hex'],
+            synergies: $synergies,
+        );
+
+        $battles = $wins + $losses;
+        $winrate = $battles > 0 ? (int) round(($wins / $battles) * 100) : null;
 
         return [
             'id' => $id,
@@ -1042,16 +1119,20 @@ class NewDaShowcaseController extends Controller
             'name' => $name,
             'initial' => mb_strtoupper(mb_substr($name, 0, 1)),
             'race_id' => $raceId,
-            'race_name' => (string) $race['name'],
+            'race_name' => $raceName,
             'race_initial' => (string) $race['initial'],
-            'race_passive' => (string) $race['passive'],
+            'race_passive' => $racePassive,
+            'race_passive_desc' => $racePassiveDesc,
             'weapon_id' => $weaponId,
-            'weapon_name' => (string) $weapon['name'],
-            'weapon_passive' => (string) $weapon['passive'],
+            'weapon_name' => $weaponName,
+            'weapon_passive' => $weaponPassive,
+            'weapon_passive_desc' => $weaponPassiveDesc,
             'power_id' => $powerId,
-            'power_name' => (string) $power['name'],
-            'power_tier' => (string) $power['tier'],
-            'power_tier_label' => (string) $power['tier_label'],
+            'power_name' => $powerName,
+            'power_tier' => $powerTier,
+            'power_tier_label' => $powerTierLabel,
+            'power_effect_label' => $powerEffectLabel,
+            'power_description' => $powerDescription,
             'power_pigment_hex' => (string) $power['pigment_hex'],
             'power_pigment_soft' => (string) $power['pigment_soft'],
             'rarity' => $rarity->value,
@@ -1066,11 +1147,112 @@ class NewDaShowcaseController extends Controller
             'recycle_value' => $recycleValue,
             'is_locked' => $isLocked,
             'is_favorite' => $isFavorite,
+            'is_lucky_spin' => $isLuckySpin,
             'is_unstable' => $isUnstable,
+            'wins' => $wins,
+            'losses' => $losses,
+            'winrate' => $winrate,
             'synergies' => $synergies,
+            'abilities' => $abilities,
             'has_portrait' => $hasPortrait,
             'layers' => $layers,
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $synergies
+     * @return list<array<string, mixed>>
+     */
+    private function buildAbilitiesList(
+        string $raceId,
+        string $raceName,
+        string $racePassive,
+        string $racePassiveDesc,
+        string $weaponId,
+        string $weaponName,
+        string $weaponPassive,
+        string $weaponPassiveDesc,
+        string $powerId,
+        string $powerName,
+        string $powerTier,
+        string $powerTierLabel,
+        string $powerEffectLabel,
+        string $powerDescription,
+        string $powerPigmentHex,
+        array $synergies,
+    ): array {
+        $abilities = [];
+
+        if ($racePassive !== '') {
+            $abilities[] = [
+                'kind' => 'race',
+                'category' => 'races',
+                'icon_id' => $raceId,
+                'label' => $racePassive,
+                'meta' => 'Race',
+                'tooltip_eyebrow' => 'RACE · '.mb_strtoupper($raceName),
+                'tooltip_title' => $racePassive,
+                'tooltip_desc' => $racePassiveDesc,
+                'tooltip_tone' => 'default',
+                'accent_hex' => null,
+                'is_mythic' => false,
+                'is_unstable' => false,
+            ];
+        }
+
+        if ($weaponPassive !== '') {
+            $abilities[] = [
+                'kind' => 'weapon',
+                'category' => 'weapons',
+                'icon_id' => $weaponId,
+                'label' => $weaponPassive,
+                'meta' => 'Arme',
+                'tooltip_eyebrow' => 'ARME · '.mb_strtoupper($weaponName),
+                'tooltip_title' => $weaponPassive,
+                'tooltip_desc' => $weaponPassiveDesc,
+                'tooltip_tone' => 'default',
+                'accent_hex' => null,
+                'is_mythic' => false,
+                'is_unstable' => false,
+            ];
+        }
+
+        if ($powerEffectLabel !== '') {
+            $abilities[] = [
+                'kind' => 'power',
+                'category' => 'powers',
+                'icon_id' => $powerId,
+                'label' => $powerEffectLabel,
+                'meta' => $powerTier === 'mythic' ? 'Mythique' : 'Pouvoir',
+                'tooltip_eyebrow' => 'POUVOIR · '.mb_strtoupper($powerTierLabel),
+                'tooltip_title' => $powerName.' — '.$powerEffectLabel,
+                'tooltip_desc' => $powerDescription,
+                'tooltip_tone' => 'power',
+                'accent_hex' => $powerPigmentHex,
+                'is_mythic' => $powerTier === 'mythic',
+                'is_unstable' => false,
+            ];
+        }
+
+        foreach ($synergies as $syn) {
+            $unstable = ! empty($syn['is_unstable']);
+            $abilities[] = [
+                'kind' => 'synergy',
+                'category' => null,
+                'icon_id' => null,
+                'label' => (string) ($syn['name'] ?? ''),
+                'meta' => $unstable ? 'Instable' : 'Synergie',
+                'tooltip_eyebrow' => $unstable ? 'SYNERGIE · INSTABLE' : 'SYNERGIE · ACCORD',
+                'tooltip_title' => (string) ($syn['name'] ?? ''),
+                'tooltip_desc' => (string) ($syn['description'] ?? ''),
+                'tooltip_tone' => $unstable ? 'unstable' : 'synergy',
+                'accent_hex' => $unstable ? '#8A1A14' : '#74520A',
+                'is_mythic' => false,
+                'is_unstable' => $unstable,
+            ];
+        }
+
+        return $abilities;
     }
 
     /**

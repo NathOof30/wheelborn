@@ -8,7 +8,7 @@
 
     const DATA = JSON.parse(bootstrapEl.textContent || '{}');
     const PAGE = DATA.page || document.body.dataset.codexPage || 'invocation';
-    const STORAGE_KEY = `wheelborn_newda_v2:${DATA.storageScope || 'guest'}`;
+    const STORAGE_KEY = `wheelborn_newda_v3:${DATA.storageScope || 'guest'}`;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const indexById = (list, key = 'id') => {
@@ -61,6 +61,8 @@
         humanOnlyPool: false,
         connectedSealedFolios: [],
         showcaseSealedFolios: [],
+        folioOverrides: {},
+        transmutedIds: [],
         folioCounter: Number(DATA.showcaseCount ?? 6),
         pendingFolio: null,
         workshop: {
@@ -98,6 +100,8 @@
                 },
                 connectedSealedFolios: Array.isArray(parsed.connectedSealedFolios) ? parsed.connectedSealedFolios : [],
                 showcaseSealedFolios: Array.isArray(parsed.showcaseSealedFolios) ? parsed.showcaseSealedFolios : [],
+                folioOverrides: parsed.folioOverrides && typeof parsed.folioOverrides === 'object' ? parsed.folioOverrides : {},
+                transmutedIds: Array.isArray(parsed.transmutedIds) ? parsed.transmutedIds : [],
                 pendingFolio: parsed.pendingFolio && typeof parsed.pendingFolio === 'object' ? parsed.pendingFolio : null,
             };
         } catch (_err) {
@@ -138,6 +142,8 @@
         prevArenaRight: '',
         activeLeague: DATA.activeLeague || 'silver',
         lastInspectorTrigger: null,
+        tooltipAnchor: null,
+        tooltipPinned: false,
     };
 
     /* ======================================================================
@@ -194,19 +200,50 @@
         return `<svg class="${escapeHtml(className)}" viewBox="0 0 120 120" style="color:${escapeHtml(hex)};" aria-hidden="true">${paths}</svg>`;
     };
 
-    const renderPortraitHtml = (folio) => {
+    const renderLuckyMarkHtml = (folio, tabIndex = 0) => {
+        if (!folio.is_lucky_spin && !folio.was_lucky_spin) {
+            return '';
+        }
+        return `
+            <span
+                class="folio-lucky-mark"
+                data-lucky-mark
+                data-no-flip
+                tabindex="${tabIndex}"
+                data-tooltip-eyebrow="GRAND RITUEL"
+                data-tooltip-title="Pull chanceux"
+                data-tooltip-desc="Invoqué lors d'un Grand Rituel 10/10 aux chances d'élite garanties."
+                data-tooltip-tone="lucky"
+                aria-label="Pull chanceux (Grand Rituel)"
+            >
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M10 1.5 L12.1 7.9 L18.5 10 L12.1 12.1 L10 18.5 L7.9 12.1 L1.5 10 L7.9 7.9 Z" fill="currentColor"/>
+                </svg>
+            </span>
+        `;
+    };
+
+    const renderPortraitHtml = (folio, tabIndex = 0) => {
         const sigil = renderPowerSigilSvg(folio.power_id, folio.power_pigment_hex);
+        const luckyMark = renderLuckyMarkHtml(folio, tabIndex);
         if (folio.has_portrait && folio.layers && folio.layers.race) {
             const haloClass = folio.layers.is_pale_aura ? 'is-contrast-halo' : '';
             const weaponImg = folio.layers.weapon
                 ? `<img class="codex-doll-layer codex-doll-layer--weapon" src="${escapeHtml(folio.layers.weapon)}" alt="${escapeHtml(folio.weapon_name)}" loading="lazy">`
                 : '';
+            const auraClasses = [
+                'codex-doll-layer',
+                'codex-doll-layer--aura',
+                folio.layers.is_pale_aura ? 'is-pale-aura' : '',
+                folio.layers.is_teleportation_aura ? 'is-teleport-aura' : '',
+            ].filter(Boolean).join(' ');
             const auraImg = folio.layers.aura
-                ? `<img class="codex-doll-layer codex-doll-layer--aura ${folio.layers.is_pale_aura ? 'is-pale-aura' : ''}" src="${escapeHtml(folio.layers.aura)}" alt="Aura ${escapeHtml(folio.power_name)}" loading="lazy">`
+                ? `<img class="${auraClasses}" src="${escapeHtml(folio.layers.aura)}" alt="Aura ${escapeHtml(folio.power_name)}" loading="lazy">`
                 : '';
             return `
                 <div class="codex-portrait-frame">
                     ${sigil}
+                    ${luckyMark}
                     <div class="codex-doll ${haloClass}" style="--halo-pigment:${escapeHtml(folio.power_pigment_soft)};">
                         <div class="codex-doll-halo"></div>
                         <img class="codex-doll-layer codex-doll-layer--race" src="${escapeHtml(folio.layers.race)}" alt="${escapeHtml(folio.race_name)}" loading="lazy">
@@ -220,6 +257,7 @@
         return `
             <div class="codex-portrait-frame">
                 ${sigil}
+                ${luckyMark}
                 <div class="heraldic-blason" data-blason-race="${escapeHtml(folio.race_id)}">
                     <span class="heraldic-initial">${escapeHtml(folio.race_initial)}</span>
                     ${renderHtmlIcon('races', folio.race_id, 'heraldic-rune', folio.race_name)}
@@ -229,7 +267,9 @@
     };
 
     const renderStatBarsHtml = (folio) => {
-        const hpPct = Math.min(100, Math.round((folio.hp / 140) * 100));
+        const hpVal = Number(folio.hp || 0);
+        const hpMax = Math.max(140, hpVal);
+        const hpPct = Math.min(100, Math.round((hpVal / hpMax) * 100));
         return `
             <div class="stat-bars tabular-nums">
                 <div class="stat-bar-row">
@@ -238,14 +278,14 @@
                         PV
                     </span>
                     <div class="stat-track"><div class="stat-fill stat-fill--hp" style="width:${hpPct}%;"></div></div>
-                    <span class="stat-val">${escapeHtml(folio.hp)}<small>/140</small></span>
+                    <span class="stat-val">${escapeHtml(hpVal)}<small>/${hpMax}</small></span>
                 </div>
                 <div class="stat-bar-row">
                     <span class="stat-bar-label">
                         <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 L13 6 V13 H7 V6 Z M5 13 H15 M10 13 V18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
                         FOR
                     </span>
-                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, folio.strength)}%;"></div></div>
+                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, Number(folio.strength || 0))}%;"></div></div>
                     <span class="stat-val">${escapeHtml(folio.strength)}<small>/100</small></span>
                 </div>
                 <div class="stat-bar-row">
@@ -253,7 +293,7 @@
                         <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><polygon points="11.5,2 4.5,11 9.5,11 8.5,18 15.5,9 10.5,9" fill="currentColor"/></svg>
                         VIT
                     </span>
-                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, folio.speed)}%;"></div></div>
+                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, Number(folio.speed || 0))}%;"></div></div>
                     <span class="stat-val">${escapeHtml(folio.speed)}<small>/100</small></span>
                 </div>
                 <div class="stat-bar-row">
@@ -261,7 +301,7 @@
                         <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 L16.5 4.8 V10 C16.5 14 13.5 16.8 10 18 C6.5 16.8 3.5 14 3.5 10 V4.8 Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
                         DEF
                     </span>
-                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, folio.defense)}%;"></div></div>
+                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, Number(folio.defense || 0))}%;"></div></div>
                     <span class="stat-val">${escapeHtml(folio.defense)}<small>/100</small></span>
                 </div>
             </div>
@@ -285,63 +325,260 @@
         </div>
     `;
 
-    const renderFolioCardHtml = (folio, options = {}) => {
-        const favFlag = folio.is_favorite ? '<span class="folio-flag folio-flag--fav" title="Favori" aria-label="Favori">★</span>' : '';
-        const lockFlag = folio.is_locked ? '<span class="folio-flag folio-flag--lock" title="Verrouillé" aria-label="Verrouillé">⛨</span>' : '';
-        const synergies = folio.synergies || [];
-        const featuredSyn = synergies.find((s) => Boolean(s.is_unstable)) || synergies[0] || null;
-        const extraSynCount = Math.max(0, synergies.length - 1);
-        const synChip = featuredSyn
-            ? `<span class="syn-chip ${featuredSyn.is_unstable ? 'syn-chip--unstable' : ''}" title="${escapeHtml(featuredSyn.name)}">
-                ${featuredSyn.is_unstable ? '⚡' : '✦'} ${escapeHtml(featuredSyn.name)}${extraSynCount > 0 ? ` +${extraSynCount}` : ''}
-               </span>`
+    const buildAbilitiesListJs = (folio) => {
+        if (Array.isArray(folio.abilities) && folio.abilities.length > 0) {
+            return folio.abilities;
+        }
+        const list = [];
+        if (folio.race_passive) {
+            list.push({
+                kind: 'race',
+                category: 'races',
+                icon_id: folio.race_id,
+                label: folio.race_passive,
+                meta: 'Race',
+                tooltip_eyebrow: `RACE · ${String(folio.race_name || '').toUpperCase()}`,
+                tooltip_title: folio.race_passive,
+                tooltip_desc: folio.race_passive_desc || '',
+                tooltip_tone: 'default',
+                accent_hex: null,
+                is_mythic: false,
+                is_unstable: false,
+            });
+        }
+        if (folio.weapon_passive) {
+            list.push({
+                kind: 'weapon',
+                category: 'weapons',
+                icon_id: folio.weapon_id,
+                label: folio.weapon_passive,
+                meta: 'Arme',
+                tooltip_eyebrow: `ARME · ${String(folio.weapon_name || '').toUpperCase()}`,
+                tooltip_title: folio.weapon_passive,
+                tooltip_desc: folio.weapon_passive_desc || '',
+                tooltip_tone: 'default',
+                accent_hex: null,
+                is_mythic: false,
+                is_unstable: false,
+            });
+        }
+        const effectLabel = folio.power_effect_label || folio.power_name || '';
+        if (effectLabel) {
+            const isMythic = folio.power_tier === 'mythic';
+            list.push({
+                kind: 'power',
+                category: 'powers',
+                icon_id: folio.power_id,
+                label: effectLabel,
+                meta: isMythic ? 'Mythique' : 'Pouvoir',
+                tooltip_eyebrow: `POUVOIR · ${String(folio.power_tier_label || 'Commun').toUpperCase()}`,
+                tooltip_title: `${folio.power_name || ''} — ${effectLabel}`,
+                tooltip_desc: folio.power_description || '',
+                tooltip_tone: 'power',
+                accent_hex: folio.power_pigment_hex || null,
+                is_mythic: isMythic,
+                is_unstable: false,
+            });
+        }
+        (folio.synergies || []).forEach((syn) => {
+            const unstable = Boolean(syn.is_unstable);
+            list.push({
+                kind: 'synergy',
+                category: null,
+                icon_id: null,
+                label: syn.name || '',
+                meta: unstable ? 'Instable' : 'Synergie',
+                tooltip_eyebrow: unstable ? 'SYNERGIE · INSTABLE' : 'SYNERGIE · ACCORD',
+                tooltip_title: syn.name || '',
+                tooltip_desc: syn.description || '',
+                tooltip_tone: unstable ? 'unstable' : 'synergy',
+                accent_hex: unstable ? '#8A1A14' : '#74520A',
+                is_mythic: false,
+                is_unstable: unstable,
+            });
+        });
+        return list;
+    };
+
+    const renderSynergySealHtml = (synergies, tabIndex = 0) => {
+        if (!synergies || synergies.length === 0) {
+            return '';
+        }
+        const count = synergies.length;
+        const hasUnstable = synergies.some((s) => Boolean(s.is_unstable));
+        const title = count === 1 ? (synergies[0].name || 'Synergie') : `${count} Synergies actives`;
+        const desc = synergies
+            .map((s) => (count > 1 ? `${s.name || ''} : ${s.description || ''}` : (s.description || '')))
+            .filter(Boolean)
+            .join(' • ');
+        const eyebrow = hasUnstable ? 'SYNERGIE · INSTABLE' : 'SYNERGIE · ACCORD';
+        return `
+            <span
+                class="syn-seal-badge ${hasUnstable ? 'is-unstable' : ''}"
+                tabindex="${tabIndex}"
+                data-no-flip
+                data-tooltip-eyebrow="${escapeHtml(eyebrow)}"
+                data-tooltip-title="${escapeHtml(title)}"
+                data-tooltip-desc="${escapeHtml(desc)}"
+                data-tooltip-tone="${hasUnstable ? 'unstable' : 'synergy'}"
+                aria-label="${escapeHtml(title)}"
+            >
+                <span aria-hidden="true">${hasUnstable ? '⚡' : '✦'}</span>
+                ${count > 1 ? `<small class="syn-seal-count tabular-nums">${count}</small>` : ''}
+            </span>
+        `;
+    };
+
+    const renderFrontFlagsHtml = (folio) => {
+        const favSvg = folio.is_favorite
+            ? '<span class="folio-flag folio-flag--fav" title="Favori" aria-label="Favori"><svg viewBox="0 0 20 20" aria-hidden="true"><polygon points="10,1.8 12.6,7.1 18.4,7.9 14.2,12 15.2,17.8 10,15 4.8,17.8 5.8,12 1.6,7.9 7.4,7.1" fill="currentColor"/></svg></span>'
             : '';
+        const lockSvg = folio.is_locked
+            ? '<span class="folio-flag folio-flag--lock" title="Verrouillé" aria-label="Verrouillé"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="9" width="11" height="8.5" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9 V6.4 C7 4.4 8.3 3 10 3 C11.7 3 13 4.4 13 6.4 V9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="13.2" r="1.2" fill="currentColor"/></svg></span>'
+            : '';
+        return `${favSvg}${lockSvg}`;
+    };
 
-        const versoTags = [
-            folio.race_passive ? `<span class="verso-tag">${escapeHtml(folio.race_passive)}</span>` : '',
-            folio.weapon_passive ? `<span class="verso-tag">${escapeHtml(folio.weapon_passive)}</span>` : '',
-            ...synergies.map((s) => `<span class="verso-tag ${s.is_unstable ? 'verso-tag--unstable' : 'verso-tag--synergy'}">${s.is_unstable ? '⚡' : '✦'} ${escapeHtml(s.name)}</span>`),
-        ].join('');
-
+    const renderFolioCardHtml = (folio, options = {}) => {
+        const interactiveActions = Boolean(options.interactiveActions);
+        const isFlipped = Boolean(options.flipped);
+        const synergies = folio.synergies || [];
+        const abilities = buildAbilitiesListJs(folio);
+        const wins = Number(folio.wins || 0);
+        const losses = Number(folio.losses || 0);
+        const battles = wins + losses;
+        const winrate = folio.winrate !== undefined && folio.winrate !== null
+            ? folio.winrate
+            : (battles > 0 ? Math.round((wins / battles) * 100) : null);
+        const isFav = Boolean(folio.is_favorite);
+        const isLocked = Boolean(folio.is_locked);
+        const isProtected = isFav || isLocked;
         const stampClass = options.animateStamp ? 'wax-stamp-drop' : '';
+        const frontTab = isFlipped ? -1 : 0;
+        const backTab = isFlipped ? 0 : -1;
+
+        const abilitiesHtml = abilities.map((ability) => {
+            const classes = [
+                'verso-ability-row',
+                `verso-ability-row--${ability.kind || 'race'}`,
+                ability.is_unstable ? 'is-unstable' : '',
+                ability.is_mythic ? 'is-mythic' : '',
+            ].filter(Boolean).join(' ');
+            const accentStyle = ability.accent_hex ? ` style="--ability-accent:${escapeHtml(ability.accent_hex)};"` : '';
+            const accentAttr = ability.accent_hex ? ` data-tooltip-hex="${escapeHtml(ability.accent_hex)}"` : '';
+            const iconMarkup = ability.category && ability.icon_id
+                ? renderHtmlIcon(ability.category, ability.icon_id, 'ability-svg-icon', ability.label)
+                : `<span class="ability-glyph">${ability.is_unstable ? '⚡' : '✦'}</span>`;
+            return `
+                <li
+                    class="${classes}"
+                    tabindex="${backTab}"
+                    data-no-flip
+                    data-tooltip-eyebrow="${escapeHtml(ability.tooltip_eyebrow || '')}"
+                    data-tooltip-title="${escapeHtml(ability.tooltip_title || ability.label || '')}"
+                    data-tooltip-desc="${escapeHtml(ability.tooltip_desc || '')}"
+                    data-tooltip-tone="${escapeHtml(ability.tooltip_tone || 'default')}"${accentAttr}${accentStyle}
+                >
+                    <span class="verso-ability-icon" aria-hidden="true">${iconMarkup}</span>
+                    <span class="verso-ability-name">${escapeHtml(ability.label)}</span>
+                    <span class="verso-ability-meta">${escapeHtml(ability.meta || '')}</span>
+                </li>
+            `;
+        }).join('');
+
+        const recordHtml = battles > 0
+            ? `<span class="folio-record tabular-nums" title="${wins} victoires · ${losses} défaites (${winrate}%)">${wins}V · ${losses}D <small>${winrate}%</small></span>`
+            : `<span class="folio-record folio-record--empty">${interactiveActions ? '0 duel' : 'Inédit'}</span>`;
+
+        const backRightHtml = interactiveActions
+            ? `
+                <div class="folio-verso-actions" data-no-flip>
+                    <button
+                        type="button"
+                        class="folio-act-btn folio-act-btn--fav ${isFav ? 'is-active' : ''}"
+                        data-folio-action="favorite"
+                        data-no-flip
+                        tabindex="${backTab}"
+                        aria-pressed="${isFav ? 'true' : 'false'}"
+                        aria-label="${isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+                        title="${isFav ? 'Retirer des favoris' : 'Favori (max 3)'}"
+                    >
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><polygon points="10,1.8 12.6,7.1 18.4,7.9 14.2,12 15.2,17.8 10,15 4.8,17.8 5.8,12 1.6,7.9 7.4,7.1" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button
+                        type="button"
+                        class="folio-act-btn folio-act-btn--lock ${isLocked ? 'is-active' : ''}"
+                        data-folio-action="lock"
+                        data-no-flip
+                        tabindex="${backTab}"
+                        aria-pressed="${isLocked ? 'true' : 'false'}"
+                        aria-label="${isLocked ? 'Déverrouiller' : 'Verrouiller'}"
+                        title="${isLocked ? 'Déverrouiller' : 'Verrouiller'}"
+                    >
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="9" width="11" height="8.5" rx="1.8" fill="${isLocked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.7"/><path d="M7 9 V6.4 C7 4.4 8.3 3 10 3 C11.7 3 13 4.4 13 6.4 V9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    </button>
+                    <button
+                        type="button"
+                        class="folio-act-transmute tabular-nums ${isProtected ? 'is-protected' : ''}"
+                        data-folio-action="transmute"
+                        data-no-flip
+                        tabindex="${backTab}"
+                        ${isProtected ? 'disabled' : ''}
+                        title="${isProtected ? 'Protégé (verrouillé ou favori)' : `Transmuter pour +${folio.recycle_value} écus`}"
+                    >
+                        <span>${isProtected ? 'Protégé' : `+${escapeHtml(folio.recycle_value)}`}</span>
+                    </button>
+                </div>
+            `
+            : `
+                <span class="recycle-pill tabular-nums" title="Valeur de transmutation">
+                    <svg class="hud-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><polygon points="10,5.5 13,10 10,14.5 7,10" fill="currentColor"/></svg>
+                    +${escapeHtml(folio.recycle_value)}
+                </span>
+            `;
 
         return `
-            <article class="folio-card" data-folio-id="${escapeHtml(folio.id)}" data-rarity="${escapeHtml(folio.rarity)}">
+            <article
+                class="folio-card ${isFlipped ? 'is-flipped' : ''}"
+                data-folio-id="${escapeHtml(folio.id)}"
+                data-rarity="${escapeHtml(folio.rarity)}"
+                data-interactive="${interactiveActions ? 'true' : 'false'}"
+                tabindex="0"
+                aria-roledescription="carte recto-verso"
+                aria-label="${escapeHtml(folio.name)} — cliquer pour retourner"
+            >
                 <div class="folio-card-inner">
-                    <div class="folio-face folio-face--front" aria-hidden="false">
+                    <div class="folio-face folio-face--front" aria-hidden="${isFlipped ? 'true' : 'false'}">
                         <div class="folio-head">
                             <div class="folio-title-block">
                                 <h3 class="folio-name">${escapeHtml(folio.name)}</h3>
-                                <div class="folio-flags">${favFlag}${lockFlag}</div>
+                                ${renderSynergySealHtml(synergies, frontTab)}
                             </div>
                             <span class="power-medallion tabular-nums ${stampClass}" title="Power Score">${escapeHtml(folio.power_score)}</span>
                         </div>
-                        ${renderPortraitHtml(folio)}
+                        ${renderPortraitHtml(folio, frontTab)}
                         ${renderTraitPillsHtml(folio)}
-                        <div class="folio-foot">
-                            <div class="folio-foot-left">
-                                <span class="rarity-seal-pill ${stampClass}" style="--seal-hex:${escapeHtml(folio.seal_hex)};" title="${escapeHtml(folio.rarity_label)}">
-                                    <span class="rarity-dot" aria-hidden="true"></span>
-                                    <span>${escapeHtml(folio.rarity_label)}</span>
-                                </span>
-                                ${synChip}
-                            </div>
-                            <button type="button" class="folio-flip-icon" data-flip-folio aria-label="Voir les statistiques de ${escapeHtml(folio.name)}" title="Stats &amp; Verso">↻</button>
+                        <div class="folio-foot folio-foot--front">
+                            <span class="rarity-seal-pill ${stampClass}" style="--seal-hex:${escapeHtml(folio.seal_hex)};" title="${escapeHtml(folio.rarity_label)}">
+                                <span class="rarity-wax-dot" aria-hidden="true"></span>
+                                <span>${escapeHtml(folio.rarity_label)}</span>
+                            </span>
+                            <div class="folio-flags" data-folio-front-flags>${renderFrontFlagsHtml(folio)}</div>
                         </div>
                     </div>
-                    <div class="folio-face folio-face--back" aria-hidden="true">
+                    <div class="folio-face folio-face--back" aria-hidden="${isFlipped ? 'false' : 'true'}">
                         <div class="folio-head">
-                            <h3 class="folio-name">${escapeHtml(folio.name)}</h3>
+                            <div class="folio-title-block">
+                                <h3 class="folio-name">${escapeHtml(folio.name)}</h3>
+                                ${renderSynergySealHtml(synergies, backTab)}
+                            </div>
                             <span class="power-medallion tabular-nums">${escapeHtml(folio.power_score)}</span>
                         </div>
                         ${renderStatBarsHtml(folio)}
-                        <div class="verso-tags">${versoTags}</div>
-                        <div class="folio-foot">
-                            <span class="recycle-pill tabular-nums" title="Valeur de transmutation">
-                                <svg class="hud-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><polygon points="10,5.5 13,10 10,14.5 7,10" fill="currentColor"/></svg>
-                                +${escapeHtml(folio.recycle_value)}
-                            </span>
-                            <button type="button" class="folio-flip-icon" data-flip-folio tabindex="-1" aria-label="Retourner au recto de ${escapeHtml(folio.name)}" title="Recto">↺</button>
+                        <ul class="verso-abilities" aria-label="Capacités et attaques">${abilitiesHtml}</ul>
+                        <div class="folio-foot folio-foot--back">
+                            ${recordHtml}
+                            ${backRightHtml}
                         </div>
                     </div>
                 </div>
@@ -355,18 +592,41 @@
 
     const isPityReady = () => Number(store.hud.pity_counter || 0) >= Number(store.hud.pity_threshold || 10);
 
-    const getActivePool = () => {
-        if (store.sourceMode === 'connected' && DATA.connected) {
-            return [...store.connectedSealedFolios, ...(DATA.connected.folios || [])];
+    const applyFolioOverrides = (folio) => {
+        const ov = (store.folioOverrides && store.folioOverrides[folio.id]) || null;
+        if (!ov) {
+            return folio;
         }
-        return [...store.showcaseSealedFolios, ...(DATA.showcaseFolios || [])];
+        return {
+            ...folio,
+            is_favorite: typeof ov.is_favorite === 'boolean' ? ov.is_favorite : Boolean(folio.is_favorite),
+            is_locked: typeof ov.is_locked === 'boolean' ? ov.is_locked : Boolean(folio.is_locked),
+        };
+    };
+
+    const isTransmuted = (folioId) => Array.isArray(store.transmutedIds) && store.transmutedIds.includes(folioId);
+
+    const getActivePool = () => {
+        const raw = store.sourceMode === 'connected' && DATA.connected
+            ? [...store.connectedSealedFolios, ...(DATA.connected.folios || [])]
+            : [...store.showcaseSealedFolios, ...(DATA.showcaseFolios || [])];
+        return raw.filter((f) => !isTransmuted(f.id)).map(applyFolioOverrides);
     };
 
     const getActiveGrimoireCount = () => {
+        const removed = Array.isArray(store.transmutedIds) ? store.transmutedIds : [];
         if (store.sourceMode === 'connected' && DATA.connected) {
-            return Number(DATA.connected.folios_count || 0) + store.connectedSealedFolios.length;
+            if (Array.isArray(DATA.connected.folios)) {
+                return getActivePool().length;
+            }
+            const baseCount = Number(DATA.connected.folios_count || 0) + store.connectedSealedFolios.length;
+            return Math.max(0, baseCount - removed.filter((id) => !String(id).startsWith('showcase-')).length);
         }
-        return Number(DATA.showcaseCount || 6) + store.showcaseSealedFolios.length;
+        if (Array.isArray(DATA.showcaseFolios)) {
+            return getActivePool().length;
+        }
+        const baseShowcase = Number(DATA.showcaseCount || 6) + store.showcaseSealedFolios.length;
+        return Math.max(0, baseShowcase - removed.filter((id) => String(id).startsWith('showcase-') || String(id).startsWith('session-')).length);
     };
 
     const renderHud = () => {
@@ -776,12 +1036,14 @@
                 aura: equipLayers ? equipLayers.aura : null,
                 is_invisibility: Boolean(equipLayers && equipLayers.is_invisibility),
                 is_pale_aura: Boolean(equipLayers && equipLayers.is_pale_aura),
+                is_teleportation_aura: Boolean(equipLayers && equipLayers.is_teleportation_aura),
             }
-            : { race: null, weapon: null, aura: null, is_invisibility: false, is_pale_aura: false };
+            : { race: null, weapon: null, aura: null, is_invisibility: false, is_pale_aura: false, is_teleportation_aura: false };
         const name = generateName(race.id);
         store.folioCounter = Number(store.folioCounter || 6) + 1;
 
-        return {
+        const powerEffectLabel = (power.effect && power.effect.label) ? power.effect.label : power.name;
+        const rolledFolio = {
             id: `session-${Date.now()}-${store.folioCounter}`,
             folio_number: String(store.folioCounter).padStart(3, '0'),
             name,
@@ -790,13 +1052,17 @@
             race_name: race.name,
             race_initial: race.initial,
             race_passive: race.passive,
+            race_passive_desc: race.passive_desc || '',
             weapon_id: weapon.id,
             weapon_name: weapon.name,
             weapon_passive: weapon.passive,
+            weapon_passive_desc: weapon.passive_desc || '',
             power_id: power.id,
             power_name: power.name,
             power_tier: power.tier,
             power_tier_label: power.tier_label,
+            power_effect_label: powerEffectLabel,
+            power_description: power.description || '',
             power_pigment_hex: power.pigment_hex,
             power_pigment_soft: power.pigment_soft,
             rarity: rarity.value,
@@ -811,12 +1077,18 @@
             recycle_value: recycleValue,
             is_locked: false,
             is_favorite: false,
-            is_unstable: isUnstable,
+            is_lucky_spin: Boolean(isLuckySpin),
             was_lucky_spin: Boolean(isLuckySpin),
+            is_unstable: isUnstable,
+            wins: 0,
+            losses: 0,
+            winrate: null,
             synergies,
             has_portrait: hasPortrait,
             layers: resolvedLayers,
         };
+        rolledFolio.abilities = buildAbilitiesListJs(rolledFolio);
+        return rolledFolio;
     };
 
     const showRevealedFolio = (folio, animateStamp = true) => {
@@ -1097,12 +1369,16 @@
        PAGE 2 — GRIMOIRE
        ====================================================================== */
 
-    const renderGrimoire = () => {
+    const renderGrimoire = (flippedIds = null) => {
         const gridEl = document.getElementById('folios-grid');
         const emptyEl = document.getElementById('gallery-empty-state');
         if (!gridEl) {
             return;
         }
+
+        const preservedFlipped = flippedIds instanceof Set
+            ? flippedIds
+            : new Set(Array.from(gridEl.querySelectorAll('.folio-card.is-flipped')).map((c) => c.getAttribute('data-folio-id')));
 
         const pool = getActivePool();
         const filtered = state.rarityFilter === 'all'
@@ -1125,7 +1401,9 @@
 
         const isEmpty = filtered.length === 0;
         gridEl.hidden = isEmpty;
-        gridEl.innerHTML = isEmpty ? '' : filtered.map((f) => renderFolioCardHtml(f)).join('');
+        gridEl.innerHTML = isEmpty
+            ? ''
+            : filtered.map((f) => renderFolioCardHtml(f, { interactiveActions: true, flipped: preservedFlipped.has(f.id) })).join('');
 
         if (emptyEl) {
             emptyEl.hidden = !isEmpty;
@@ -1140,6 +1418,67 @@
                 if (ctaEl) ctaEl.hidden = isFilteredOut;
                 if (resetBtn) resetBtn.hidden = !isFilteredOut;
             }
+        }
+    };
+
+    const setGrimoireStatus = (message) => {
+        const el = document.getElementById('grimoire-status');
+        if (el) {
+            el.textContent = message;
+        }
+    };
+
+    const handleFolioAction = (folioId, action) => {
+        const pool = getActivePool();
+        const target = pool.find((f) => f.id === folioId);
+        if (!target) {
+            return;
+        }
+
+        const currentOv = store.folioOverrides[folioId] || {};
+
+        if (action === 'favorite') {
+            const nextFav = !target.is_favorite;
+            if (nextFav) {
+                const favCount = pool.filter((f) => f.is_favorite).length;
+                if (favCount >= 3) {
+                    setGrimoireStatus('Limite de 3 favoris atteinte.');
+                    return;
+                }
+            }
+            store.folioOverrides[folioId] = { ...currentOv, is_favorite: nextFav };
+            setGrimoireStatus(nextFav ? `${target.name} ajouté aux favoris.` : `${target.name} retiré des favoris.`);
+            saveStore();
+            renderGrimoire();
+            return;
+        }
+
+        if (action === 'lock') {
+            const nextLock = !target.is_locked;
+            store.folioOverrides[folioId] = { ...currentOv, is_locked: nextLock };
+            setGrimoireStatus(nextLock ? `${target.name} verrouillé.` : `${target.name} déverrouillé.`);
+            saveStore();
+            renderGrimoire();
+            return;
+        }
+
+        if (action === 'transmute') {
+            if (target.is_locked || target.is_favorite) {
+                setGrimoireStatus('Protégé : déverrouillez et retirez des favoris.');
+                return;
+            }
+            hideTooltip();
+            store.connectedSealedFolios = store.connectedSealedFolios.filter((f) => f.id !== folioId);
+            store.showcaseSealedFolios = store.showcaseSealedFolios.filter((f) => f.id !== folioId);
+            if (!store.transmutedIds.includes(folioId)) {
+                store.transmutedIds.push(folioId);
+            }
+            const gained = Number(target.recycle_value || 0);
+            store.hud.coins = Number(store.hud.coins || 0) + gained;
+            setGrimoireStatus(`${target.name} transmuté (+${gained} écus).`);
+            saveStore();
+            renderHud();
+            renderGrimoire();
         }
     };
 
@@ -1174,27 +1513,20 @@
             return;
         }
         const hp = Math.max(0, currentHp);
-        const pct = Math.max(0, Math.min(100, Math.round((hp / folio.hp) * 100)));
+        const pct = Math.max(0, Math.min(100, Math.round((hp / Math.max(1, folio.hp)) * 100)));
         container.style.setProperty('--duel-glow', folio.power_pigment_hex);
-        container.innerHTML = `
-            <span class="duel-stamp duel-stamp--win">VICTORIEUX</span>
-            <span class="duel-stamp duel-stamp--lose">VAINCU</span>
-            <div class="folio-head" style="margin-bottom:8px;">
-                <h3 class="folio-name">${escapeHtml(folio.name)}</h3>
-                <span class="power-medallion tabular-nums">${escapeHtml(folio.power_score)}</span>
-            </div>
-            ${renderPortraitHtml(folio)}
-            <div style="margin-top:10px;">
-                ${renderTraitPillsHtml(folio)}
-            </div>
-            <div class="stat-bars tabular-nums" style="margin-top:10px;">
-                <div class="stat-bar-row">
-                    <span class="stat-bar-label">PV</span>
-                    <div class="stat-track"><div class="stat-fill stat-fill--hp" data-duel-bar style="width:${pct}%;"></div></div>
-                    <span class="stat-val" data-duel-hp>${hp}<small>/${folio.hp}</small></span>
-                </div>
-            </div>
-        `;
+        const hpSpan = container.querySelector('[data-duel-hp]');
+        const hpBar = container.querySelector('[data-duel-bar]');
+        const mountEl = container.querySelector('[data-duel-card-mount]');
+        if (hpSpan) {
+            hpSpan.innerHTML = `${hp}<small>/${escapeHtml(folio.hp)}</small>`;
+        }
+        if (hpBar) {
+            hpBar.style.width = `${pct}%`;
+        }
+        if (mountEl) {
+            mountEl.innerHTML = renderFolioCardHtml(folio, { interactiveActions: false });
+        }
     };
 
     const renderDuelCards = () => {
@@ -1424,6 +1756,9 @@
        ====================================================================== */
 
     const findRivalById = (rivalId) => {
+        if (DATA.pinnedPlayer && DATA.pinnedPlayer.id === rivalId && DATA.pinnedPlayer.champion) {
+            return DATA.pinnedPlayer;
+        }
         const standings = DATA.standingsByLeague || {};
         for (const leagueKey of Object.keys(standings)) {
             const match = (standings[leagueKey] || []).find((entry) => entry.id === rivalId);
@@ -1501,22 +1836,16 @@
         const metaEl = document.getElementById('inspector-meta');
         const bodyEl = document.getElementById('inspector-body');
         const rival = findRivalById(rivalId);
-        if (!modal || !rival) {
+        if (!modal || !rival || !rival.champion) {
             return;
         }
 
+        hideTooltip();
         state.lastInspectorTrigger = triggerEl || document.activeElement;
         if (titleEl) titleEl.textContent = rival.name;
         if (metaEl) metaEl.textContent = `${rival.league_label} · ${Number(rival.elo).toLocaleString('fr-FR')} Élo · ${rival.wins}V / ${rival.losses}D`;
         if (bodyEl) {
-            bodyEl.innerHTML = `
-                ${renderPortraitHtml(rival.champion)}
-                <div style="text-align:center;">
-                    <strong class="folio-name">${escapeHtml(rival.champion.name)}</strong>
-                </div>
-                ${renderTraitPillsHtml(rival.champion)}
-                ${renderStatBarsHtml(rival.champion)}
-            `;
+            bodyEl.innerHTML = renderFolioCardHtml(rival.champion, { interactiveActions: false });
         }
         modal.hidden = false;
         document.getElementById('btn-inspector-close')?.focus();
@@ -1527,6 +1856,7 @@
         if (!modal || modal.hidden) {
             return;
         }
+        hideTooltip();
         modal.hidden = true;
         const trigger = state.lastInspectorTrigger;
         state.lastInspectorTrigger = null;
@@ -1638,6 +1968,113 @@
         }
     };
 
+    /* ======================================================================
+       PORTAL TOOLTIP PARCHEMIN DA & FLIP UNIVERSEL
+       ====================================================================== */
+
+    const getTooltipEl = () => document.getElementById('codex-tooltip-portal');
+
+    const hideTooltip = () => {
+        const tip = getTooltipEl();
+        if (state.tooltipAnchor) {
+            state.tooltipAnchor.classList.remove('is-tooltip-open');
+        }
+        state.tooltipAnchor = null;
+        state.tooltipPinned = false;
+        if (!tip) return;
+        tip.classList.remove('is-visible', 'is-below', 'is-unstable', 'is-lucky', 'is-power');
+        tip.hidden = true;
+    };
+
+    const positionTooltip = (anchor, tip) => {
+        const rect = anchor.getBoundingClientRect();
+        const tipRect = tip.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const pad = 12;
+        const gap = 10;
+
+        let top = rect.top - tipRect.height - gap;
+        let placeBelow = false;
+        if (top < pad) {
+            top = rect.bottom + gap;
+            placeBelow = true;
+        }
+        if (placeBelow && top + tipRect.height > vh - pad) {
+            top = Math.max(pad, vh - tipRect.height - pad);
+        }
+
+        const anchorCenter = rect.left + rect.width / 2;
+        let left = anchorCenter - tipRect.width / 2;
+        left = Math.max(pad, Math.min(vw - tipRect.width - pad, left));
+
+        const arrowOffset = Math.max(18, Math.min(tipRect.width - 18, anchorCenter - left));
+        tip.classList.toggle('is-below', placeBelow);
+        tip.style.left = `${Math.round(left)}px`;
+        tip.style.top = `${Math.round(top)}px`;
+        tip.style.setProperty('--arrow-left', `${Math.round(arrowOffset)}px`);
+    };
+
+    const showTooltip = (anchor, pinned = false) => {
+        const tip = getTooltipEl();
+        if (!tip || !anchor) return;
+        const title = anchor.getAttribute('data-tooltip-title') || '';
+        const desc = anchor.getAttribute('data-tooltip-desc') || '';
+        const eyebrow = anchor.getAttribute('data-tooltip-eyebrow') || '';
+        const tone = anchor.getAttribute('data-tooltip-tone') || 'default';
+        const hex = anchor.getAttribute('data-tooltip-hex') || '';
+        if (!title && !desc) return;
+
+        if (state.tooltipAnchor && state.tooltipAnchor !== anchor) {
+            state.tooltipAnchor.classList.remove('is-tooltip-open');
+        }
+        state.tooltipAnchor = anchor;
+        state.tooltipPinned = pinned;
+        anchor.classList.add('is-tooltip-open');
+
+        tip.classList.remove('is-visible', 'is-below', 'is-unstable', 'is-lucky', 'is-power');
+        if (tone === 'unstable') tip.classList.add('is-unstable');
+        else if (tone === 'lucky') tip.classList.add('is-lucky');
+        else if (tone === 'power') tip.classList.add('is-power');
+
+        if (hex) {
+            tip.style.setProperty('--tooltip-accent', hex);
+        } else {
+            tip.style.removeProperty('--tooltip-accent');
+        }
+
+        tip.innerHTML = `
+            ${eyebrow ? `<span class="codex-tooltip-eyebrow">${escapeHtml(eyebrow)}</span>` : ''}
+            <strong class="codex-tooltip-title">${escapeHtml(title)}</strong>
+            ${desc ? `<div class="codex-tooltip-divider"></div><p class="codex-tooltip-desc">${escapeHtml(desc)}</p>` : ''}
+            <span class="codex-tooltip-arrow" aria-hidden="true"></span>
+        `;
+        tip.hidden = false;
+        positionTooltip(anchor, tip);
+        void tip.offsetWidth;
+        tip.classList.add('is-visible');
+    };
+
+    const toggleFolioFlip = (card) => {
+        if (!card) return;
+        hideTooltip();
+        const flipped = card.classList.toggle('is-flipped');
+        const front = card.querySelector('.folio-face--front');
+        const back = card.querySelector('.folio-face--back');
+        if (front) {
+            front.setAttribute('aria-hidden', flipped ? 'true' : 'false');
+            front.querySelectorAll('button, a, [tabindex]').forEach((el) => {
+                el.setAttribute('tabindex', flipped ? '-1' : '0');
+            });
+        }
+        if (back) {
+            back.setAttribute('aria-hidden', flipped ? 'false' : 'true');
+            back.querySelectorAll('button, a, [tabindex]').forEach((el) => {
+                el.setAttribute('tabindex', flipped ? '0' : '-1');
+            });
+        }
+    };
+
     const bindEvents = () => {
         // Tiroir ⚙ Bac à sable
         document.getElementById('btn-sandbox-toggle')?.addEventListener('click', () => {
@@ -1652,13 +2089,51 @@
             if (dock && drawer && !drawer.hidden && !dock.contains(e.target)) {
                 setSandboxOpen(false);
             }
+            if (state.tooltipPinned && state.tooltipAnchor && !state.tooltipAnchor.contains(e.target)) {
+                hideTooltip();
+            }
         });
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
+                hideTooltip();
                 setSandboxOpen(false, true);
                 closeRivalInspector(true);
             }
+        });
+
+        window.addEventListener('scroll', hideTooltip, { passive: true });
+        window.addEventListener('resize', hideTooltip, { passive: true });
+
+        // Portal Tooltip : hover desktop, focus clavier, et tap mobile (data-no-flip)
+        document.addEventListener('mouseover', (e) => {
+            const target = e.target.closest('[data-tooltip-title]');
+            if (!target || target === state.tooltipAnchor) return;
+            const hiddenFace = target.closest('.folio-face[aria-hidden="true"]');
+            if (hiddenFace) return;
+            showTooltip(target, false);
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            const target = e.target.closest('[data-tooltip-title]');
+            if (!target || target !== state.tooltipAnchor || state.tooltipPinned) return;
+            const related = e.relatedTarget;
+            if (related && target.contains(related)) return;
+            hideTooltip();
+        });
+
+        document.addEventListener('focusin', (e) => {
+            const target = e.target.closest('[data-tooltip-title]');
+            if (!target) return;
+            const hiddenFace = target.closest('.folio-face[aria-hidden="true"]');
+            if (hiddenFace) return;
+            showTooltip(target, false);
+        });
+
+        document.addEventListener('focusout', (e) => {
+            const target = e.target.closest('[data-tooltip-title]');
+            if (!target || target !== state.tooltipAnchor) return;
+            hideTooltip();
         });
 
         document.querySelectorAll('[data-sandbox-pool]').forEach((btn) => {
@@ -1713,6 +2188,8 @@
         });
 
         document.getElementById('btn-sandbox-reset')?.addEventListener('click', () => {
+            hideTooltip();
+            setGrimoireStatus('');
             clearSpinTimers();
             clearDuelTimers();
             state.spinning = false;
@@ -1757,23 +2234,45 @@
             if (statusEl) statusEl.textContent = '';
         });
 
-        // Flip 3D (délégation globale : Grimoire + Reveal Tirage)
+        // Actions Verso propriétaire (Favori 3/3, Verrou, Transmuter) + Tap tooltip + Flip universel au clic partout
         document.addEventListener('click', (e) => {
-            const flipBtn = e.target.closest('[data-flip-folio]');
-            if (!flipBtn) return;
-            const card = flipBtn.closest('.folio-card');
-            if (card) {
-                const flipped = card.classList.toggle('is-flipped');
-                const front = card.querySelector('.folio-face--front');
-                const back = card.querySelector('.folio-face--back');
-                if (front) front.setAttribute('aria-hidden', flipped ? 'true' : 'false');
-                if (back) back.setAttribute('aria-hidden', flipped ? 'false' : 'true');
-                const frontBtn = front?.querySelector('[data-flip-folio]');
-                const backBtn = back?.querySelector('[data-flip-folio]');
-                if (frontBtn) frontBtn.setAttribute('tabindex', flipped ? '-1' : '0');
-                if (backBtn) backBtn.setAttribute('tabindex', flipped ? '0' : '-1');
-                const nextBtn = flipped ? backBtn : frontBtn;
-                if (nextBtn) nextBtn.focus();
+            const actionBtn = e.target.closest('[data-folio-action]');
+            if (actionBtn) {
+                e.stopPropagation();
+                if (actionBtn.disabled) return;
+                const card = actionBtn.closest('.folio-card');
+                const folioId = card?.getAttribute('data-folio-id');
+                const action = actionBtn.getAttribute('data-folio-action');
+                if (folioId && action) {
+                    handleFolioAction(folioId, action);
+                }
+                return;
+            }
+
+            const tooltipTapTarget = e.target.closest('[data-no-flip][data-tooltip-title]');
+            if (tooltipTapTarget) {
+                e.stopPropagation();
+                if (state.tooltipAnchor === tooltipTapTarget && state.tooltipPinned) {
+                    hideTooltip();
+                } else {
+                    showTooltip(tooltipTapTarget, true);
+                }
+                return;
+            }
+
+            const card = e.target.closest('.folio-card');
+            if (!card) return;
+            if (e.target.closest('button, a, input, select, [data-no-flip]')) {
+                return;
+            }
+            toggleFolioFlip(card);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            if (e.target instanceof Element && e.target.classList.contains('folio-card')) {
+                e.preventDefault();
+                toggleFolioFlip(e.target);
             }
         });
 

@@ -197,6 +197,7 @@
     </aside>
 </div>
 
+<div id="codex-tooltip-portal" class="codex-tooltip" role="tooltip" hidden></div>
 <script id="codex-bootstrap-data" type="application/json">@json($codexPayload)</script>
 </body>
 </html>

@@ -26,12 +26,15 @@
             @endforeach
         </div>
 
-        <span class="source-indicator" id="grimoire-source-badge" hidden>Vitrine</span>
+        <div class="grimoire-toolbar-right">
+            <span class="grimoire-status" id="grimoire-status" aria-live="polite"></span>
+            <span class="source-indicator" id="grimoire-source-badge" hidden>Vitrine</span>
+        </div>
     </div>
 
     <div class="folios-grid" id="folios-grid" @if (empty($initialFolios)) hidden @endif>
         @foreach ($initialFolios as $folio)
-            @include('newda.partials.folio-card', ['folio' => $folio, 'iconRegistry' => $iconRegistry])
+            @include('newda.partials.folio-card', ['folio' => $folio, 'iconRegistry' => $iconRegistry, 'interactiveActions' => true])
         @endforeach
     </div>
 

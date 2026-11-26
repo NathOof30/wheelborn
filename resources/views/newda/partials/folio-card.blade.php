@@ -1,31 +1,88 @@
 @php
     /** @var array<string, mixed> $folio */
     /** @var \App\Support\NewDaIconRegistry $iconRegistry */
+    $interactiveActions = (bool) ($interactiveActions ?? false);
     $synergies = $folio['synergies'] ?? [];
-    $featuredSyn = collect($synergies)->firstWhere('is_unstable', true) ?? ($synergies[0] ?? null);
-    $extraSynCount = max(0, count($synergies) - 1);
-    $hpPct = min(100, (int) round(($folio['hp'] / 140) * 100));
+    $synergyCount = count($synergies);
+    $hasUnstable = collect($synergies)->contains('is_unstable', true);
+    $synergyTooltipTitle = $synergyCount === 1
+        ? (string) ($synergies[0]['name'] ?? 'Synergie')
+        : $synergyCount.' Synergies actives';
+    $synergyTooltipDesc = collect($synergies)
+        ->map(fn (array $s): string => $synergyCount > 1
+            ? ($s['name'] ?? '').' : '.($s['description'] ?? '')
+            : (string) ($s['description'] ?? ''))
+        ->filter()
+        ->implode(' • ');
+    $synergyEyebrow = $hasUnstable ? 'SYNERGIE · INSTABLE' : 'SYNERGIE · ACCORD';
+    $hpMax = max(140, (int) ($folio['hp'] ?? 100));
+    $hpPct = min(100, (int) round((($folio['hp'] ?? 0) / $hpMax) * 100));
+    $abilities = $folio['abilities'] ?? [];
+    $wins = (int) ($folio['wins'] ?? 0);
+    $losses = (int) ($folio['losses'] ?? 0);
+    $battles = $wins + $losses;
+    $winrate = $folio['winrate'] ?? ($battles > 0 ? (int) round(($wins / $battles) * 100) : null);
+    $isLuckySpin = ! empty($folio['is_lucky_spin']);
+    $isFavorite = ! empty($folio['is_favorite']);
+    $isLocked = ! empty($folio['is_locked']);
+    $isProtected = $isLocked || $isFavorite;
+    $isTeleportAura = ! empty($folio['layers']['is_teleportation_aura']);
 @endphp
-<article class="folio-card" data-folio-id="{{ $folio['id'] }}" data-rarity="{{ $folio['rarity'] }}">
+<article
+    class="folio-card"
+    data-folio-id="{{ $folio['id'] }}"
+    data-rarity="{{ $folio['rarity'] }}"
+    data-interactive="{{ $interactiveActions ? 'true' : 'false' }}"
+    tabindex="0"
+    aria-roledescription="carte recto-verso"
+    aria-label="{{ $folio['name'] }} — cliquer pour retourner"
+>
     <div class="folio-card-inner">
         <div class="folio-face folio-face--front" aria-hidden="false">
             <div class="folio-head">
                 <div class="folio-title-block">
                     <h3 class="folio-name">{{ $folio['name'] }}</h3>
-                    <div class="folio-flags">
-                        @if ($folio['is_favorite'])
-                            <span class="folio-flag folio-flag--fav" title="Favori" aria-label="Favori">★</span>
-                        @endif
-                        @if ($folio['is_locked'])
-                            <span class="folio-flag folio-flag--lock" title="Verrouillé" aria-label="Verrouillé">⛨</span>
-                        @endif
-                    </div>
+                    @if ($synergyCount > 0)
+                        <span
+                            class="syn-seal-badge {{ $hasUnstable ? 'is-unstable' : '' }}"
+                            tabindex="0"
+                            data-no-flip
+                            data-tooltip-eyebrow="{{ $synergyEyebrow }}"
+                            data-tooltip-title="{{ $synergyTooltipTitle }}"
+                            data-tooltip-desc="{{ $synergyTooltipDesc }}"
+                            data-tooltip-tone="{{ $hasUnstable ? 'unstable' : 'synergy' }}"
+                            aria-label="{{ $synergyTooltipTitle }}"
+                        >
+                            <span aria-hidden="true">{{ $hasUnstable ? '⚡' : '✦' }}</span>
+                            @if ($synergyCount > 1)
+                                <small class="syn-seal-count tabular-nums">{{ $synergyCount }}</small>
+                            @endif
+                        </span>
+                    @endif
                 </div>
                 <span class="power-medallion tabular-nums" title="Power Score">{{ $folio['power_score'] }}</span>
             </div>
 
             <div class="codex-portrait-frame">
                 {!! $iconRegistry->renderPowerSigil($folio['power_id'], $folio['power_pigment_hex']) !!}
+
+                @if ($isLuckySpin)
+                    <span
+                        class="folio-lucky-mark"
+                        data-lucky-mark
+                        data-no-flip
+                        tabindex="0"
+                        data-tooltip-eyebrow="GRAND RITUEL"
+                        data-tooltip-title="Pull chanceux"
+                        data-tooltip-desc="Invoqué lors d'un Grand Rituel 10/10 aux chances d'élite garanties."
+                        data-tooltip-tone="lucky"
+                        aria-label="Pull chanceux (Grand Rituel)"
+                    >
+                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M10 1.5 L12.1 7.9 L18.5 10 L12.1 12.1 L10 18.5 L7.9 12.1 L1.5 10 L7.9 7.9 Z" fill="currentColor"/>
+                        </svg>
+                    </span>
+                @endif
 
                 @if ($folio['has_portrait'] && ! empty($folio['layers']['race']))
                     <div class="codex-doll {{ $folio['layers']['is_pale_aura'] ? 'is-contrast-halo' : '' }}" style="--halo-pigment: {{ $folio['power_pigment_soft'] }};">
@@ -35,7 +92,7 @@
                             <img class="codex-doll-layer codex-doll-layer--weapon" src="{{ $folio['layers']['weapon'] }}" alt="{{ $folio['weapon_name'] }}" loading="lazy">
                         @endif
                         @if (! empty($folio['layers']['aura']))
-                            <img class="codex-doll-layer codex-doll-layer--aura {{ $folio['layers']['is_pale_aura'] ? 'is-pale-aura' : '' }}" src="{{ $folio['layers']['aura'] }}" alt="Aura {{ $folio['power_name'] }}" loading="lazy">
+                            <img class="codex-doll-layer codex-doll-layer--aura {{ $folio['layers']['is_pale_aura'] ? 'is-pale-aura' : '' }} {{ $isTeleportAura ? 'is-teleport-aura' : '' }}" src="{{ $folio['layers']['aura'] }}" alt="Aura {{ $folio['power_name'] }}" loading="lazy">
                         @endif
                     </div>
                 @else
@@ -61,27 +118,49 @@
                 </span>
             </div>
 
-            <div class="folio-foot">
-                <div class="folio-foot-left">
-                    <span class="rarity-seal-pill" style="--seal-hex: {{ $folio['seal_hex'] }};" title="{{ $folio['rarity_label'] }}">
-                        <span class="rarity-dot" aria-hidden="true"></span>
-                        <span>{{ $folio['rarity_label'] }}</span>
-                    </span>
-                    @if ($featuredSyn !== null)
-                        <span class="syn-chip {{ ! empty($featuredSyn['is_unstable']) ? 'syn-chip--unstable' : '' }}" title="{{ $featuredSyn['name'] }}">
-                            {{ ! empty($featuredSyn['is_unstable']) ? '⚡' : '✦' }} {{ $featuredSyn['name'] }}@if ($extraSynCount > 0) +{{ $extraSynCount }}@endif
+            <div class="folio-foot folio-foot--front">
+                <span class="rarity-seal-pill" style="--seal-hex: {{ $folio['seal_hex'] }};" title="{{ $folio['rarity_label'] }}">
+                    <span class="rarity-wax-dot" aria-hidden="true"></span>
+                    <span>{{ $folio['rarity_label'] }}</span>
+                </span>
+
+                <div class="folio-flags" data-folio-front-flags>
+                    @if ($isFavorite)
+                        <span class="folio-flag folio-flag--fav" title="Favori" aria-label="Favori">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><polygon points="10,1.8 12.6,7.1 18.4,7.9 14.2,12 15.2,17.8 10,15 4.8,17.8 5.8,12 1.6,7.9 7.4,7.1" fill="currentColor"/></svg>
+                        </span>
+                    @endif
+                    @if ($isLocked)
+                        <span class="folio-flag folio-flag--lock" title="Verrouillé" aria-label="Verrouillé">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="9" width="11" height="8.5" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9 V6.4 C7 4.4 8.3 3 10 3 C11.7 3 13 4.4 13 6.4 V9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="13.2" r="1.2" fill="currentColor"/></svg>
                         </span>
                     @endif
                 </div>
-                <button type="button" class="folio-flip-icon" data-flip-folio aria-label="Voir les statistiques de {{ $folio['name'] }}" title="Stats &amp; Verso">
-                    ↻
-                </button>
             </div>
         </div>
 
         <div class="folio-face folio-face--back" aria-hidden="true">
             <div class="folio-head">
-                <h3 class="folio-name">{{ $folio['name'] }}</h3>
+                <div class="folio-title-block">
+                    <h3 class="folio-name">{{ $folio['name'] }}</h3>
+                    @if ($synergyCount > 0)
+                        <span
+                            class="syn-seal-badge {{ $hasUnstable ? 'is-unstable' : '' }}"
+                            tabindex="-1"
+                            data-no-flip
+                            data-tooltip-eyebrow="{{ $synergyEyebrow }}"
+                            data-tooltip-title="{{ $synergyTooltipTitle }}"
+                            data-tooltip-desc="{{ $synergyTooltipDesc }}"
+                            data-tooltip-tone="{{ $hasUnstable ? 'unstable' : 'synergy' }}"
+                            aria-label="{{ $synergyTooltipTitle }}"
+                        >
+                            <span aria-hidden="true">{{ $hasUnstable ? '⚡' : '✦' }}</span>
+                            @if ($synergyCount > 1)
+                                <small class="syn-seal-count tabular-nums">{{ $synergyCount }}</small>
+                            @endif
+                        </span>
+                    @endif
+                </div>
                 <span class="power-medallion tabular-nums">{{ $folio['power_score'] }}</span>
             </div>
 
@@ -92,7 +171,7 @@
                         PV
                     </span>
                     <div class="stat-track"><div class="stat-fill stat-fill--hp" style="width: {{ $hpPct }}%;"></div></div>
-                    <span class="stat-val">{{ $folio['hp'] }}<small>/140</small></span>
+                    <span class="stat-val">{{ $folio['hp'] }}<small>/{{ $hpMax }}</small></span>
                 </div>
 
                 <div class="stat-bar-row">
@@ -123,24 +202,102 @@
                 </div>
             </div>
 
-            <div class="verso-tags">
-                <span class="verso-tag">{{ $folio['race_passive'] }}</span>
-                <span class="verso-tag">{{ $folio['weapon_passive'] }}</span>
-                @foreach ($synergies as $syn)
-                    <span class="verso-tag {{ ! empty($syn['is_unstable']) ? 'verso-tag--unstable' : 'verso-tag--synergy' }}">
-                        {{ ! empty($syn['is_unstable']) ? '⚡' : '✦' }} {{ $syn['name'] }}
-                    </span>
+            <ul class="verso-abilities" aria-label="Capacités et attaques">
+                @foreach ($abilities as $ability)
+                    @php
+                        $rowClasses = ['verso-ability-row', 'verso-ability-row--'.$ability['kind']];
+                        if (! empty($ability['is_unstable'])) {
+                            $rowClasses[] = 'is-unstable';
+                        }
+                        if (! empty($ability['is_mythic'])) {
+                            $rowClasses[] = 'is-mythic';
+                        }
+                    @endphp
+                    <li
+                        class="{{ implode(' ', $rowClasses) }}"
+                        tabindex="-1"
+                        data-no-flip
+                        data-tooltip-eyebrow="{{ $ability['tooltip_eyebrow'] }}"
+                        data-tooltip-title="{{ $ability['tooltip_title'] }}"
+                        data-tooltip-desc="{{ $ability['tooltip_desc'] }}"
+                        data-tooltip-tone="{{ $ability['tooltip_tone'] ?? 'default' }}"
+                        @if (! empty($ability['accent_hex']))
+                            data-tooltip-hex="{{ $ability['accent_hex'] }}"
+                            style="--ability-accent: {{ $ability['accent_hex'] }};"
+                        @endif
+                    >
+                        <span class="verso-ability-icon" aria-hidden="true">
+                            @if (! empty($ability['category']) && ! empty($ability['icon_id']))
+                                {!! $iconRegistry->renderInlineIcon($ability['category'], $ability['icon_id'], 'ability-svg-icon', $ability['label']) !!}
+                            @else
+                                <span class="ability-glyph">{{ ! empty($ability['is_unstable']) ? '⚡' : '✦' }}</span>
+                            @endif
+                        </span>
+                        <span class="verso-ability-name">{{ $ability['label'] }}</span>
+                        <span class="verso-ability-meta">{{ $ability['meta'] }}</span>
+                    </li>
                 @endforeach
-            </div>
+            </ul>
 
-            <div class="folio-foot">
-                <span class="recycle-pill tabular-nums" title="Valeur de transmutation">
-                    <svg class="hud-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><polygon points="10,5.5 13,10 10,14.5 7,10" fill="currentColor"/></svg>
-                    +{{ $folio['recycle_value'] }}
-                </span>
-                <button type="button" class="folio-flip-icon" data-flip-folio tabindex="-1" aria-label="Retourner au recto de {{ $folio['name'] }}" title="Recto">
-                    ↺
-                </button>
+            <div class="folio-foot folio-foot--back">
+                @if ($battles > 0)
+                    <span class="folio-record tabular-nums" title="{{ $wins }} victoires · {{ $losses }} défaites ({{ $winrate }}%)">
+                        {{ $wins }}V · {{ $losses }}D <small>{{ $winrate }}%</small>
+                    </span>
+                @elseif (! $interactiveActions)
+                    <span class="folio-record folio-record--empty">Inédit</span>
+                @else
+                    <span class="folio-record folio-record--empty">0 duel</span>
+                @endif
+
+                @if ($interactiveActions)
+                    <div class="folio-verso-actions" data-no-flip>
+                        <button
+                            type="button"
+                            class="folio-act-btn folio-act-btn--fav {{ $isFavorite ? 'is-active' : '' }}"
+                            data-folio-action="favorite"
+                            data-no-flip
+                            tabindex="-1"
+                            aria-pressed="{{ $isFavorite ? 'true' : 'false' }}"
+                            aria-label="{{ $isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris' }}"
+                            title="{{ $isFavorite ? 'Retirer des favoris' : 'Favori (max 3)' }}"
+                        >
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><polygon points="10,1.8 12.6,7.1 18.4,7.9 14.2,12 15.2,17.8 10,15 4.8,17.8 5.8,12 1.6,7.9 7.4,7.1" fill="{{ $isFavorite ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="folio-act-btn folio-act-btn--lock {{ $isLocked ? 'is-active' : '' }}"
+                            data-folio-action="lock"
+                            data-no-flip
+                            tabindex="-1"
+                            aria-pressed="{{ $isLocked ? 'true' : 'false' }}"
+                            aria-label="{{ $isLocked ? 'Déverrouiller' : 'Verrouiller' }}"
+                            title="{{ $isLocked ? 'Déverrouiller' : 'Verrouiller' }}"
+                        >
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="9" width="11" height="8.5" rx="1.8" fill="{{ $isLocked ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1.7"/><path d="M7 9 V6.4 C7 4.4 8.3 3 10 3 C11.7 3 13 4.4 13 6.4 V9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        </button>
+                        <button
+                            type="button"
+                            class="folio-act-transmute tabular-nums {{ $isProtected ? 'is-protected' : '' }}"
+                            data-folio-action="transmute"
+                            data-no-flip
+                            tabindex="-1"
+                            @disabled($isProtected)
+                            title="{{ $isProtected ? 'Protégé (verrouillé ou favori)' : 'Transmuter pour +'.$folio['recycle_value'].' écus' }}"
+                        >
+                            @if ($isProtected)
+                                <span>Protégé</span>
+                            @else
+                                <span>+{{ $folio['recycle_value'] }}</span>
+                            @endif
+                        </button>
+                    </div>
+                @else
+                    <span class="recycle-pill tabular-nums" title="Valeur de transmutation">
+                        <svg class="hud-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><polygon points="10,5.5 13,10 10,14.5 7,10" fill="currentColor"/></svg>
+                        +{{ $folio['recycle_value'] }}
+                    </span>
+                @endif
             </div>
         </div>
     </div>

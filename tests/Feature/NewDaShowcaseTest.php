@@ -128,13 +128,13 @@ class NewDaShowcaseTest extends TestCase
         $this->assertStringContainsString('sword_invisibility.webp', (string) $invisFolio['layers']['aura']);
 
         $html = (string) $response->getContent();
-        preg_match('/<article class="folio-card" data-folio-id="showcase-005"[\s\S]*?<\/article>/', $html, $demonCardMatch);
+        preg_match('/<article[^>]*data-folio-id="showcase-005"[\s\S]*?<\/article>/', $html, $demonCardMatch);
         $this->assertNotEmpty($demonCardMatch);
         $this->assertStringContainsString('data-blason-race="demon"', $demonCardMatch[0]);
         $this->assertStringNotContainsString('<img', $demonCardMatch[0]);
         $this->assertStringNotContainsString('hammer.webp', $demonCardMatch[0]);
 
-        preg_match('/<article class="folio-card" data-folio-id="showcase-003"[\s\S]*?<\/article>/', $html, $invisCardMatch);
+        preg_match('/<article[^>]*data-folio-id="showcase-003"[\s\S]*?<\/article>/', $html, $invisCardMatch);
         $this->assertNotEmpty($invisCardMatch);
         $this->assertStringContainsString('sword_invisibility.webp', $invisCardMatch[0]);
         $this->assertStringNotContainsString('weapons/sword.webp', $invisCardMatch[0]);
@@ -425,13 +425,32 @@ class NewDaShowcaseTest extends TestCase
             ->assertSee('id="volvelle-clip-25"', false)
             ->assertSee('id="volvelle-clip-30"', false)
             ->assertSee('id="volvelle-clip-34"', false)
-            ->assertSee('filter="url(#ringGlowFilter)"', false);
+            ->assertSee('filter="url(#ringGlowFilter)"', false)
+            ->assertSee('id="codex-tooltip-portal"', false);
 
         $grimoire = $this->get('/newda/grimoire');
         $grimoire->assertOk()
             ->assertSee('folio-face--front" aria-hidden="false"', false)
             ->assertSee('folio-face--back" aria-hidden="true"', false)
-            ->assertSee('data-flip-folio tabindex="-1"', false);
+            ->assertSee('aria-roledescription="carte recto-verso"', false)
+            ->assertDontSee('data-flip-folio', false)
+            ->assertSee('class="syn-seal-badge', false)
+            ->assertSee('class="verso-abilities"', false)
+            ->assertSee('verso-ability-row--power', false)
+            ->assertSee('data-tooltip-desc=', false)
+            ->assertSee('data-lucky-mark', false)
+            ->assertSee('data-folio-action="favorite"', false)
+            ->assertSee('data-folio-action="lock"', false)
+            ->assertSee('data-folio-action="transmute"', false);
+
+        $arena = $this->get('/newda/arene');
+        $arena->assertOk()
+            ->assertSee('class="duel-slot"', false)
+            ->assertSee('data-duel-card-mount', false)
+            ->assertSee('class="folio-card"', false)
+            ->assertDontSee('class="duel-folio"', false)
+            ->assertDontSee('data-flip-folio', false)
+            ->assertDontSee('data-folio-action="transmute"', false);
 
         $rang = $this->get('/newda/rang');
         $rang->assertOk()
@@ -439,5 +458,70 @@ class NewDaShowcaseTest extends TestCase
             ->assertSee('aria-controls="rang-tabpanel"', false)
             ->assertSee('tabindex="0"', false)
             ->assertSee('tabindex="-1"', false);
+    }
+
+    public function test_universal_card_exposes_complete_abilities_lucky_mark_and_pinned_champion_inspect(): void
+    {
+        $grimoire = $this->get('/newda/grimoire');
+        $grimoire->assertOk();
+
+        /** @var list<array<string, mixed>> $folios */
+        $folios = $grimoire->viewData('showcaseFolios');
+        $byNumber = collect($folios)->keyBy('folio_number');
+
+        $kael = $byNumber->get('003');
+        $this->assertNotNull($kael);
+        $this->assertTrue($kael['is_lucky_spin']);
+        $this->assertGreaterThanOrEqual(4, count($kael['abilities']));
+        $kinds = array_column($kael['abilities'], 'kind');
+        $this->assertContains('race', $kinds);
+        $this->assertContains('weapon', $kinds);
+        $this->assertContains('power', $kinds);
+        $this->assertContains('synergy', $kinds);
+        foreach ($kael['abilities'] as $ability) {
+            $this->assertNotEmpty($ability['tooltip_desc']);
+        }
+
+        $valerian = $byNumber->get('001');
+        $this->assertNotNull($valerian);
+        $this->assertFalse($valerian['is_lucky_spin']);
+
+        $html = (string) $grimoire->getContent();
+        preg_match('/<article[^>]*data-folio-id="showcase-003"[\s\S]*?<\/article>/', $html, $kaelHtml);
+        $this->assertNotEmpty($kaelHtml);
+        $this->assertStringContainsString('data-lucky-mark', $kaelHtml[0]);
+        $this->assertStringContainsString('Camouflage optique', $kaelHtml[0]);
+
+        preg_match('/<article[^>]*data-folio-id="showcase-001"[\s\S]*?<\/article>/', $html, $valerianHtml);
+        $this->assertNotEmpty($valerianHtml);
+        $this->assertStringNotContainsString('data-lucky-mark', $valerianHtml[0]);
+
+        $player = User::factory()->create(['name' => 'ChampionPinTest', 'elo' => 1250]);
+        Character::create([
+            'user_id' => $player->id,
+            'name' => 'Astéria',
+            'race_id' => 'elf',
+            'weapon_id' => 'bow',
+            'power_id' => 'ice',
+            'power_tier' => PowerTier::Rare,
+            'hp' => 90,
+            'max_hp' => 90,
+            'strength' => 72,
+            'speed' => 95,
+            'defense' => 60,
+            'power_score' => 81,
+            'rarity' => Rarity::Epic,
+            'is_lucky_spin' => true,
+            'is_unstable' => false,
+            'synergies_data' => [],
+            'recycle_value' => 160,
+            'is_active_fighter' => false,
+            'pending_reveal' => false,
+        ]);
+
+        $rangAuth = $this->actingAs($player)->get('/newda/rang');
+        $rangAuth->assertOk()
+            ->assertSee('data-inspect-rival="self-'.$player->id.'"', false);
+        $this->assertTrue($rangAuth->viewData('pinnedPlayer')['champion']['is_lucky_spin']);
     }
 }

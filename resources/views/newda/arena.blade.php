@@ -49,9 +49,41 @@
 
         <div class="duel-workbench">
             <div class="duel-arena-grid">
-                <div class="duel-folio" id="duel-card-left"></div>
+                <div class="duel-slot" id="duel-card-left" style="--duel-glow: {{ $initialLeftFolio['power_pigment_hex'] ?? '#B8923A' }};">
+                    <div class="duel-hp-hud tabular-nums">
+                        <span class="duel-hp-label">PV</span>
+                        <div class="duel-hp-track"><div class="duel-hp-fill" data-duel-bar style="width: 100%;"></div></div>
+                        <span class="duel-hp-val" data-duel-hp>{{ $initialLeftFolio['hp'] ?? 0 }}<small>/{{ $initialLeftFolio['hp'] ?? 0 }}</small></span>
+                    </div>
+                    <div class="duel-card-stage">
+                        <span class="duel-stamp duel-stamp--win">VICTORIEUX</span>
+                        <span class="duel-stamp duel-stamp--lose">VAINCU</span>
+                        <div class="duel-card-mount" data-duel-card-mount>
+                            @if ($initialLeftFolio !== null)
+                                @include('newda.partials.folio-card', ['folio' => $initialLeftFolio, 'iconRegistry' => $iconRegistry, 'interactiveActions' => false])
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
                 <div class="duel-vs-medallion" aria-hidden="true">VS</div>
-                <div class="duel-folio" id="duel-card-right"></div>
+
+                <div class="duel-slot" id="duel-card-right" style="--duel-glow: {{ $initialRightFolio['power_pigment_hex'] ?? '#B8923A' }};">
+                    <div class="duel-hp-hud tabular-nums">
+                        <span class="duel-hp-label">PV</span>
+                        <div class="duel-hp-track"><div class="duel-hp-fill" data-duel-bar style="width: 100%;"></div></div>
+                        <span class="duel-hp-val" data-duel-hp>{{ $initialRightFolio['hp'] ?? 0 }}<small>/{{ $initialRightFolio['hp'] ?? 0 }}</small></span>
+                    </div>
+                    <div class="duel-card-stage">
+                        <span class="duel-stamp duel-stamp--win">VICTORIEUX</span>
+                        <span class="duel-stamp duel-stamp--lose">VAINCU</span>
+                        <div class="duel-card-mount" data-duel-card-mount>
+                            @if ($initialRightFolio !== null)
+                                @include('newda.partials.folio-card', ['folio' => $initialRightFolio, 'iconRegistry' => $iconRegistry, 'interactiveActions' => false])
+                            @endif
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="duel-actions">

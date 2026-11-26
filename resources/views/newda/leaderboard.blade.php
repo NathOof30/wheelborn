@@ -106,6 +106,20 @@
             <strong class="rang-name">{{ $pinnedPlayer['name'] }}</strong>
             <span class="rang-league-pill">{{ $pinnedPlayer['league_label'] }}</span>
             <span class="rang-elo tabular-nums">{{ number_format($pinnedPlayer['elo'], 0, ',', ' ') }} Élo</span>
+            @if ($pinnedPlayer['champion'] !== null)
+                <button
+                    type="button"
+                    class="rang-inspect-btn"
+                    data-inspect-rival="{{ $pinnedPlayer['id'] }}"
+                    aria-label="Inspecter votre champion {{ $pinnedPlayer['champion']['name'] }}"
+                    title="Inspecter mon champion"
+                >
+                    <svg class="hud-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2 12 Q12 4 22 12 Q12 20 2 12 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="12" cy="12" r="3.2" fill="currentColor"/>
+                    </svg>
+                </button>
+            @endif
         </div>
     @endif
 </section>
