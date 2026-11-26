@@ -162,7 +162,7 @@
             <span class="sandbox-group-label">Tirage</span>
             <div class="sandbox-btn-row">
                 <button type="button" class="sandbox-chip is-active" data-sandbox-pool="all">8 Races</button>
-                <button type="button" class="sandbox-chip" data-sandbox-pool="human">Humain WebP</button>
+                <button type="button" class="sandbox-chip" data-sandbox-pool="human">Illustré (WebP)</button>
             </div>
         </div>
 

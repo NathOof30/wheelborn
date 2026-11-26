@@ -36,8 +36,8 @@ class NewDaShowcaseController extends Controller
             'pigment_soft' => 'rgba(42, 58, 122, 0.18)',
         ],
         'lightning' => [
-            'pigment_hex' => '#9A6F18',
-            'pigment_soft' => 'rgba(154, 111, 24, 0.20)',
+            'pigment_hex' => '#75500A',
+            'pigment_soft' => 'rgba(154, 111, 24, 0.22)',
         ],
         'regeneration' => [
             'pigment_hex' => '#456037',
@@ -72,7 +72,7 @@ class NewDaShowcaseController extends Controller
             'seal_name' => 'Pourpre',
         ],
         'legendary' => [
-            'seal_hex' => '#B8923A',
+            'seal_hex' => '#74520A',
             'seal_name' => 'Or',
         ],
     ];
@@ -81,7 +81,7 @@ class NewDaShowcaseController extends Controller
     private const LEAGUE_INK_COLORS = [
         'bronze' => '#8A5226',
         'silver' => '#536270',
-        'gold' => '#9E7318',
+        'gold' => '#75500A',
         'platinum' => '#1F5C7A',
         'master' => '#5C2B6E',
     ];
@@ -106,7 +106,7 @@ class NewDaShowcaseController extends Controller
         $workshopLevels = $this->readWorkshopLevels($user);
 
         $synergies = $this->buildSparseSynergyTable($races, $weapons, $powers);
-        $paperDollMap = $this->buildHumanPaperDollMap($weapons, $powers);
+        $paperDollMap = $this->buildPaperDollMap($races, $weapons, $powers);
 
         $codexPayload = $this->basePayload('invocation', $user, $hud, $icons, $powerSigils, $workshopLevels, $connectedMeta) + [
             'races' => $races,
@@ -635,25 +635,36 @@ class NewDaShowcaseController extends Controller
     }
 
     /**
+     * @param  list<array<string, mixed>>  $races
      * @param  list<array<string, mixed>>  $weapons
      * @param  list<array<string, mixed>>  $powers
-     * @return array<string, array<string, array{race: ?string, weapon: ?string, aura: ?string, is_invisibility: bool, is_pale_aura: bool}>>
+     * @return array{
+     *     races: array<string, string>,
+     *     equipment: array<string, array<string, array{weapon: ?string, aura: ?string, is_invisibility: bool, is_pale_aura: bool}>>
+     * }
      */
-    private function buildHumanPaperDollMap(array $weapons, array $powers): array
+    private function buildPaperDollMap(array $races, array $weapons, array $powers): array
     {
-        $map = [];
+        $raceAssets = [];
+        foreach ($races as $race) {
+            $raceId = (string) $race['id'];
+            $assetPath = PaperDollService::getRaceAsset($raceId);
+            if ($assetPath !== null) {
+                $raceAssets[$raceId] = asset($assetPath);
+            }
+        }
 
+        $equipment = [];
         foreach ($weapons as $weapon) {
             $weaponId = (string) $weapon['id'];
-            $map[$weaponId] = [];
+            $equipment[$weaponId] = [];
 
             foreach ($powers as $power) {
                 $powerId = (string) $power['id'];
                 $layers = PaperDollService::resolveLayers('human', $weaponId, $powerId, 'rare');
                 $aura = $layers['aura'];
 
-                $map[$weaponId][$powerId] = [
-                    'race' => $layers['race'] !== null ? asset($layers['race']) : null,
+                $equipment[$weaponId][$powerId] = [
                     'weapon' => $layers['weapon'] !== null ? asset($layers['weapon']) : null,
                     'aura' => $aura !== null ? asset($aura) : null,
                     'is_invisibility' => $aura !== null && PaperDollService::isInvisibilityAura($powerId, $aura),
@@ -662,7 +673,10 @@ class NewDaShowcaseController extends Controller
             }
         }
 
-        return $map;
+        return [
+            'races' => $raceAssets,
+            'equipment' => $equipment,
+        ];
     }
 
     /**

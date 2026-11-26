@@ -7,6 +7,8 @@
     }
 
     const DATA = JSON.parse(bootstrapEl.textContent || '{}');
+    const PAGE = DATA.page || document.body.dataset.codexPage || 'invocation';
+    const STORAGE_KEY = `wheelborn_newda_v2:${DATA.storageScope || 'guest'}`;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const indexById = (list, key = 'id') => {
@@ -24,10 +26,10 @@
     const SYNERGIES = DATA.synergies || {};
     const PAPER_DOLL_MAP = DATA.paperDollMap || {};
     const CONFIG = DATA.config || {};
+    const ICONS = DATA.icons || { races: {}, weapons: {}, powers: {} };
+    const POWER_SIGILS = DATA.powerSigils || {};
 
     const RACE_BY_ID = indexById(RACES);
-    const WEAPON_BY_ID = indexById(WEAPONS);
-    const POWER_BY_ID = indexById(POWERS);
     const RARITY_BY_VAL = indexById(RARITIES, 'value');
 
     const NAME_PREFIXES = [
@@ -41,26 +43,105 @@
     ];
     const ROBOT_PREFIXES = ['MK', 'Unit', 'Core', 'Nexus', 'Volt', 'Zero'];
 
-    const state = {
-        mode: 'showcase', // 'showcase' | 'connected'
-        rarityFilter: 'all',
+    /* ======================================================================
+       STORE NAMESPACÉ (sessionStorage isolé guest vs user:ID)
+       ====================================================================== */
+
+    const createDefaultStore = () => ({
+        hud: {
+            spin_charges: Number(DATA.hud?.spin_charges ?? 3),
+            spin_max: Number(DATA.hud?.spin_max ?? 3),
+            pity_counter: Number(DATA.hud?.pity_counter ?? 0),
+            pity_threshold: Number(DATA.hud?.pity_threshold ?? 10),
+            coins: Number(DATA.hud?.coins ?? 250),
+            elo: Number(DATA.hud?.elo ?? 1000),
+            level: Number(DATA.hud?.level ?? 1),
+        },
+        sourceMode: DATA.isAuthenticated ? 'connected' : 'showcase',
         humanOnlyPool: false,
-        spinning: false,
+        connectedSealedFolios: [],
+        showcaseSealedFolios: [],
+        folioCounter: Number(DATA.showcaseCount ?? 6),
         pendingFolio: null,
-        sessionFolios: [...(DATA.showcaseFolios || [])],
-        folioCounter: (DATA.showcaseFolios || []).length,
-        hud: { ...(DATA.hud || {}) },
+        workshop: {
+            rare_magnet: Number(DATA.workshopLevels?.rare_magnet ?? 0),
+            hero_forge: Number(DATA.workshopLevels?.hero_forge ?? 0),
+            arena_bonus: Number(DATA.workshopLevels?.arena_bonus ?? 0),
+        },
+        emergencyPurchases: 0,
+    });
+
+    const loadStore = () => {
+        const defaults = createDefaultStore();
+        try {
+            const raw = window.sessionStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                return defaults;
+            }
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') {
+                return defaults;
+            }
+            return {
+                ...defaults,
+                ...parsed,
+                sourceMode: DATA.isAuthenticated
+                    ? (parsed.sourceMode === 'showcase' ? 'showcase' : 'connected')
+                    : 'showcase',
+                hud: {
+                    ...defaults.hud,
+                    ...(parsed.hud || {}),
+                },
+                workshop: {
+                    ...defaults.workshop,
+                    ...(parsed.workshop || {}),
+                },
+                connectedSealedFolios: Array.isArray(parsed.connectedSealedFolios) ? parsed.connectedSealedFolios : [],
+                showcaseSealedFolios: Array.isArray(parsed.showcaseSealedFolios) ? parsed.showcaseSealedFolios : [],
+                pendingFolio: parsed.pendingFolio && typeof parsed.pendingFolio === 'object' ? parsed.pendingFolio : null,
+            };
+        } catch (_err) {
+            return defaults;
+        }
+    };
+
+    let store = loadStore();
+
+    const saveStore = () => {
+        try {
+            window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+        } catch (_err) {
+            // Mode navigation privée ou quota plein : on continue en mémoire.
+        }
+    };
+
+    const clearStore = () => {
+        try {
+            window.sessionStorage.removeItem(STORAGE_KEY);
+        } catch (_err) {
+            // Ignoré
+        }
+        store = createDefaultStore();
+    };
+
+    const state = {
+        rarityFilter: 'all',
+        spinning: false,
+        spinTimers: [],
         rotations: { powers: 0, weapons: 0, races: 0 },
         ringsGeometry: { powers: [], weapons: [], races: [] },
         renderedLuckyRing: false,
-        benchCosmos: false,
-        benchHalo: true,
+        arenaDemoMode: false,
         duelRunning: false,
         duelTimers: [],
+        prevArenaLeft: '',
+        prevArenaRight: '',
+        activeLeague: DATA.activeLeague || 'silver',
+        lastInspectorTrigger: null,
     };
 
     /* ======================================================================
-       UTILITAIRES SÛRS & SVG
+       UTILITAIRES, ICÔNES (SOURCE UNIQUE PHP) & CARTES
        ====================================================================== */
 
     const escapeHtml = (value) => String(value ?? '')
@@ -73,10 +154,10 @@
     const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
     const weightedPick = (items) => {
-        const total = items.reduce((acc, item) => acc + Number(item.weight || 1), 0);
-        let cursor = Math.random() * total;
+        const total = items.reduce((acc, item) => acc + Math.max(0, Number(item.weight || 0)), 0);
+        let cursor = Math.random() * (total || 1);
         for (const item of items) {
-            cursor -= Number(item.weight || 1);
+            cursor -= Math.max(0, Number(item.weight || 0));
             if (cursor <= 0) {
                 return item;
             }
@@ -95,36 +176,26 @@
         return full.charAt(0).toUpperCase() + full.slice(1);
     };
 
-    const powerSigilSvg = (powerId, hex, className = 'codex-sigil-watermark') => {
-        const shapes = {
-            fire: '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="60" cy="60" r="44" fill="none" stroke="currentColor" stroke-width="0.9" stroke-dasharray="3 3"/><polygon points="60,10 70,42 104,42 76,62 86,96 60,76 34,96 44,62 16,42 50,42" fill="none" stroke="currentColor" stroke-width="1.3"/><polygon points="60,18 72,48 102,60 72,72 60,102 48,72 18,60 48,48" fill="none" stroke="currentColor" stroke-width="1.1"/>',
-            poison: '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="60" cy="60" r="36" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="60" cy="60" r="20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 3"/><path d="M60 12 C86 12,102 36,92 60 C82 84,54 96,36 82 C20 70,22 44,40 34 C56 25,74 36,72 54 C70 68,54 74,48 64" fill="none" stroke="currentColor" stroke-width="1.5"/>',
-            ice: '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.4"/><polygon points="60,12 102,84 18,84" fill="none" stroke="currentColor" stroke-width="1.4"/><polygon points="60,108 18,36 102,36" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="60" cy="60" r="14" fill="none" stroke="currentColor" stroke-width="1.2"/>',
-            lightning: '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="24" y="24" width="72" height="72" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="24" y="24" width="72" height="72" transform="rotate(45 60 60)" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M66 16 L46 58 L64 58 L52 104" fill="none" stroke="currentColor" stroke-width="1.8"/>',
-            regeneration: '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="44" cy="60" r="30" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="76" cy="60" r="30" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M60 22 C72 40,72 80,60 98 C48 80,48 40,60 22 Z" fill="none" stroke="currentColor" stroke-width="1.3"/>',
-            gravity: '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.4"/><ellipse cx="60" cy="60" rx="48" ry="18" transform="rotate(-24 60 60)" fill="none" stroke="currentColor" stroke-width="1.3"/><ellipse cx="60" cy="60" rx="48" ry="18" transform="rotate(24 60 60)" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="60" cy="60" r="16" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="60" cy="60" r="5" fill="currentColor"/>',
-            teleportation: '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="46" cy="52" r="24" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="74" cy="68" r="24" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M26 94 L94 26 M84 26 L94 26 L94 36" fill="none" stroke="currentColor" stroke-width="1.3"/>',
-            invisibility: '<circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="6 4"/><circle cx="60" cy="60" r="38" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="3 4"/><path d="M18 60 Q60 26 102 60 Q60 94 18 60 Z" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="60" cy="60" r="11" fill="none" stroke="currentColor" stroke-width="1.3"/><line x1="24" y1="96" x2="96" y2="24" stroke="currentColor" stroke-width="1.2"/>',
-        };
-        return `<svg class="${className}" viewBox="0 0 120 120" style="color:${escapeHtml(hex)};" aria-hidden="true">${shapes[powerId] || shapes.invisibility}</svg>`;
+    const resolveIcon = (category, id) => {
+        const cat = ICONS[category] || {};
+        return cat[id] || { type: 'svg', viewBox: '0 0 48 48', markup: '' };
     };
 
-    const raceRuneSvg = (glyph) => {
-        const shapes = {
-            horns: '<path d="M12 10 C8 22,16 32,24 34 C32 32,40 22,36 10 C32 18,28 21,24 21 C20 21,16 18,12 10 Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="24" cy="30" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>',
-            gear: '<circle cx="24" cy="24" r="11" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="24" cy="24" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M24 6 V11 M24 37 V42 M6 24 H11 M37 24 H42 M11 11 L15 15 M33 33 L37 37 M37 11 L33 15 M15 33 L11 37" stroke="currentColor" stroke-width="2"/>',
-            leaf: '<path d="M12 36 C12 18,24 10,36 10 C36 24,28 36,12 36 Z M12 36 L30 18" fill="none" stroke="currentColor" stroke-width="1.7"/>',
-            helix: '<path d="M14 10 C34 16,14 32,34 38 M34 10 C14 16,34 32,14 38" fill="none" stroke="currentColor" stroke-width="1.7"/>',
-            monolith: '<polygon points="24,8 36,16 34,38 14,38 12,16" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="24" y1="8" x2="24" y2="38" stroke="currentColor" stroke-width="1.2"/>',
-            chalice: '<path d="M14 12 H34 L29 25 C28 28,20 28,19 25 Z M24 27 V38 M17 38 H31" fill="none" stroke="currentColor" stroke-width="1.7"/>',
-            astrolabe: '<circle cx="24" cy="24" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="24" cy="24" rx="14" ry="6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="24" cy="24" r="2.5" fill="currentColor"/>',
-            compass: '<circle cx="24" cy="24" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/><polygon points="24,8 28,24 24,40 20,24" fill="none" stroke="currentColor" stroke-width="1.4"/>',
-        };
-        return `<svg class="heraldic-rune" viewBox="0 0 48 48" aria-hidden="true">${shapes[glyph] || shapes.compass}</svg>`;
+    const renderHtmlIcon = (category, id, className = 'codex-icon', alt = '') => {
+        const icon = resolveIcon(category, id);
+        if (icon.type === 'image' && icon.url) {
+            return `<img class="${escapeHtml(className)} codex-icon--custom" src="${escapeHtml(icon.url)}" alt="${escapeHtml(alt || id)}" loading="lazy">`;
+        }
+        return `<svg class="${escapeHtml(className)}" viewBox="${escapeHtml(icon.viewBox || '0 0 48 48')}" aria-hidden="true">${icon.markup || ''}</svg>`;
+    };
+
+    const renderPowerSigilSvg = (powerId, hex, className = 'codex-sigil-watermark') => {
+        const paths = POWER_SIGILS[powerId] || POWER_SIGILS.invisibility || '';
+        return `<svg class="${escapeHtml(className)}" viewBox="0 0 120 120" style="color:${escapeHtml(hex)};" aria-hidden="true">${paths}</svg>`;
     };
 
     const renderPortraitHtml = (folio) => {
-        const sigil = powerSigilSvg(folio.power_id, folio.power_pigment_hex);
+        const sigil = renderPowerSigilSvg(folio.power_id, folio.power_pigment_hex);
         if (folio.has_portrait && folio.layers && folio.layers.race) {
             const haloClass = folio.layers.is_pale_aura ? 'is-contrast-halo' : '';
             const weaponImg = folio.layers.weapon
@@ -151,98 +222,127 @@
                 ${sigil}
                 <div class="heraldic-blason" data-blason-race="${escapeHtml(folio.race_id)}">
                     <span class="heraldic-initial">${escapeHtml(folio.race_initial)}</span>
-                    ${raceRuneSvg(folio.race_glyph)}
-                    <span class="heraldic-caption">Blason ${escapeHtml(folio.race_name)}</span>
-                    <span class="heraldic-origin">${escapeHtml(folio.weapon_name)} · ${escapeHtml(folio.power_name)}</span>
+                    ${renderHtmlIcon('races', folio.race_id, 'heraldic-rune', folio.race_name)}
                 </div>
             </div>
         `;
     };
 
-    const renderFolioCardHtml = (folio) => {
-        const favBadge = folio.is_favorite ? '<span class="folio-badge-mini" title="Table d\'Honneur">★ Honneur</span>' : '';
-        const lockBadge = folio.is_locked ? '<span class="folio-badge-mini folio-badge-mini--lock" title="Sceau de Garde">⛨ Garde</span>' : '';
+    const renderStatBarsHtml = (folio) => {
+        const hpPct = Math.min(100, Math.round((folio.hp / 140) * 100));
+        return `
+            <div class="stat-bars tabular-nums">
+                <div class="stat-bar-row">
+                    <span class="stat-bar-label">
+                        <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17 C4.5 13 2.5 9.5 2.5 6.5 C2.5 4 4.5 2.5 6.8 2.5 C8.3 2.5 9.4 3.3 10 4.4 C10.6 3.3 11.7 2.5 13.2 2.5 C15.5 2.5 17.5 4 17.5 6.5 C17.5 9.5 15.5 13 10 17 Z" fill="currentColor"/></svg>
+                        PV
+                    </span>
+                    <div class="stat-track"><div class="stat-fill stat-fill--hp" style="width:${hpPct}%;"></div></div>
+                    <span class="stat-val">${escapeHtml(folio.hp)}<small>/140</small></span>
+                </div>
+                <div class="stat-bar-row">
+                    <span class="stat-bar-label">
+                        <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 L13 6 V13 H7 V6 Z M5 13 H15 M10 13 V18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+                        FOR
+                    </span>
+                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, folio.strength)}%;"></div></div>
+                    <span class="stat-val">${escapeHtml(folio.strength)}<small>/100</small></span>
+                </div>
+                <div class="stat-bar-row">
+                    <span class="stat-bar-label">
+                        <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><polygon points="11.5,2 4.5,11 9.5,11 8.5,18 15.5,9 10.5,9" fill="currentColor"/></svg>
+                        VIT
+                    </span>
+                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, folio.speed)}%;"></div></div>
+                    <span class="stat-val">${escapeHtml(folio.speed)}<small>/100</small></span>
+                </div>
+                <div class="stat-bar-row">
+                    <span class="stat-bar-label">
+                        <svg class="stat-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 L16.5 4.8 V10 C16.5 14 13.5 16.8 10 18 C6.5 16.8 3.5 14 3.5 10 V4.8 Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+                        DEF
+                    </span>
+                    <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, folio.defense)}%;"></div></div>
+                    <span class="stat-val">${escapeHtml(folio.defense)}<small>/100</small></span>
+                </div>
+            </div>
+        `;
+    };
+
+    const renderTraitPillsHtml = (folio) => `
+        <div class="folio-pills" aria-label="Attributs">
+            <span class="trait-pill" title="Race : ${escapeHtml(folio.race_name)}">
+                ${renderHtmlIcon('races', folio.race_id, 'trait-pill-icon', folio.race_name)}
+                <span>${escapeHtml(folio.race_name)}</span>
+            </span>
+            <span class="trait-pill" title="Arme : ${escapeHtml(folio.weapon_name)}">
+                ${renderHtmlIcon('weapons', folio.weapon_id, 'trait-pill-icon', folio.weapon_name)}
+                <span>${escapeHtml(folio.weapon_name)}</span>
+            </span>
+            <span class="trait-pill trait-pill--power" style="--power-hex:${escapeHtml(folio.power_pigment_hex)};" title="Pouvoir : ${escapeHtml(folio.power_name)}">
+                ${renderHtmlIcon('powers', folio.power_id, 'trait-pill-icon', folio.power_name)}
+                <span>${escapeHtml(folio.power_name)}</span>
+            </span>
+        </div>
+    `;
+
+    const renderFolioCardHtml = (folio, options = {}) => {
+        const favFlag = folio.is_favorite ? '<span class="folio-flag folio-flag--fav" title="Favori" aria-label="Favori">★</span>' : '';
+        const lockFlag = folio.is_locked ? '<span class="folio-flag folio-flag--lock" title="Verrouillé" aria-label="Verrouillé">⛨</span>' : '';
         const synergies = folio.synergies || [];
         const featuredSyn = synergies.find((s) => Boolean(s.is_unstable)) || synergies[0] || null;
         const extraSynCount = Math.max(0, synergies.length - 1);
-        const synStrip = featuredSyn
-            ? `<div class="folio-synergy-strip ${featuredSyn.is_unstable ? 'folio-synergy-strip--unstable' : ''}">
-                <span>${featuredSyn.is_unstable ? 'Fissure Instable' : 'Accord de Sceau'}</span>
-                <span>${escapeHtml(featuredSyn.name)}${extraSynCount > 0 ? ` (+${extraSynCount})` : ''}</span>
-               </div>`
-            : '';
-        const synVerso = synergies.length > 0
-            ? `<div class="verso-section">${synergies.map((s) => `
-                <div><strong style="color:${s.is_unstable ? '#8A1A14' : '#8A6E20'};">${s.is_unstable ? 'Fissure Arcanique' : 'Accord de Sceau'} · ${escapeHtml(s.name)} :</strong> ${escapeHtml(s.description)}</div>
-              `).join('')}</div>`
+        const synChip = featuredSyn
+            ? `<span class="syn-chip ${featuredSyn.is_unstable ? 'syn-chip--unstable' : ''}" title="${escapeHtml(featuredSyn.name)}">
+                ${featuredSyn.is_unstable ? '⚡' : '✦'} ${escapeHtml(featuredSyn.name)}${extraSynCount > 0 ? ` +${extraSynCount}` : ''}
+               </span>`
             : '';
 
-        const hpPct = Math.min(100, Math.round((folio.hp / 140) * 100));
+        const versoTags = [
+            folio.race_passive ? `<span class="verso-tag">${escapeHtml(folio.race_passive)}</span>` : '',
+            folio.weapon_passive ? `<span class="verso-tag">${escapeHtml(folio.weapon_passive)}</span>` : '',
+            ...synergies.map((s) => `<span class="verso-tag ${s.is_unstable ? 'verso-tag--unstable' : 'verso-tag--synergy'}">${s.is_unstable ? '⚡' : '✦'} ${escapeHtml(s.name)}</span>`),
+        ].join('');
+
+        const stampClass = options.animateStamp ? 'wax-stamp-drop' : '';
 
         return `
             <article class="folio-card" data-folio-id="${escapeHtml(folio.id)}" data-rarity="${escapeHtml(folio.rarity)}">
                 <div class="folio-card-inner">
-                    <div class="folio-face folio-face--front">
-                        <div class="folio-topbar">
-                            <div class="folio-ref-group">
-                                <span class="folio-ref">FOLIO N° ${escapeHtml(folio.folio_number)}</span>
-                                ${favBadge}${lockBadge}
-                            </div>
-                            <span class="power-medallion tabular-nums" title="Power Score">${escapeHtml(folio.power_score)}</span>
-                        </div>
-                        <div class="folio-title-row">
-                            <span class="folio-lettrine" aria-hidden="true">${escapeHtml(folio.initial)}</span>
-                            <div>
+                    <div class="folio-face folio-face--front" aria-hidden="false">
+                        <div class="folio-head">
+                            <div class="folio-title-block">
                                 <h3 class="folio-name">${escapeHtml(folio.name)}</h3>
-                                <div class="folio-sub">${escapeHtml(folio.race_name)} · ${escapeHtml(folio.weapon_name)}</div>
+                                <div class="folio-flags">${favFlag}${lockFlag}</div>
                             </div>
+                            <span class="power-medallion tabular-nums ${stampClass}" title="Power Score">${escapeHtml(folio.power_score)}</span>
                         </div>
                         ${renderPortraitHtml(folio)}
-                        <dl class="scribe-list" style="margin-top:8px;">
-                            <div class="scribe-row"><dt>Race</dt><span class="scribe-dots"></span><dd>${escapeHtml(folio.race_name)}</dd></div>
-                            <div class="scribe-row"><dt>Arme</dt><span class="scribe-dots"></span><dd>${escapeHtml(folio.weapon_name)}</dd></div>
-                            <div class="scribe-row"><dt>Pouvoir</dt><span class="scribe-dots"></span><dd style="color:${escapeHtml(folio.power_pigment_hex)};">${escapeHtml(folio.power_name)}</dd></div>
-                        </dl>
-                        ${synStrip}
-                        <div class="folio-footer">
-                            <p class="folio-note">${escapeHtml(folio.note)}</p>
-                            <span class="rarity-wax-chip" style="--seal-hex:${escapeHtml(folio.seal_hex)};" title="${escapeHtml(folio.seal_name)}">${escapeHtml(folio.rarity_label)}</span>
+                        ${renderTraitPillsHtml(folio)}
+                        <div class="folio-foot">
+                            <div class="folio-foot-left">
+                                <span class="rarity-seal-pill ${stampClass}" style="--seal-hex:${escapeHtml(folio.seal_hex)};" title="${escapeHtml(folio.rarity_label)}">
+                                    <span class="rarity-dot" aria-hidden="true"></span>
+                                    <span>${escapeHtml(folio.rarity_label)}</span>
+                                </span>
+                                ${synChip}
+                            </div>
+                            <button type="button" class="folio-flip-icon" data-flip-folio aria-label="Voir les statistiques de ${escapeHtml(folio.name)}" title="Stats &amp; Verso">↻</button>
                         </div>
-                        <button type="button" class="folio-flip-btn" data-flip-folio>Consulter le Verso ↻</button>
                     </div>
-                    <div class="folio-face folio-face--back">
-                        <div class="folio-topbar">
-                            <span class="folio-ref">VERSO · FOLIO N° ${escapeHtml(folio.folio_number)}</span>
+                    <div class="folio-face folio-face--back" aria-hidden="true">
+                        <div class="folio-head">
+                            <h3 class="folio-name">${escapeHtml(folio.name)}</h3>
                             <span class="power-medallion tabular-nums">${escapeHtml(folio.power_score)}</span>
                         </div>
-                        <div class="ink-stat-list tabular-nums">
-                            <div>
-                                <div class="ink-stat-head"><span>Vitalité (PV)</span><span>${escapeHtml(folio.hp)} / 140</span></div>
-                                <div class="ink-meter"><div class="ink-meter-fill ink-meter-fill--hp" style="width:${hpPct}%;"></div></div>
-                            </div>
-                            <div>
-                                <div class="ink-stat-head"><span>Force</span><span>${escapeHtml(folio.strength)} / 100</span></div>
-                                <div class="ink-meter"><div class="ink-meter-fill" style="width:${Math.min(100, folio.strength)}%;"></div></div>
-                            </div>
-                            <div>
-                                <div class="ink-stat-head"><span>Vitesse</span><span>${escapeHtml(folio.speed)} / 100</span></div>
-                                <div class="ink-meter"><div class="ink-meter-fill" style="width:${Math.min(100, folio.speed)}%;"></div></div>
-                            </div>
-                            <div>
-                                <div class="ink-stat-head"><span>Défense</span><span>${escapeHtml(folio.defense)} / 100</span></div>
-                                <div class="ink-meter"><div class="ink-meter-fill" style="width:${Math.min(100, folio.defense)}%;"></div></div>
-                            </div>
+                        ${renderStatBarsHtml(folio)}
+                        <div class="verso-tags">${versoTags}</div>
+                        <div class="folio-foot">
+                            <span class="recycle-pill tabular-nums" title="Valeur de transmutation">
+                                <svg class="hud-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><polygon points="10,5.5 13,10 10,14.5 7,10" fill="currentColor"/></svg>
+                                +${escapeHtml(folio.recycle_value)}
+                            </span>
+                            <button type="button" class="folio-flip-icon" data-flip-folio tabindex="-1" aria-label="Retourner au recto de ${escapeHtml(folio.name)}" title="Recto">↺</button>
                         </div>
-                        <div class="verso-section">
-                            <strong>Passifs :</strong> ${escapeHtml(folio.race_passive)} — ${escapeHtml(folio.race_passive_desc)}
-                            <br>${escapeHtml(folio.weapon_passive)} — ${escapeHtml(folio.weapon_passive_desc)}
-                        </div>
-                        ${synVerso}
-                        <dl class="scribe-list" style="margin-top:auto;">
-                            <div class="scribe-row"><dt>Transmutation</dt><span class="scribe-dots"></span><dd class="tabular-nums">+${escapeHtml(folio.recycle_value)} écus</dd></div>
-                            <div class="scribe-row"><dt>Cachet</dt><span class="scribe-dots"></span><dd>${escapeHtml(folio.seal_name)}</dd></div>
-                        </dl>
-                        <button type="button" class="folio-flip-btn" data-flip-folio>Retourner au Recto ↺</button>
                     </div>
                 </div>
             </article>
@@ -250,57 +350,85 @@
     };
 
     /* ======================================================================
-       HUD MANUSCRIT (Mises à jour bac à sable)
+       HUD & COMPTEURS SYNCHRONISÉS INTER-PAGES
        ====================================================================== */
 
+    const isPityReady = () => Number(store.hud.pity_counter || 0) >= Number(store.hud.pity_threshold || 10);
+
+    const getActivePool = () => {
+        if (store.sourceMode === 'connected' && DATA.connected) {
+            return [...store.connectedSealedFolios, ...(DATA.connected.folios || [])];
+        }
+        return [...store.showcaseSealedFolios, ...(DATA.showcaseFolios || [])];
+    };
+
+    const getActiveGrimoireCount = () => {
+        if (store.sourceMode === 'connected' && DATA.connected) {
+            return Number(DATA.connected.folios_count || 0) + store.connectedSealedFolios.length;
+        }
+        return Number(DATA.showcaseCount || 6) + store.showcaseSealedFolios.length;
+    };
+
     const renderHud = () => {
-        const inkDropsEl = document.getElementById('hud-ink-drops');
-        const inkTextEl = document.getElementById('hud-ink-text');
-        const pityRunesEl = document.getElementById('hud-pity-runes');
-        const pityTextEl = document.getElementById('hud-pity-text');
+        const inkText = document.getElementById('hud-ink-text');
+        const inkChip = document.getElementById('hud-chip-ink');
+        const pityText = document.getElementById('hud-pity-text');
+        const pityChip = document.getElementById('hud-chip-pity');
         const coinsEl = document.getElementById('hud-coins');
+        const navCount = document.getElementById('nav-grimoire-count');
         const sealBtn = document.getElementById('btn-invoke-seal');
 
-        const maxInk = Number(state.hud.spin_max || 3);
-        const curInk = Math.max(0, Number(state.hud.spin_charges || 0));
-        const pityMax = Number(state.hud.pity_threshold || 10);
-        const pityCur = Math.min(pityMax, Math.max(0, Number(state.hud.pity_counter || 0)));
-        const isLuckyReady = pityCur >= pityMax;
+        const curInk = Math.max(0, Number(store.hud.spin_charges || 0));
+        const maxInk = Number(store.hud.spin_max || 3);
+        const curPity = Math.min(Number(store.hud.pity_threshold || 10), Math.max(0, Number(store.hud.pity_counter || 0)));
+        const maxPity = Number(store.hud.pity_threshold || 10);
+        const lucky = curPity >= maxPity;
 
-        if (inkDropsEl) {
-            let html = '';
-            for (let i = 0; i < maxInk; i++) {
-                html += `<svg class="ink-drop ${i >= curInk ? 'is-spent' : ''}" viewBox="0 0 16 20"><path d="M8 1.5 C8 1.5 2 9.5 2 13.5 C2 16.8 4.7 19 8 19 C11.3 19 14 16.8 14 13.5 C14 9.5 8 1.5 8 1.5 Z"/></svg>`;
+        if (inkText) inkText.textContent = `${curInk}/${maxInk}`;
+        if (inkChip) inkChip.title = `Gouttes d'encre (${curInk}/${maxInk})`;
+        if (pityText) pityText.textContent = `${curPity}/${maxPity}`;
+        if (pityChip) {
+            pityChip.classList.toggle('is-lucky', lucky);
+            pityChip.title = `Grand Rituel (${curPity}/${maxPity})`;
+        }
+        if (coinsEl) coinsEl.textContent = Number(store.hud.coins || 0).toLocaleString('fr-FR');
+        if (navCount) navCount.textContent = String(getActiveGrimoireCount());
+
+        document.querySelectorAll('[data-connected-count]').forEach((el) => {
+            if (DATA.connected) {
+                el.textContent = String(Number(DATA.connected.folios_count || 0) + store.connectedSealedFolios.length);
             }
-            inkDropsEl.innerHTML = html;
-        }
-        if (inkTextEl) {
-            inkTextEl.textContent = `${curInk}/${maxInk}`;
-        }
-        if (pityRunesEl) {
-            let html = '';
-            for (let i = 0; i < pityMax; i++) {
-                const cls = isLuckyReady ? 'is-ready' : (i < pityCur ? 'is-lit' : '');
-                html += `<span class="pity-pip ${cls}"></span>`;
-            }
-            pityRunesEl.innerHTML = html;
-        }
-        if (pityTextEl) {
-            pityTextEl.textContent = `${pityCur}/${pityMax}`;
-        }
-        if (coinsEl) {
-            coinsEl.textContent = `${Number(state.hud.coins || 0).toLocaleString('fr-FR')} écus`;
-        }
+        });
+        document.querySelectorAll('[data-showcase-count]').forEach((el) => {
+            el.textContent = String(Number(DATA.showcaseCount || 6) + store.showcaseSealedFolios.length);
+        });
+        document.querySelectorAll('[data-source-toggle]').forEach((btn) => {
+            btn.classList.toggle('is-active', btn.getAttribute('data-source-toggle') === store.sourceMode);
+        });
+        document.querySelectorAll('[data-sandbox-pool]').forEach((btn) => {
+            const wantHuman = btn.getAttribute('data-sandbox-pool') === 'human';
+            btn.classList.toggle('is-active', wantHuman === Boolean(store.humanOnlyPool));
+        });
+
         if (sealBtn) {
-            sealBtn.classList.toggle('btn-wax-seal--gold', isLuckyReady);
-            sealBtn.innerHTML = isLuckyReady
-                ? '<span>Grand Rituel</span><span style="font-size:0.62rem;">✦ 10/10 ✦</span>'
-                : '<span>Invoquer</span><span style="font-size:0.62rem;opacity:0.85;">✦ Sceau ✦</span>';
+            sealBtn.classList.toggle('btn-wax-seal--gold', lucky);
+            sealBtn.innerHTML = lucky
+                ? '<span>Grand Rituel</span>'
+                : '<span>Invoquer</span>';
+            sealBtn.disabled = state.spinning || Boolean(store.pendingFolio);
+            sealBtn.title = store.pendingFolio
+                ? 'Scellez ou transmutez le folio en attente'
+                : (lucky ? 'Grand Rituel garanti (10/10)' : 'Invoquer un héros');
+        }
+
+        const wsBal = document.getElementById('workshop-balance');
+        if (wsBal) {
+            wsBal.textContent = Number(store.hud.coins || 0).toLocaleString('fr-FR');
         }
     };
 
     /* ======================================================================
-       VOLVELLE SVG 3 ANNEAUX PROPORTIONNELS
+       PAGE 1 — VOLVELLE SÉQUENTIELLE (Races -> Armes -> Pouvoirs)
        ====================================================================== */
 
     const polarToCartesian = (cx, cy, r, degFromTop) => {
@@ -328,19 +456,42 @@
         ].join(' ');
     };
 
-    const drawRing = (groupEl, items, rInner, rOuter, options = {}) => {
+    const renderVolvelleSectorIcon = (category, item, x, y, midDeg, size, iconColor) => {
+        const icon = resolveIcon(category, item.id);
+        const half = (size / 2).toFixed(2);
+
+        if (icon.type === 'image' && icon.url) {
+            const bgRadius = (size * 0.62).toFixed(2);
+            const clipAttr = [25, 30, 34].includes(size) ? ` clip-path="url(#volvelle-clip-${size})"` : '';
+            return `
+                <g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${midDeg.toFixed(1)})">
+                    <circle cx="0" cy="0" r="${bgRadius}" fill="rgba(245,237,216,0.92)" stroke="#4A3618" stroke-width="0.9"/>
+                    <image href="${escapeHtml(icon.url)}" x="-${half}" y="-${half}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"${clipAttr}/>
+                </g>
+            `;
+        }
+
+        const scale = (size / 48).toFixed(4);
+        return `
+            <g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${midDeg.toFixed(1)}) translate(-${half} -${half}) scale(${scale})" style="color:${iconColor};">
+                ${icon.markup || ''}
+            </g>
+        `;
+    };
+
+    const drawRing = (groupEl, category, items, rInner, rOuter, options = {}) => {
         if (!groupEl) {
             return [];
         }
         const cx = 250;
         const cy = 250;
-        const total = items.reduce((acc, item) => acc + Number(item.weight || 1), 0);
+        const total = items.reduce((acc, item) => acc + Math.max(0.1, Number(item.weight || 1)), 0);
         let cursor = 0;
         const geometry = [];
         let svgMarkup = '';
 
         items.forEach((item, idx) => {
-            const span = (Number(item.weight || 1) / total) * 360;
+            const span = (Math.max(0.1, Number(item.weight || 1)) / total) * 360;
             const startDeg = cursor;
             const endDeg = cursor + span;
             const midDeg = startDeg + span / 2;
@@ -349,94 +500,195 @@
             geometry.push({ id: item.id, startDeg, endDeg, midDeg });
 
             const path = annularSectorPath(cx, cy, rInner, rOuter, startDeg, endDeg);
-            const fill = options.fillFor
-                ? options.fillFor(item, idx)
-                : (idx % 2 === 0 ? '#EFE4CC' : '#E0D1B0');
-            const textColor = options.textFor ? options.textFor(item, idx) : '#3A2A1A';
-            const rLabel = (rInner + rOuter) / 2;
-            const labelPos = polarToCartesian(cx, cy, rLabel, midDeg);
-            const labelText = span < 20 ? item.name.slice(0, 5) + '.' : item.name;
-            const fontSize = span < 20 ? 8.2 : (options.fontSize || (span < 24 ? 8.8 : 10.5));
+            const fill = options.fillFor ? options.fillFor(item, idx) : (idx % 2 === 0 ? '#EFE4CC' : '#DFCFAF');
+            const iconColor = options.iconFor ? options.iconFor(item, idx) : '#2A1D11';
+            const rMid = (rInner + rOuter) / 2;
+            const pos = polarToCartesian(cx, cy, rMid, midDeg);
+            const iconSize = options.iconSize || 28;
 
-            svgMarkup += `<path d="${path}" fill="${fill}" stroke="#5A4530" stroke-width="1"/>`;
-            svgMarkup += `
-                <text
-                    x="${labelPos.x.toFixed(1)}"
-                    y="${labelPos.y.toFixed(1)}"
-                    fill="${textColor}"
-                    font-family="Cormorant Garamond, Georgia, serif"
-                    font-size="${fontSize}"
-                    font-weight="700"
-                    text-anchor="middle"
-                    dominant-baseline="central"
-                    transform="rotate(${midDeg.toFixed(1)} ${labelPos.x.toFixed(1)} ${labelPos.y.toFixed(1)})"
-                >${escapeHtml(labelText)}</text>
-            `;
+            svgMarkup += `<g><title>${escapeHtml(item.name)}</title>`;
+            svgMarkup += `<path d="${path}" fill="${fill}" stroke="#4A3618" stroke-width="1.15"/>`;
+            svgMarkup += renderVolvelleSectorIcon(category, item, pos.x, pos.y, midDeg, iconSize, iconColor);
+            svgMarkup += '</g>';
         });
 
         groupEl.innerHTML = svgMarkup;
         return geometry;
     };
 
-    const isPityReady = () => Number(state.hud.pity_counter || 0) >= Number(state.hud.pity_threshold || 10);
+    const getEffectivePowerPool = (isLucky) => {
+        const basePool = isLucky ? POWERS.filter((p) => p.tier !== 'common') : POWERS;
+        const tierTotals = {};
+        basePool.forEach((p) => {
+            const w = Math.max(0, Number(p.weight || 0));
+            tierTotals[p.tier] = (tierTotals[p.tier] || 0) + w;
+        });
 
-    const getActivePowerPool = (forceLucky = null) => {
-        const isLucky = forceLucky !== null ? forceLucky : isPityReady();
-        return isLucky ? POWERS.filter((p) => p.tier !== 'common') : POWERS;
+        const totalWeight = Object.values(tierTotals).reduce((acc, w) => acc + w, 0);
+        const magnetLevel = Math.max(0, Number(store.workshop.rare_magnet || 0));
+        const bonusPerLevel = Number(CONFIG.workshop?.rare_magnet?.bonus_per_level ?? 3);
+        const bonus = magnetLevel * bonusPerLevel;
+        const toMove = !tierTotals.mythic || bonus <= 0 ? 0 : (totalWeight * bonus) / 100;
+
+        const scale = {};
+        Object.keys(tierTotals).forEach((tier) => {
+            scale[tier] = 1;
+        });
+
+        let moved = 0;
+        ['common', 'rare'].forEach((tier) => {
+            if (!tierTotals[tier] || moved >= toMove) {
+                return;
+            }
+            const taken = Math.min(tierTotals[tier], toMove - moved);
+            scale[tier] = (tierTotals[tier] - taken) / tierTotals[tier];
+            moved += taken;
+        });
+
+        if (moved > 0 && tierTotals.mythic) {
+            scale.mythic = (tierTotals.mythic + moved) / tierTotals.mythic;
+        }
+
+        return basePool.map((p) => ({
+            ...p,
+            weight: Math.max(0.1, Number(p.weight || 1) * (scale[p.tier] ?? 1)),
+        }));
     };
 
     const drawPowerRing = (isLucky) => {
         state.renderedLuckyRing = Boolean(isLucky);
         state.ringsGeometry.powers = drawRing(
             document.getElementById('ring-powers'),
-            getActivePowerPool(isLucky),
+            'powers',
+            getEffectivePowerPool(isLucky),
             184,
             242,
             {
                 fillFor: (p) => p.pigment_hex,
-                textFor: () => '#F5EDD8',
-                fontSize: 10,
+                iconFor: () => '#FBF2DC',
+                iconSize: 25,
             }
         );
     };
 
-    const drawAllVolvelleRings = () => {
-        drawPowerRing(isPityReady());
+    const drawAllVolvelleRings = (overrideLucky = null) => {
+        if (!document.getElementById('volvelle-svg')) {
+            return;
+        }
+        drawPowerRing(overrideLucky === null ? isPityReady() : Boolean(overrideLucky));
 
         state.ringsGeometry.weapons = drawRing(
             document.getElementById('ring-weapons'),
+            'weapons',
             WEAPONS,
             126,
             184,
             {
-                fillFor: (_w, i) => (i % 2 === 0 ? '#F2E7CE' : '#DFCFAF'),
-                fontSize: 10.2,
+                fillFor: (_w, i) => (i % 2 === 0 ? '#F3E8D0' : '#E0D0AE'),
+                iconFor: () => '#2A1D11',
+                iconSize: 34,
             }
         );
 
         state.ringsGeometry.races = drawRing(
             document.getElementById('ring-races'),
+            'races',
             RACES,
             66,
             126,
             {
                 fillFor: (r, i) => {
-                    if (state.humanOnlyPool) {
-                        return r.id === 'human' ? '#D8B860' : '#D5C6A5';
+                    if (store.humanOnlyPool) {
+                        return r.has_portrait ? '#DFC06E' : '#D5C6A5';
                     }
-                    return i % 2 === 0 ? '#E8D9BA' : '#D9C8A2';
+                    return i % 2 === 0 ? '#E9DBBE' : '#D9C8A2';
                 },
-                textFor: (r) => (state.humanOnlyPool && r.id !== 'human' ? '#8A7555' : '#3A2A1A'),
-                fontSize: 9.2,
+                iconFor: (r) => (store.humanOnlyPool && !r.has_portrait ? '#7D6849' : '#2A1D11'),
+                iconSize: 30,
             }
         );
     };
 
-    const setVolvelleControlsDisabled = (disabled) => {
-        ['btn-invoke-seal', 'btn-pool-all', 'btn-pool-human', 'btn-charge-pity'].forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) el.disabled = disabled;
+    const clearSpinTimers = () => {
+        state.spinTimers.forEach((id) => window.clearTimeout(id));
+        state.spinTimers = [];
+    };
+
+    const scheduleSpin = (fn, delay) => {
+        const id = window.setTimeout(fn, delay);
+        state.spinTimers.push(id);
+        return id;
+    };
+
+    const setActiveRingGlow = (ringName) => {
+        ['races', 'weapons', 'powers'].forEach((name) => {
+            const el = document.getElementById(`ring-glow-${name}`);
+            if (el) {
+                el.classList.toggle('is-active-ring', name === ringName);
+            }
         });
+    };
+
+    const resetSequenceSteps = () => {
+        ['race', 'weapon', 'power'].forEach((step) => {
+            const el = document.getElementById(`step-${step}`);
+            if (!el) return;
+            el.classList.remove('is-active', 'is-locked');
+            el.style.removeProperty('--step-accent');
+            const iconSlot = el.querySelector('[data-step-icon]');
+            const valSlot = el.querySelector('[data-step-value]');
+            if (iconSlot) iconSlot.textContent = '?';
+            if (valSlot) valSlot.textContent = '—';
+        });
+    };
+
+    const setStepActive = (step) => {
+        const el = document.getElementById(`step-${step}`);
+        if (el) {
+            el.classList.remove('is-locked');
+            el.classList.add('is-active');
+        }
+    };
+
+    const lockStep = (step, category, id, label, accentHex = null) => {
+        const el = document.getElementById(`step-${step}`);
+        if (!el) return;
+        el.classList.remove('is-active');
+        el.classList.add('is-locked');
+        if (accentHex) {
+            el.style.setProperty('--step-accent', accentHex);
+        }
+        const iconSlot = el.querySelector('[data-step-icon]');
+        const valSlot = el.querySelector('[data-step-value]');
+        if (iconSlot) iconSlot.innerHTML = renderHtmlIcon(category, id, 'seq-svg', label);
+        if (valSlot) valSlot.textContent = label;
+    };
+
+    const renderEmergencyBar = () => {
+        const bar = document.getElementById('emergency-spin-bar');
+        const btn = document.getElementById('btn-emergency-spin');
+        const label = document.getElementById('emergency-spin-label');
+        if (!bar || !btn || !label) {
+            return;
+        }
+
+        const shouldShow = Number(store.hud.spin_charges || 0) <= 0 && !store.pendingFolio && !state.spinning;
+        bar.hidden = !shouldShow;
+        if (!shouldShow) {
+            return;
+        }
+
+        const costs = CONFIG.workshop?.emergency_spin?.costs || [120, 250];
+        const purchases = Number(store.emergencyPurchases || 0);
+        if (purchases >= costs.length) {
+            btn.disabled = true;
+            label.textContent = `Jeton épuisé (${purchases}/${costs.length})`;
+            return;
+        }
+
+        const cost = Number(costs[purchases]);
+        btn.disabled = Number(store.hud.coins || 0) < cost;
+        label.textContent = `Jeton d'Urgence · ${cost.toLocaleString('fr-FR')} écus`;
     };
 
     const computeNextRotation = (currentRot, midDeg, fullSpins, clockwise = true) => {
@@ -450,16 +702,13 @@
         return currentRot - fullSpins * 360 - deltaBack;
     };
 
-    /* ======================================================================
-       MOTEUR SANDBOX DE TIRAGE (Fidèle à GameConfig + Table creuse PHP)
-       ====================================================================== */
-
     const rollSandboxFolio = (isLuckySpin) => {
-        const race = state.humanOnlyPool
-            ? (RACE_BY_ID.human || RACES[0])
+        const illustratedRaces = RACES.filter((r) => Boolean(r.has_portrait));
+        const race = store.humanOnlyPool
+            ? weightedPick(illustratedRaces.length > 0 ? illustratedRaces : [RACE_BY_ID.human || RACES[0]])
             : weightedPick(RACES);
         const weapon = weightedPick(WEAPONS);
-        const power = weightedPick(getActivePowerPool());
+        const power = weightedPick(getEffectivePowerPool(isLuckySpin));
 
         const synKey = `${race.id}:${weapon.id}:${power.id}`;
         const synergies = SYNERGIES[synKey] || [];
@@ -472,8 +721,12 @@
             defense_min: 42, defense_max: 68,
         };
 
-        let hp = randInt(base.hp_min, base.hp_max) + (race.mods.hp || 0) + (weapon.mods.hp || 0);
-        let strength = randInt(base.strength_min, base.strength_max) + (race.mods.strength || 0) + (weapon.mods.strength || 0);
+        const forgeLevel = Math.max(0, Number(store.workshop.hero_forge || 0));
+        const forgeHp = forgeLevel * Number(CONFIG.workshop?.hero_forge?.bonus_hp ?? 3);
+        const forgeStr = forgeLevel * Number(CONFIG.workshop?.hero_forge?.bonus_str ?? 2);
+
+        let hp = randInt(base.hp_min, base.hp_max) + (race.mods.hp || 0) + (weapon.mods.hp || 0) + forgeHp;
+        let strength = randInt(base.strength_min, base.strength_max) + (race.mods.strength || 0) + (weapon.mods.strength || 0) + forgeStr;
         let speed = randInt(base.speed_min, base.speed_max) + (race.mods.speed || 0) + (weapon.mods.speed || 0);
         let defense = randInt(base.defense_min, base.defense_max) + (race.mods.defense || 0) + (weapon.mods.defense || 0);
 
@@ -511,35 +764,39 @@
         const rarity = RARITY_BY_VAL[rarityKey] || RARITIES[0];
         const recycleValue = Math.max(35, Math.round(((powerScore * 1.2) + (synergies.length * 25)) * Number(rarity.recycle_multiplier || 1)));
 
-        const humanLayers = race.id === 'human' && PAPER_DOLL_MAP[weapon.id] && PAPER_DOLL_MAP[weapon.id][power.id]
-            ? PAPER_DOLL_MAP[weapon.id][power.id]
+        const raceAssetUrl = PAPER_DOLL_MAP.races ? (PAPER_DOLL_MAP.races[race.id] || null) : null;
+        const equipLayers = PAPER_DOLL_MAP.equipment && PAPER_DOLL_MAP.equipment[weapon.id]
+            ? (PAPER_DOLL_MAP.equipment[weapon.id][power.id] || null)
             : null;
-        const hasPortrait = Boolean(humanLayers && humanLayers.race);
+        const hasPortrait = Boolean(raceAssetUrl);
+        const resolvedLayers = hasPortrait
+            ? {
+                race: raceAssetUrl,
+                weapon: equipLayers ? equipLayers.weapon : null,
+                aura: equipLayers ? equipLayers.aura : null,
+                is_invisibility: Boolean(equipLayers && equipLayers.is_invisibility),
+                is_pale_aura: Boolean(equipLayers && equipLayers.is_pale_aura),
+            }
+            : { race: null, weapon: null, aura: null, is_invisibility: false, is_pale_aura: false };
         const name = generateName(race.id);
-        state.folioCounter += 1;
+        store.folioCounter = Number(store.folioCounter || 6) + 1;
 
         return {
-            id: `session-${Date.now()}-${state.folioCounter}`,
-            folio_number: String(state.folioCounter).padStart(3, '0'),
+            id: `session-${Date.now()}-${store.folioCounter}`,
+            folio_number: String(store.folioCounter).padStart(3, '0'),
             name,
             initial: name.charAt(0).toUpperCase(),
             race_id: race.id,
             race_name: race.name,
-            race_gloss: race.codex_gloss,
-            race_initial: race.codex_initial,
-            race_glyph: race.codex_glyph,
+            race_initial: race.initial,
             race_passive: race.passive,
-            race_passive_desc: race.passive_desc,
             weapon_id: weapon.id,
             weapon_name: weapon.name,
-            weapon_gloss: weapon.codex_gloss,
             weapon_passive: weapon.passive,
-            weapon_passive_desc: weapon.passive_desc,
             power_id: power.id,
             power_name: power.name,
             power_tier: power.tier,
             power_tier_label: power.tier_label,
-            power_pigment_name: power.pigment_name,
             power_pigment_hex: power.pigment_hex,
             power_pigment_soft: power.pigment_soft,
             rarity: rarity.value,
@@ -555,301 +812,438 @@
             is_locked: false,
             is_favorite: false,
             is_unstable: isUnstable,
+            was_lucky_spin: Boolean(isLuckySpin),
             synergies,
-            note: isLuckySpin
-                ? 'Invoqué lors du Grand Rituel (10/10) — les sceaux Communs furent écartés.'
-                : `Imprimé à l'encre de ${power.pigment_name} sur le Sceau-Volvelle.`,
             has_portrait: hasPortrait,
-            layers: hasPortrait
-                ? humanLayers
-                : { race: null, weapon: null, aura: null, is_invisibility: false, is_pale_aura: false },
+            layers: resolvedLayers,
         };
     };
 
+    const showRevealedFolio = (folio, animateStamp = true) => {
+        const contentEl = document.getElementById('ritual-content');
+        const actionsEl = document.getElementById('ritual-actions');
+        const transmuteBtn = document.getElementById('btn-transmute-folio');
+
+        if (contentEl) {
+            contentEl.className = 'ritual-reveal-wrap';
+            contentEl.innerHTML = renderFolioCardHtml(folio, { animateStamp });
+        }
+        if (transmuteBtn) {
+            transmuteBtn.textContent = `Transmuter (+${folio.recycle_value})`;
+        }
+        if (actionsEl) {
+            actionsEl.hidden = false;
+        }
+    };
+
+    const renderIdleRitual = () => {
+        const contentEl = document.getElementById('ritual-content');
+        const actionsEl = document.getElementById('ritual-actions');
+        if (actionsEl) actionsEl.hidden = true;
+        if (contentEl) {
+            contentEl.className = 'ritual-idle';
+            contentEl.innerHTML = `
+                <svg class="ritual-idle-emblem" viewBox="0 0 120 120" aria-hidden="true">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"/>
+                    <circle cx="60" cy="60" r="34" fill="none" stroke="currentColor" stroke-width="1.2"/>
+                    <polygon points="60,14 68,52 106,60 68,68 60,106 52,68 14,60 52,52" fill="none" stroke="currentColor" stroke-width="1.3"/>
+                </svg>
+                <p class="ritual-cue">Pressez le sceau</p>
+            `;
+        }
+    };
+
+    const applyRingSpin = (el, deg, durationMs, easing) => {
+        if (!el) return;
+        el.style.transitionDuration = prefersReducedMotion ? '1ms' : `${durationMs}ms`;
+        el.style.transitionTimingFunction = easing;
+        el.style.transform = `rotate(${deg}deg)`;
+    };
+
     const runInvocationRitual = () => {
+        const statusEl = document.getElementById('ritual-status');
+        const contentEl = document.getElementById('ritual-content');
+        const actionsEl = document.getElementById('ritual-actions');
+
         if (state.spinning) {
             return;
         }
 
-        const statusEl = document.getElementById('ritual-status');
-        const contentEl = document.getElementById('ritual-content');
-        const actionsEl = document.getElementById('ritual-actions');
-        const sealBtn = document.getElementById('btn-invoke-seal');
-
-        if (Number(state.hud.spin_charges || 0) <= 0) {
+        if (store.pendingFolio) {
+            if (actionsEl) {
+                actionsEl.classList.remove('is-attention');
+                void actionsEl.offsetWidth;
+                actionsEl.classList.add('is-attention');
+            }
             if (statusEl) {
-                statusEl.textContent = 'Votre encrier est à sec (0/3). Cliquez « Remplir l\'Encrier » pour poursuivre le test.';
+                statusEl.textContent = 'Scellez ou transmutez le folio en attente.';
             }
             return;
         }
 
+        if (Number(store.hud.spin_charges || 0) <= 0) {
+            renderEmergencyBar();
+            if (statusEl) {
+                statusEl.textContent = 'Encrier vide (0/3).';
+            }
+            return;
+        }
+
+        clearSpinTimers();
         state.spinning = true;
-        state.pendingFolio = null;
-        if (actionsEl) actionsEl.hidden = true;
-        setVolvelleControlsDisabled(true);
 
         const isLuckySpin = isPityReady();
-        if (state.renderedLuckyRing !== isLuckySpin) {
-            drawPowerRing(isLuckySpin);
-        }
-        state.hud.spin_charges = Math.max(0, Number(state.hud.spin_charges) - 1);
-
-        const folio = rollSandboxFolio(isLuckySpin);
-
-        // Étape 1 : Rotation décalée des 3 anneaux vers le secteur tiré
-        const powerGeo = state.ringsGeometry.powers.find((g) => g.id === folio.power_id) || state.ringsGeometry.powers[0];
-        const weaponGeo = state.ringsGeometry.weapons.find((g) => g.id === folio.weapon_id) || state.ringsGeometry.weapons[0];
-        const raceGeo = state.ringsGeometry.races.find((g) => g.id === folio.race_id) || state.ringsGeometry.races[0];
-
-        state.rotations.powers = computeNextRotation(state.rotations.powers, powerGeo.midDeg, 4, true);
-        state.rotations.weapons = computeNextRotation(state.rotations.weapons, weaponGeo.midDeg, 3, false);
-        state.rotations.races = computeNextRotation(state.rotations.races, raceGeo.midDeg, 2, true);
-
         const ringP = document.getElementById('ring-powers');
         const ringW = document.getElementById('ring-weapons');
         const ringR = document.getElementById('ring-races');
-        if (ringP) ringP.style.transform = `rotate(${state.rotations.powers}deg)`;
-        if (ringW) ringW.style.transform = `rotate(${state.rotations.weapons}deg)`;
-        if (ringR) ringR.style.transform = `rotate(${state.rotations.races}deg)`;
 
-        if (statusEl) {
-            statusEl.textContent = isLuckySpin
-                ? 'Grand Rituel en cours — Alignement des anneaux arcaniques…'
-                : 'Alignement du Sceau-Volvelle…';
+        if (state.renderedLuckyRing !== isLuckySpin) {
+            drawPowerRing(isLuckySpin);
+            if (ringP) {
+                ringP.style.transitionDuration = '0ms';
+                state.rotations.powers = 0;
+                ringP.style.transform = 'rotate(0deg)';
+                void ringP.getBoundingClientRect();
+            }
         }
+
+        // Décrément immédiat dans le HUD à t = 0
+        store.hud.spin_charges = Math.max(0, Number(store.hud.spin_charges || 0) - 1);
+        saveStore();
+        renderHud();
+        renderEmergencyBar();
+
+        if (actionsEl) actionsEl.hidden = true;
+        if (statusEl) statusEl.textContent = '';
+        resetSequenceSteps();
+
+        const folio = rollSandboxFolio(isLuckySpin);
+
+        const raceGeo = state.ringsGeometry.races.find((g) => g.id === folio.race_id) || state.ringsGeometry.races[0];
+        const weaponGeo = state.ringsGeometry.weapons.find((g) => g.id === folio.weapon_id) || state.ringsGeometry.weapons[0];
+        const powerGeo = state.ringsGeometry.powers.find((g) => g.id === folio.power_id) || state.ringsGeometry.powers[0];
+
+        const isMythicPower = folio.power_tier === 'mythic';
+        const durRace = prefersReducedMotion ? 50 : 1100;
+        const pause1 = prefersReducedMotion ? 30 : 300;
+        const durWeapon = prefersReducedMotion ? 50 : 1150;
+        const pause2 = prefersReducedMotion ? 30 : 350;
+        const durPower = prefersReducedMotion ? 50 : (isMythicPower ? 1850 : 1450);
+        const settlePad = prefersReducedMotion ? 20 : 60;
+        const traceDur = prefersReducedMotion ? 40 : 280;
+
         if (contentEl) {
+            contentEl.className = 'ritual-idle';
             contentEl.innerHTML = `
-                <div style="text-align:center;padding:18px 8px;">
-                    ${powerSigilSvg(folio.power_id, folio.power_pigment_hex, 'ritual-sigil-trace')}
-                    <p class="folio-note" style="font-size:0.94rem;">Traçage du sceau <strong>${escapeHtml(folio.power_name)}</strong> (${escapeHtml(folio.power_pigment_name)})…</p>
-                </div>
+                <svg class="ritual-idle-emblem" viewBox="0 0 120 120" aria-hidden="true">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"/>
+                    <circle cx="60" cy="60" r="34" fill="none" stroke="currentColor" stroke-width="1.2"/>
+                </svg>
+                <p class="ritual-cue">${isLuckySpin ? 'Grand Rituel' : 'Tirage…'}</p>
             `;
         }
 
-        const revealDelay = prefersReducedMotion ? 80 : 1850;
-        const stampDelay = prefersReducedMotion ? 120 : 2350;
+        // Phase 1 : Races
+        setActiveRingGlow('races');
+        setStepActive('race');
+        state.rotations.races = computeNextRotation(state.rotations.races, raceGeo.midDeg, 2, true);
+        applyRingSpin(ringR, state.rotations.races, durRace, 'cubic-bezier(0.16, 0.84, 0.22, 1)');
 
-        window.setTimeout(() => {
-            if (statusEl) {
-                statusEl.textContent = 'Impression du Folio dans le vélin…';
-            }
-            const synBadges = (folio.synergies || []).map((s) => `
-                <div class="folio-synergy-strip ${s.is_unstable ? 'folio-synergy-strip--unstable' : ''}" style="margin-top:8px;">
-                    <span>${s.is_unstable ? 'Fissure Instable' : 'Accord de Sceau'}</span>
-                    <span>${escapeHtml(s.name)}</span>
-                </div>
-            `).join('');
+        const tRaceDone = durRace + settlePad;
+        const tWeaponStart = tRaceDone + pause1;
+        const tWeaponDone = tWeaponStart + durWeapon + settlePad;
+        const tPowerStart = tWeaponDone + pause2;
+        const tPowerDone = tPowerStart + durPower + settlePad;
+        const tReveal = tPowerDone + traceDur;
 
+        scheduleSpin(() => {
+            setActiveRingGlow(null);
+            lockStep('race', 'races', folio.race_id, folio.race_name);
+        }, tRaceDone);
+
+        // Phase 2 : Armes
+        scheduleSpin(() => {
+            setActiveRingGlow('weapons');
+            setStepActive('weapon');
+            state.rotations.weapons = computeNextRotation(state.rotations.weapons, weaponGeo.midDeg, 3, false);
+            applyRingSpin(ringW, state.rotations.weapons, durWeapon, 'cubic-bezier(0.16, 0.84, 0.22, 1)');
+        }, tWeaponStart);
+
+        scheduleSpin(() => {
+            setActiveRingGlow(null);
+            lockStep('weapon', 'weapons', folio.weapon_id, folio.weapon_name);
+        }, tWeaponDone);
+
+        // Phase 3 : Pouvoirs (décélération dramatique sur les 4% Mythiques)
+        scheduleSpin(() => {
+            setActiveRingGlow('powers');
+            setStepActive('power');
+            state.rotations.powers = computeNextRotation(state.rotations.powers, powerGeo.midDeg, isMythicPower ? 5 : 4, true);
+            const powerEase = isMythicPower
+                ? 'cubic-bezier(0.08, 0.90, 0.14, 1)'
+                : 'cubic-bezier(0.14, 0.84, 0.20, 1)';
+            applyRingSpin(ringP, state.rotations.powers, durPower, powerEase);
+        }, tPowerStart);
+
+        scheduleSpin(() => {
+            setActiveRingGlow(null);
+            lockStep('power', 'powers', folio.power_id, folio.power_name, folio.power_pigment_hex);
             if (contentEl) {
-                contentEl.innerHTML = `
-                    <div class="ritual-folio-reveal">
-                        <div class="folio-topbar">
-                            <span class="folio-ref">NOUVEAU FOLIO N° ${escapeHtml(folio.folio_number)}</span>
-                            <span class="power-medallion tabular-nums" id="ritual-score-chip" style="opacity:0;">${escapeHtml(folio.power_score)}</span>
-                        </div>
-                        <div class="folio-title-row">
-                            <span class="folio-lettrine">${escapeHtml(folio.initial)}</span>
-                            <div>
-                                <h3 class="folio-name">${escapeHtml(folio.name)}</h3>
-                                <div class="folio-sub">${escapeHtml(folio.race_name)} · ${escapeHtml(folio.weapon_name)} · ${escapeHtml(folio.power_name)}</div>
-                            </div>
-                        </div>
-                        ${renderPortraitHtml(folio)}
-                        <dl class="scribe-list tabular-nums" style="margin-top:8px;">
-                            <div class="scribe-row"><dt>PV / Force</dt><span class="scribe-dots"></span><dd>${folio.hp} PV · ${folio.strength} FOR</dd></div>
-                            <div class="scribe-row"><dt>Vitesse / Défense</dt><span class="scribe-dots"></span><dd>${folio.speed} VIT · ${folio.defense} DEF</dd></div>
-                        </dl>
-                        ${synBadges}
-                        <div class="folio-footer" style="margin-top:10px;">
-                            <p class="folio-note">${escapeHtml(folio.note)}</p>
-                            <span id="ritual-wax-chip" class="rarity-wax-chip" style="--seal-hex:${escapeHtml(folio.seal_hex)};opacity:0;">${escapeHtml(folio.rarity_label)}</span>
-                        </div>
-                    </div>
-                `;
+                contentEl.className = 'ritual-idle';
+                contentEl.innerHTML = renderPowerSigilSvg(folio.power_id, folio.power_pigment_hex, 'ritual-sigil-trace');
             }
-        }, revealDelay);
+        }, tPowerDone);
 
-        window.setTimeout(() => {
-            const scoreChip = document.getElementById('ritual-score-chip');
-            const waxChip = document.getElementById('ritual-wax-chip');
-            if (scoreChip) {
-                scoreChip.style.opacity = '1';
-                scoreChip.classList.add('wax-stamp-drop');
-            }
-            if (waxChip) {
-                waxChip.style.opacity = '1';
-                waxChip.classList.add('wax-stamp-drop');
-            }
-
-            state.pendingFolio = folio;
-            state.hud.pity_counter = isLuckySpin
+        // Phase 4 : Révélation stricte après l'arrêt complet du dernier anneau
+        scheduleSpin(() => {
+            store.pendingFolio = folio;
+            store.hud.pity_counter = isLuckySpin
                 ? 0
-                : Math.min(Number(state.hud.pity_threshold || 10), Number(state.hud.pity_counter || 0) + 1);
-            renderHud();
-
-            const transmuteBtn = document.getElementById('btn-transmute-folio');
-            if (transmuteBtn) {
-                transmuteBtn.textContent = `Transmuter (+${folio.recycle_value} écus)`;
-            }
-            if (actionsEl) actionsEl.hidden = false;
-            if (statusEl) {
-                const pityNote = isPityReady() ? ' · Grand Rituel (10/10) prêt pour la prochaine invocation !' : '';
-                statusEl.textContent = `Cachet ${folio.rarity_label} apposé — Power Score ${folio.power_score}.${pityNote}`;
-            }
-            setVolvelleControlsDisabled(false);
+                : Math.min(Number(store.hud.pity_threshold || 10), Number(store.hud.pity_counter || 0) + 1);
             state.spinning = false;
-        }, stampDelay);
+            saveStore();
+            showRevealedFolio(folio, true);
+            renderHud();
+            renderEmergencyBar();
+        }, tReveal);
+    };
+
+    const resolvePendingFolio = (action) => {
+        if (!store.pendingFolio || state.spinning) {
+            return;
+        }
+
+        const folio = store.pendingFolio;
+        const statusEl = document.getElementById('ritual-status');
+        store.pendingFolio = null;
+
+        if (action === 'seal') {
+            if (store.sourceMode === 'connected' && DATA.isAuthenticated) {
+                store.connectedSealedFolios.unshift(folio);
+            } else {
+                store.showcaseSealedFolios.unshift(folio);
+            }
+            if (statusEl) {
+                const grimoireUrl = DATA.routes?.grimoire || '/newda/grimoire';
+                statusEl.innerHTML = `${escapeHtml(folio.name)} scellé · <a href="${escapeHtml(grimoireUrl)}">Voir le Grimoire →</a>`;
+            }
+        } else {
+            const gained = Number(folio.recycle_value || 0);
+            store.hud.coins = Number(store.hud.coins || 0) + gained;
+            if (statusEl) {
+                statusEl.textContent = `+${gained} écus`;
+            }
+        }
+
+        saveStore();
+        resetSequenceSteps();
+        renderIdleRitual();
+        if (state.renderedLuckyRing !== isPityReady()) {
+            drawPowerRing(isPityReady());
+        }
+        renderHud();
+        renderEmergencyBar();
+    };
+
+    const resetRingTransforms = () => {
+        ['powers', 'weapons', 'races'].forEach((name) => {
+            state.rotations[name] = 0;
+            const el = document.getElementById(`ring-${name}`);
+            if (el) {
+                el.style.transitionDuration = '0ms';
+                el.style.transform = 'rotate(0deg)';
+                void el.getBoundingClientRect();
+            }
+        });
+    };
+
+    const snapRingsToFolio = (folio) => {
+        const targets = [
+            ['races', folio.race_id],
+            ['weapons', folio.weapon_id],
+            ['powers', folio.power_id],
+        ];
+        targets.forEach(([name, id]) => {
+            const el = document.getElementById(`ring-${name}`);
+            const geo = (state.ringsGeometry[name] || []).find((g) => g.id === id);
+            if (!el || !geo) return;
+            const angle = (360 - (geo.midDeg % 360) + 360) % 360;
+            state.rotations[name] = angle;
+            el.style.transitionDuration = '0ms';
+            el.style.transform = `rotate(${angle}deg)`;
+            void el.getBoundingClientRect();
+        });
+    };
+
+    const hydrateInvocationPage = () => {
+        if (store.pendingFolio) {
+            const f = store.pendingFolio;
+            const ringLucky = typeof f.was_lucky_spin === 'boolean'
+                ? f.was_lucky_spin
+                : (f.power_tier !== 'common' && isPityReady());
+            drawAllVolvelleRings(ringLucky);
+            snapRingsToFolio(f);
+            lockStep('race', 'races', f.race_id, f.race_name);
+            lockStep('weapon', 'weapons', f.weapon_id, f.weapon_name);
+            lockStep('power', 'powers', f.power_id, f.power_name, f.power_pigment_hex);
+            showRevealedFolio(f, false);
+        } else {
+            drawAllVolvelleRings();
+        }
+        renderEmergencyBar();
     };
 
     /* ======================================================================
-       BANC D'ESSAI PAPER DOLL (Chapitre III)
+       PAGE 2 — GRIMOIRE
        ====================================================================== */
 
-    const updateBench = () => {
-        const weaponId = document.getElementById('bench-weapon')?.value || 'sword';
-        const powerId = document.getElementById('bench-power')?.value || 'lightning';
-        const rarityVal = document.getElementById('bench-rarity')?.value || 'epic';
-
-        const power = POWER_BY_ID[powerId] || POWERS[0];
-        const rarity = RARITY_BY_VAL[rarityVal] || RARITIES[0];
-        const layers = (PAPER_DOLL_MAP[weaponId] && PAPER_DOLL_MAP[weaponId][powerId]) || {
-            race: null, weapon: null, aura: null, is_invisibility: false, is_pale_aura: false,
-        };
-
-        const stageEl = document.getElementById('bench-stage');
-        const sigilSlot = document.getElementById('bench-sigil-slot');
-        const dollEl = document.getElementById('bench-doll');
-        const imgRace = document.getElementById('bench-img-race');
-        const imgWeapon = document.getElementById('bench-img-weapon');
-        const imgAura = document.getElementById('bench-img-aura');
-        const diagEl = document.getElementById('bench-diagnostic');
-
-        if (stageEl) {
-            stageEl.classList.toggle('is-cosmos', state.benchCosmos);
-            stageEl.style.borderColor = state.benchCosmos ? '#334155' : rarity.seal_hex;
-        }
-        if (sigilSlot) {
-            sigilSlot.innerHTML = powerSigilSvg(power.id, power.pigment_hex);
-        }
-        if (dollEl) {
-            dollEl.style.setProperty('--halo-pigment', power.pigment_soft);
-            dollEl.classList.toggle('is-contrast-halo', state.benchHalo && !state.benchCosmos && layers.is_pale_aura);
-        }
-        if (imgRace && layers.race) {
-            imgRace.src = layers.race;
-        }
-        if (imgWeapon) {
-            if (layers.weapon) {
-                imgWeapon.src = layers.weapon;
-                imgWeapon.hidden = false;
-            } else {
-                imgWeapon.hidden = true;
-            }
-        }
-        if (imgAura) {
-            if (layers.aura) {
-                imgAura.src = layers.aura;
-                imgAura.hidden = false;
-                imgAura.classList.toggle('is-pale-aura', Boolean(layers.is_pale_aura));
-            } else {
-                imgAura.hidden = true;
-            }
-        }
-        if (diagEl) {
-            const parts = ['<code>human.webp</code>'];
-            if (layers.weapon) {
-                parts.push(`<code>${escapeHtml(weaponId)}.webp</code>`);
-            } else if (layers.is_invisibility) {
-                parts.push('<em>arme de base masquée (règle Invisibilité)</em>');
-            } else {
-                parts.push(`<em>${escapeHtml(weaponId)} sans asset WebP</em>`);
-            }
-            if (layers.aura) {
-                parts.push(`<code>${escapeHtml(weaponId)}_${escapeHtml(powerId)}.webp</code>`);
-            }
-            const note = layers.is_pale_aura
-                ? (state.benchHalo ? 'Aura pâle détectée : halo sépia + contour d\'encre actifs (sans mix-blend-screen).' : 'Halo contraste désactivé : comparez la perte de lisibilité sur vélin clair.')
-                : (layers.is_invisibility ? 'Règle PaperDollService active : seul l\'outline translucide est affiché.' : `Rendu standard sur ${state.benchCosmos ? 'fond Cosmos sombre' : 'vélin Codex'} (cachet ${escapeHtml(rarity.label)}).`);
-            diagEl.innerHTML = `<strong>Diagnostic PaperDollService :</strong> ${parts.join(' + ')}. ${note}`;
-        }
-    };
-
-    /* ======================================================================
-       GALERIE 3D & MODE CONNECTÉ LECTURE SEULE
-       ====================================================================== */
-
-    const getCurrentPool = () => {
-        if (state.mode === 'connected' && DATA.connected) {
-            return DATA.connected.folios || [];
-        }
-        return state.sessionFolios;
-    };
-
-    const renderGallery = () => {
+    const renderGrimoire = () => {
         const gridEl = document.getElementById('folios-grid');
         const emptyEl = document.getElementById('gallery-empty-state');
-        const countEl = document.getElementById('gallery-count-label');
         if (!gridEl) {
             return;
         }
 
-        const pool = getCurrentPool();
+        const pool = getActivePool();
         const filtered = state.rarityFilter === 'all'
             ? pool
             : pool.filter((f) => f.rarity === state.rarityFilter);
 
-        gridEl.innerHTML = filtered.map(renderFolioCardHtml).join('');
+        const counts = { all: pool.length };
+        pool.forEach((f) => {
+            counts[f.rarity] = (counts[f.rarity] || 0) + 1;
+        });
+        document.querySelectorAll('[data-filter-count]').forEach((el) => {
+            const key = el.getAttribute('data-filter-count') || 'all';
+            el.textContent = String(counts[key] || 0);
+        });
+
+        const sourceBadge = document.getElementById('grimoire-source-badge');
+        if (sourceBadge) {
+            sourceBadge.hidden = !(DATA.isAuthenticated && store.sourceMode === 'showcase');
+        }
+
+        const isEmpty = filtered.length === 0;
+        gridEl.hidden = isEmpty;
+        gridEl.innerHTML = isEmpty ? '' : filtered.map((f) => renderFolioCardHtml(f)).join('');
 
         if (emptyEl) {
-            const isEmpty = filtered.length === 0;
             emptyEl.hidden = !isEmpty;
             if (isEmpty) {
                 const isFilteredOut = pool.length > 0 && state.rarityFilter !== 'all';
                 const titleEl = document.getElementById('gallery-empty-title');
-                const descEl = document.getElementById('gallery-empty-desc');
                 const ctaEl = document.getElementById('gallery-empty-cta');
                 const resetBtn = document.getElementById('gallery-reset-filter-btn');
                 if (titleEl) {
-                    titleEl.innerHTML = isFilteredOut
-                        ? '<strong>Aucun Folio de cette rareté</strong> — Ce filtre ne renvoie aucune entrée dans le chapitre courant.'
-                        : '<strong>Folio vierge</strong> — Aucune entité n\'a encore été scellée dans ce chapitre.';
-                }
-                if (descEl) {
-                    descEl.textContent = isFilteredOut
-                        ? 'Réinitialisez le filtre pour réafficher l\'ensemble des Folios consignés.'
-                        : 'Pressez le Sceau-Volvelle au Chapitre II pour imprimer votre premier héros dans le Grimoire.';
+                    titleEl.textContent = isFilteredOut ? 'Aucun folio dans cette rareté' : 'Grimoire vierge';
                 }
                 if (ctaEl) ctaEl.hidden = isFilteredOut;
                 if (resetBtn) resetBtn.hidden = !isFilteredOut;
             }
         }
-        const showcaseToggleBtn = document.querySelector('[data-source-toggle="showcase"]');
-        if (showcaseToggleBtn) {
-            showcaseToggleBtn.textContent = `Mode Vitrine (${state.sessionFolios.length})`;
-        }
-        if (countEl) {
-            const suffix = state.mode === 'connected' && DATA.connected
-                ? ` · Grimoire de ${DATA.connected.user_name} (lecture seule)`
-                : '';
-            countEl.textContent = `${filtered.length} Folio${filtered.length > 1 ? 's' : ''} affiché${filtered.length > 1 ? 's' : ''}${suffix}`;
-        }
     };
 
     /* ======================================================================
-       DUEL SUR L'ÉTABLI (Chapitre IV)
+       PAGE 3 — ARÈNE
        ====================================================================== */
 
-    const populateDuelSelectors = () => {
+    const clearDuelTimers = () => {
+        state.duelTimers.forEach((id) => window.clearTimeout(id));
+        state.duelTimers = [];
+        state.duelRunning = false;
+        const runBtn = document.getElementById('btn-run-duel');
+        if (runBtn) runBtn.disabled = false;
+    };
+
+    const getArenaPool = () => {
+        const active = getActivePool();
+        if (active.length >= 2) {
+            return active;
+        }
+        return state.arenaDemoMode ? (DATA.showcaseFolios || []) : active;
+    };
+
+    const getArenaFolio = (selectId, fallbackIdx) => {
+        const pool = getArenaPool();
+        const val = document.getElementById(selectId)?.value;
+        return pool.find((f) => f.id === val) || pool[fallbackIdx] || pool[0];
+    };
+
+    const renderSingleDuelCard = (container, folio, currentHp) => {
+        if (!container || !folio) {
+            return;
+        }
+        const hp = Math.max(0, currentHp);
+        const pct = Math.max(0, Math.min(100, Math.round((hp / folio.hp) * 100)));
+        container.style.setProperty('--duel-glow', folio.power_pigment_hex);
+        container.innerHTML = `
+            <span class="duel-stamp duel-stamp--win">VICTORIEUX</span>
+            <span class="duel-stamp duel-stamp--lose">VAINCU</span>
+            <div class="folio-head" style="margin-bottom:8px;">
+                <h3 class="folio-name">${escapeHtml(folio.name)}</h3>
+                <span class="power-medallion tabular-nums">${escapeHtml(folio.power_score)}</span>
+            </div>
+            ${renderPortraitHtml(folio)}
+            <div style="margin-top:10px;">
+                ${renderTraitPillsHtml(folio)}
+            </div>
+            <div class="stat-bars tabular-nums" style="margin-top:10px;">
+                <div class="stat-bar-row">
+                    <span class="stat-bar-label">PV</span>
+                    <div class="stat-track"><div class="stat-fill stat-fill--hp" data-duel-bar style="width:${pct}%;"></div></div>
+                    <span class="stat-val" data-duel-hp>${hp}<small>/${folio.hp}</small></span>
+                </div>
+            </div>
+        `;
+    };
+
+    const renderDuelCards = () => {
+        clearDuelTimers();
+        const pool = getArenaPool();
+        if (pool.length < 2) {
+            return;
+        }
+        const leftEl = document.getElementById('duel-card-left');
+        const rightEl = document.getElementById('duel-card-right');
+        const chronicleEl = document.getElementById('duel-chronicle');
+        const leftFolio = getArenaFolio('duel-left-select', 0);
+        const rightFolio = getArenaFolio('duel-right-select', Math.min(4, pool.length - 1));
+
+        [leftEl, rightEl].forEach((el) => el && el.classList.remove('is-winner', 'is-loser', 'is-channeling', 'is-hit'));
+        renderSingleDuelCard(leftEl, leftFolio, leftFolio.hp);
+        renderSingleDuelCard(rightEl, rightFolio, rightFolio.hp);
+        if (chronicleEl) {
+            chronicleEl.innerHTML = '';
+        }
+    };
+
+    const syncArenaView = () => {
+        const banner = document.getElementById('arena-insufficient-banner');
+        const wrap = document.getElementById('arena-workbench-wrap');
+        const demoBar = document.getElementById('arena-demo-bar');
         const leftSel = document.getElementById('duel-left-select');
         const rightSel = document.getElementById('duel-right-select');
-        if (!leftSel || !rightSel) {
+        if (!banner || !wrap || !leftSel || !rightSel) {
             return;
         }
 
-        const pool = getCurrentPool().length >= 2 ? getCurrentPool() : state.sessionFolios;
+        const realPool = getActivePool();
+        const usingDemo = realPool.length < 2 && state.arenaDemoMode;
+        const pool = usingDemo ? (DATA.showcaseFolios || []) : realPool;
+        const canFight = pool.length >= 2;
+
+        banner.hidden = canFight;
+        wrap.hidden = !canFight;
+        if (demoBar) {
+            demoBar.hidden = !usingDemo;
+        }
+        if (!canFight) {
+            clearDuelTimers();
+            return;
+        }
+
         const prevLeft = leftSel.value;
         const prevRight = rightSel.value;
-
         const opts = pool.map((f) => `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)} (${escapeHtml(f.power_score)})</option>`).join('');
         leftSel.innerHTML = opts;
         rightSel.innerHTML = opts;
@@ -865,90 +1259,75 @@
             rightSel.value = pool[1].id;
         }
 
+        if (leftSel.value === rightSel.value && pool.length >= 2) {
+            const alternate = pool.find((f) => f.id !== leftSel.value);
+            if (alternate) {
+                rightSel.value = alternate.id;
+            }
+        }
+
+        state.prevArenaLeft = leftSel.value;
+        state.prevArenaRight = rightSel.value;
+
         renderDuelCards();
     };
 
-    const getDuelFolio = (selectId, fallbackIdx) => {
-        const pool = getCurrentPool().length >= 2 ? getCurrentPool() : state.sessionFolios;
-        const val = document.getElementById(selectId)?.value;
-        return pool.find((f) => f.id === val) || pool[fallbackIdx] || pool[0];
-    };
-
-    const renderSingleDuelCard = (container, folio, currentHp) => {
-        if (!container || !folio) {
+    const handleArenaSelectionChange = (changedSide) => {
+        const leftSel = document.getElementById('duel-left-select');
+        const rightSel = document.getElementById('duel-right-select');
+        const pool = getArenaPool();
+        if (!leftSel || !rightSel || pool.length < 2) {
+            renderDuelCards();
             return;
         }
-        const hp = Math.max(0, currentHp);
-        const pct = Math.max(0, Math.min(100, Math.round((hp / folio.hp) * 100)));
-        container.style.setProperty('--duel-glow', folio.power_pigment_hex);
-        container.innerHTML = `
-            <span class="duel-stamp duel-stamp--win">VICTORIEUX</span>
-            <span class="duel-stamp duel-stamp--lose">VAINCU</span>
-            <div class="folio-topbar">
-                <span class="folio-ref">${escapeHtml(folio.race_name)} · ${escapeHtml(folio.weapon_name)}</span>
-                <span class="power-medallion tabular-nums">${escapeHtml(folio.power_score)}</span>
-            </div>
-            <h3 class="folio-name" style="margin-bottom:8px;">${escapeHtml(folio.name)}</h3>
-            ${renderPortraitHtml(folio)}
-            <div class="ink-stat-list tabular-nums" style="margin-top:10px;margin-bottom:4px;">
-                <div>
-                    <div class="ink-stat-head">
-                        <span>Vitalité</span>
-                        <span data-duel-hp>${hp} / ${folio.hp} PV</span>
-                    </div>
-                    <div class="ink-meter"><div class="ink-meter-fill ink-meter-fill--hp" data-duel-bar style="width:${pct}%;"></div></div>
-                </div>
-            </div>
-            <div class="folio-sub" style="color:${escapeHtml(folio.power_pigment_hex)};">
-                Sceau : ${escapeHtml(folio.power_name)} (${escapeHtml(folio.power_pigment_name)})
-            </div>
-        `;
-    };
 
-    const clearDuelTimers = () => {
-        state.duelTimers.forEach((id) => window.clearTimeout(id));
-        state.duelTimers = [];
-        state.duelRunning = false;
-    };
-
-    const renderDuelCards = () => {
-        clearDuelTimers();
-        const leftEl = document.getElementById('duel-card-left');
-        const rightEl = document.getElementById('duel-card-right');
-        const chronicleEl = document.getElementById('duel-chronicle');
-        const leftFolio = getDuelFolio('duel-left-select', 0);
-        const rightFolio = getDuelFolio('duel-right-select', 4);
-
-        [leftEl, rightEl].forEach((el) => el && el.classList.remove('is-winner', 'is-loser', 'is-channeling'));
-        renderSingleDuelCard(leftEl, leftFolio, leftFolio.hp);
-        renderSingleDuelCard(rightEl, rightFolio, rightFolio.hp);
-        if (chronicleEl) {
-            chronicleEl.innerHTML = '<p><em>Les deux parchemins reposent face à face sur le chêne sombre. Brisez leurs sceaux pour libérer leurs pouvoirs.</em></p>';
+        if (leftSel.value === rightSel.value) {
+            if (changedSide === 'left') {
+                const swapCandidate = pool.some((f) => f.id === state.prevArenaLeft && f.id !== leftSel.value)
+                    ? state.prevArenaLeft
+                    : (pool.find((f) => f.id !== leftSel.value)?.id || rightSel.value);
+                rightSel.value = swapCandidate;
+            } else {
+                const swapCandidate = pool.some((f) => f.id === state.prevArenaRight && f.id !== rightSel.value)
+                    ? state.prevArenaRight
+                    : (pool.find((f) => f.id !== rightSel.value)?.id || leftSel.value);
+                leftSel.value = swapCandidate;
+            }
         }
+
+        state.prevArenaLeft = leftSel.value;
+        state.prevArenaRight = rightSel.value;
+        renderDuelCards();
     };
 
     const runDuelSimulation = () => {
         if (state.duelRunning) {
             return;
         }
+        const pool = getArenaPool();
+        if (pool.length < 2) {
+            return;
+        }
         renderDuelCards();
         state.duelRunning = true;
+        const runBtn = document.getElementById('btn-run-duel');
+        if (runBtn) runBtn.disabled = true;
 
-        const leftFolio = getDuelFolio('duel-left-select', 0);
-        const rightFolio = getDuelFolio('duel-right-select', 4);
+        const leftFolio = getArenaFolio('duel-left-select', 0);
+        const rightFolio = getArenaFolio('duel-right-select', Math.min(4, pool.length - 1));
         const leftEl = document.getElementById('duel-card-left');
         const rightEl = document.getElementById('duel-card-right');
         const chronicleEl = document.getElementById('duel-chronicle');
         if (chronicleEl) chronicleEl.innerHTML = '';
 
         const fighters = [
-            { side: 'left', folio: leftFolio, hp: leftFolio.hp, el: leftEl },
-            { side: 'right', folio: rightFolio, hp: rightFolio.hp, el: rightEl },
+            { folio: leftFolio, hp: leftFolio.hp, el: leftEl },
+            { folio: rightFolio, hp: rightFolio.hp, el: rightEl },
         ];
 
         const firstIdx = fighters[0].folio.speed >= fighters[1].folio.speed ? 0 : 1;
         const turns = [];
-        let simHp = [fighters[0].hp, fighters[1].hp];
+        const simHp = [fighters[0].hp, fighters[1].hp];
 
         for (let round = 1; round <= 6 && simHp[0] > 0 && simHp[1] > 0; round++) {
             const order = [firstIdx, 1 - firstIdx];
@@ -968,184 +1347,444 @@
                     defIdx,
                     dmg,
                     remainingHp: simHp[defIdx],
-                    line: `Tour ${round} — Le sceau ${atk.power_name} de ${atk.name} s'embrase (${atk.weapon_name}) et inflige ${dmg} dégâts à ${def.name} (${simHp[defIdx]} PV restants).`,
                 });
             }
         }
 
         const winnerIdx = simHp[0] >= simHp[1] ? 0 : 1;
-        const stepMs = prefersReducedMotion ? 40 : 620;
+        const stepMs = prefersReducedMotion ? 40 : 540;
 
         turns.forEach((turn, idx) => {
             const tId = window.setTimeout(() => {
                 const atkF = fighters[turn.atkIdx];
                 const defF = fighters[turn.defIdx];
-                fighters.forEach((f) => f.el && f.el.classList.remove('is-channeling'));
+                fighters.forEach((f) => f.el && f.el.classList.remove('is-channeling', 'is-hit'));
                 if (atkF.el) atkF.el.classList.add('is-channeling');
-
                 if (defF.el) {
+                    void defF.el.offsetWidth;
+                    defF.el.classList.add('is-hit');
                     const hpSpan = defF.el.querySelector('[data-duel-hp]');
                     const hpBar = defF.el.querySelector('[data-duel-bar]');
-                    if (hpSpan) hpSpan.textContent = `${turn.remainingHp} / ${defF.folio.hp} PV`;
+                    if (hpSpan) hpSpan.innerHTML = `${turn.remainingHp}<small>/${defF.folio.hp}</small>`;
                     if (hpBar) hpBar.style.width = `${Math.max(0, Math.round((turn.remainingHp / defF.folio.hp) * 100))}%`;
                 }
                 if (chronicleEl) {
-                    const p = document.createElement('p');
-                    p.textContent = turn.line;
-                    chronicleEl.appendChild(p);
+                    const row = document.createElement('div');
+                    row.className = 'duel-log-row tabular-nums';
+                    row.innerHTML = `
+                        <span class="duel-log-round">T${turn.round}</span>
+                        <span style="color:${escapeHtml(atkF.folio.power_pigment_hex)};display:inline-flex;">
+                            ${renderHtmlIcon('powers', atkF.folio.power_id, 'duel-log-icon', atkF.folio.power_name)}
+                        </span>
+                        <span>${escapeHtml(atkF.folio.name)}</span>
+                        <span class="duel-log-dmg">-${turn.dmg} PV</span>
+                        <span class="duel-log-hp">${turn.remainingHp} PV</span>
+                    `;
+                    chronicleEl.appendChild(row);
                 }
             }, idx * stepMs);
             state.duelTimers.push(tId);
         });
 
         const endTimer = window.setTimeout(() => {
-            fighters.forEach((f) => f.el && f.el.classList.remove('is-channeling'));
+            fighters.forEach((f) => f.el && f.el.classList.remove('is-channeling', 'is-hit'));
             const winner = fighters[winnerIdx];
             const loser = fighters[1 - winnerIdx];
             if (winner.el) winner.el.classList.add('is-winner');
             if (loser.el) loser.el.classList.add('is-loser');
+
+            const mults = CONFIG.workshop?.arena_bonus?.multipliers || [1.25, 1.5, 2.0];
+            const bonusLvl = Math.max(0, Number(store.workshop.arena_bonus || 0));
+            const multiplier = bonusLvl > 0 ? Number(mults[bonusLvl - 1] || 1) : 1;
+            const baseWinCoins = Number(CONFIG.rewards?.win_coins_base ?? 65);
+            const rewardCoins = Math.round(baseWinCoins * multiplier);
+
+            store.hud.coins = Number(store.hud.coins || 0) + rewardCoins;
+            saveStore();
+            renderHud();
+
             if (chronicleEl) {
-                const p = document.createElement('p');
-                p.innerHTML = `<strong>Verdict de l'Établi :</strong> ${escapeHtml(winner.folio.name)} triomphe et reçoit le sceau doré <em>VICTORIEUX</em>.`;
-                chronicleEl.appendChild(p);
+                const row = document.createElement('div');
+                row.className = 'duel-log-row duel-log-row--verdict tabular-nums';
+                row.innerHTML = `
+                    <span>✦ ${escapeHtml(winner.folio.name)}</span>
+                    <span class="duel-log-dmg" style="color:var(--gold-dark);">+${rewardCoins} écus</span>
+                `;
+                chronicleEl.appendChild(row);
             }
             state.duelRunning = false;
-        }, turns.length * stepMs + 220);
+            const doneRunBtn = document.getElementById('btn-run-duel');
+            if (doneRunBtn) doneRunBtn.disabled = false;
+        }, turns.length * stepMs + 180);
         state.duelTimers.push(endTimer);
     };
 
     /* ======================================================================
-       ÉCOUTEURS D'ÉVÉNEMENTS & SIGNETS SCROLLSPY
+       PAGE 4 — RANG (5 LIGUES & MODALE D'INSPECTION)
        ====================================================================== */
 
-    const bindEvents = () => {
-        // Volvelle controls
-        const btnAll = document.getElementById('btn-pool-all');
-        const btnHuman = document.getElementById('btn-pool-human');
-        if (btnAll && btnHuman) {
-            btnAll.addEventListener('click', () => {
-                if (state.spinning) return;
-                state.humanOnlyPool = false;
-                btnAll.classList.add('is-active');
-                btnHuman.classList.remove('is-active');
-                drawAllVolvelleRings();
-            });
-            btnHuman.addEventListener('click', () => {
-                if (state.spinning) return;
-                state.humanOnlyPool = true;
-                btnHuman.classList.add('is-active');
-                btnAll.classList.remove('is-active');
-                drawAllVolvelleRings();
-            });
+    const findRivalById = (rivalId) => {
+        const standings = DATA.standingsByLeague || {};
+        for (const leagueKey of Object.keys(standings)) {
+            const match = (standings[leagueKey] || []).find((entry) => entry.id === rivalId);
+            if (match) {
+                return match;
+            }
         }
+        return null;
+    };
+
+    const renderLeaderboardLeague = (leagueValue) => {
+        const podiumEl = document.getElementById('rang-podium');
+        const tableEl = document.getElementById('rang-table');
+        if (!podiumEl || !tableEl) {
+            return;
+        }
+
+        state.activeLeague = leagueValue;
+        document.querySelectorAll('[data-league-tab]').forEach((tab) => {
+            const active = tab.getAttribute('data-league-tab') === leagueValue;
+            tab.classList.toggle('is-active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            tab.setAttribute('tabindex', active ? '0' : '-1');
+        });
+        const panelEl = document.getElementById('rang-tabpanel');
+        if (panelEl) {
+            panelEl.setAttribute('aria-labelledby', `league-tab-${leagueValue}`);
+        }
+
+        const entries = (DATA.standingsByLeague && DATA.standingsByLeague[leagueValue]) || [];
+        const top3 = entries.slice(0, 3);
+        const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
+        const rest = entries.slice(3);
+
+        podiumEl.innerHTML = podiumOrder.map((entry) => `
+            <button
+                type="button"
+                class="podium-card podium-card--rank-${entry.rank}"
+                data-inspect-rival="${escapeHtml(entry.id)}"
+                style="--league-color:${escapeHtml(entry.league_color)};"
+            >
+                <span class="podium-rank tabular-nums">#${entry.rank}</span>
+                <strong class="podium-name">${escapeHtml(entry.name)}</strong>
+                <span class="podium-elo tabular-nums">${Number(entry.elo).toLocaleString('fr-FR')}</span>
+                <span class="podium-hero-chip">
+                    ${renderHtmlIcon('races', entry.champion.race_id, 'podium-mini-icon', entry.champion.race_name)}
+                    <span>${escapeHtml(entry.champion.name)}</span>
+                </span>
+            </button>
+        `).join('');
+
+        tableEl.innerHTML = rest.map((entry) => `
+            <div class="rang-row">
+                <span class="rang-pos tabular-nums">#${entry.rank}</span>
+                <span class="rang-name">${escapeHtml(entry.name)}</span>
+                <span class="rang-hero">
+                    ${renderHtmlIcon('races', entry.champion.race_id, 'rang-mini-icon', entry.champion.race_name)}
+                    <span>${escapeHtml(entry.champion.name)}</span>
+                </span>
+                <span class="rang-winrate tabular-nums" title="${entry.wins}V / ${entry.losses}D">${entry.winrate}%</span>
+                <span class="rang-elo tabular-nums">${Number(entry.elo).toLocaleString('fr-FR')}</span>
+                <button type="button" class="rang-inspect-btn" data-inspect-rival="${escapeHtml(entry.id)}" aria-label="Inspecter ${escapeHtml(entry.name)}" title="Inspecter">
+                    <svg class="hud-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2 12 Q12 4 22 12 Q12 20 2 12 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="12" cy="12" r="3.2" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+    };
+
+    const openRivalInspector = (rivalId, triggerEl = null) => {
+        const modal = document.getElementById('rang-inspector-modal');
+        const titleEl = document.getElementById('inspector-title');
+        const metaEl = document.getElementById('inspector-meta');
+        const bodyEl = document.getElementById('inspector-body');
+        const rival = findRivalById(rivalId);
+        if (!modal || !rival) {
+            return;
+        }
+
+        state.lastInspectorTrigger = triggerEl || document.activeElement;
+        if (titleEl) titleEl.textContent = rival.name;
+        if (metaEl) metaEl.textContent = `${rival.league_label} · ${Number(rival.elo).toLocaleString('fr-FR')} Élo · ${rival.wins}V / ${rival.losses}D`;
+        if (bodyEl) {
+            bodyEl.innerHTML = `
+                ${renderPortraitHtml(rival.champion)}
+                <div style="text-align:center;">
+                    <strong class="folio-name">${escapeHtml(rival.champion.name)}</strong>
+                </div>
+                ${renderTraitPillsHtml(rival.champion)}
+                ${renderStatBarsHtml(rival.champion)}
+            `;
+        }
+        modal.hidden = false;
+        document.getElementById('btn-inspector-close')?.focus();
+    };
+
+    const closeRivalInspector = (restoreFocus = false) => {
+        const modal = document.getElementById('rang-inspector-modal');
+        if (!modal || modal.hidden) {
+            return;
+        }
+        modal.hidden = true;
+        const trigger = state.lastInspectorTrigger;
+        state.lastInspectorTrigger = null;
+        if (restoreFocus && trigger && typeof trigger.focus === 'function' && document.contains(trigger)) {
+            trigger.focus();
+        }
+    };
+
+    /* ======================================================================
+       PAGE 5 — ATELIER (3 CARTES SYMÉTRIQUES INTERACTIVES)
+       ====================================================================== */
+
+    const renderWorkshop = (justBoughtKey = null) => {
+        const grid = document.getElementById('workshop-cards-grid');
+        if (!grid || !DATA.workshopCards) {
+            return;
+        }
+
+        const coins = Number(store.hud.coins || 0);
+
+        DATA.workshopCards.forEach((card) => {
+            const el = grid.querySelector(`[data-workshop-card="${card.key}"]`);
+            if (!el) return;
+
+            const lvl = Math.min(card.max_level, Math.max(0, Number(store.workshop[card.key] || 0)));
+            const isMaxed = lvl >= card.max_level;
+            const nextCost = isMaxed ? null : Number(card.costs[lvl] || 0);
+            const canAfford = !isMaxed && coins >= nextCost;
+
+            el.classList.toggle('is-maxed', isMaxed);
+            if (justBoughtKey === card.key) {
+                el.classList.remove('is-just-bought');
+                void el.offsetWidth;
+                el.classList.add('is-just-bought');
+            }
+
+            const lvlEl = el.querySelector('[data-ws-level]');
+            if (lvlEl) lvlEl.textContent = `${lvl}/${card.max_level}`;
+
+            const segsEl = el.querySelector('[data-ws-segments]');
+            if (segsEl) {
+                let segs = '';
+                for (let i = 1; i <= card.max_level; i++) {
+                    segs += `<span class="workshop-seg ${i <= lvl ? 'is-filled' : ''}"></span>`;
+                }
+                segsEl.innerHTML = segs;
+            }
+
+            const bonusEl = el.querySelector('[data-ws-bonus]');
+            if (bonusEl) {
+                if (card.key === 'rare_magnet') {
+                    const cur = lvl * card.bonus_per_level;
+                    const nxt = (lvl + 1) * card.bonus_per_level;
+                    bonusEl.innerHTML = `<span class="ws-current">+${cur}% Mythique</span>${isMaxed ? '' : `<span class="ws-arrow">→</span><span class="ws-next">+${nxt}%</span>`}`;
+                } else if (card.key === 'hero_forge') {
+                    const curHp = lvl * card.bonus_hp;
+                    const curStr = lvl * card.bonus_str;
+                    const nxtHp = (lvl + 1) * card.bonus_hp;
+                    const nxtStr = (lvl + 1) * card.bonus_str;
+                    bonusEl.innerHTML = `<span class="ws-current">+${curHp} PV · +${curStr} FOR</span>${isMaxed ? '' : `<span class="ws-arrow">→</span><span class="ws-next">+${nxtHp} · +${nxtStr}</span>`}`;
+                } else {
+                    const curMult = lvl > 0 ? Number(card.multipliers[lvl - 1]) : 1;
+                    const nxtMult = !isMaxed ? Number(card.multipliers[lvl]) : null;
+                    const fmt = (n) => n.toFixed(2).replace('.', ',');
+                    bonusEl.innerHTML = `<span class="ws-current">×${fmt(curMult)} Arène</span>${nxtMult !== null ? `<span class="ws-arrow">→</span><span class="ws-next">×${fmt(nxtMult)}</span>` : ''}`;
+                }
+            }
+
+            const btn = el.querySelector('[data-workshop-buy]');
+            if (btn) {
+                btn.disabled = isMaxed || !canAfford;
+                btn.innerHTML = isMaxed
+                    ? '<span>Max</span>'
+                    : `<span>Améliorer · ${nextCost.toLocaleString('fr-FR')}</span>`;
+            }
+        });
+    };
+
+    const purchaseWorkshopUpgrade = (key) => {
+        const card = (DATA.workshopCards || []).find((c) => c.key === key);
+        if (!card) return;
+
+        const lvl = Math.max(0, Number(store.workshop[key] || 0));
+        if (lvl >= card.max_level) return;
+
+        const cost = Number(card.costs[lvl] || 0);
+        if (Number(store.hud.coins || 0) < cost) return;
+
+        store.hud.coins = Number(store.hud.coins || 0) - cost;
+        store.workshop[key] = lvl + 1;
+        saveStore();
+        renderHud();
+        renderWorkshop(key);
+    };
+
+    /* ======================================================================
+       ÉCOUTEURS D'ÉVÉNEMENTS & TIROIR ⚙ BAC À SABLE
+       ====================================================================== */
+
+    const setSandboxOpen = (open, restoreFocus = false) => {
+        const drawer = document.getElementById('sandbox-drawer');
+        const trigger = document.getElementById('btn-sandbox-toggle');
+        if (!drawer || !trigger) return;
+        const wasOpen = !drawer.hidden;
+        drawer.hidden = !open;
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (!open && wasOpen && restoreFocus) {
+            trigger.focus();
+        }
+    };
+
+    const bindEvents = () => {
+        // Tiroir ⚙ Bac à sable
+        document.getElementById('btn-sandbox-toggle')?.addEventListener('click', () => {
+            const drawer = document.getElementById('sandbox-drawer');
+            setSandboxOpen(drawer ? drawer.hidden : false);
+        });
+        document.getElementById('btn-sandbox-close')?.addEventListener('click', () => setSandboxOpen(false, true));
+
+        document.addEventListener('click', (e) => {
+            const dock = document.querySelector('.sandbox-dock');
+            const drawer = document.getElementById('sandbox-drawer');
+            if (dock && drawer && !drawer.hidden && !dock.contains(e.target)) {
+                setSandboxOpen(false);
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                setSandboxOpen(false, true);
+                closeRivalInspector(true);
+            }
+        });
+
+        document.querySelectorAll('[data-sandbox-pool]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                if (state.spinning) return;
+                store.humanOnlyPool = btn.getAttribute('data-sandbox-pool') === 'human';
+                saveStore();
+                renderHud();
+                drawAllVolvelleRings();
+            });
+        });
 
         document.getElementById('btn-charge-pity')?.addEventListener('click', () => {
             if (state.spinning) return;
-            state.hud.pity_counter = Number(state.hud.pity_threshold || 10);
+            store.hud.pity_counter = Number(store.hud.pity_threshold || 10);
+            saveStore();
             renderHud();
-            drawPowerRing(true);
             const statusEl = document.getElementById('ritual-status');
-            if (statusEl) {
-                statusEl.textContent = 'Grand Rituel chargé (10/10) : Feu et Poison retirés de l\'anneau extérieur !';
+            if (statusEl) statusEl.textContent = '';
+            if (!store.pendingFolio) {
+                drawPowerRing(true);
             }
         });
 
         document.getElementById('btn-refill-ink')?.addEventListener('click', () => {
-            state.hud.spin_charges = Number(state.hud.spin_max || 3);
+            store.hud.spin_charges = Number(store.hud.spin_max || 3);
+            saveStore();
             renderHud();
+            renderEmergencyBar();
             const statusEl = document.getElementById('ritual-status');
-            if (statusEl) {
-                statusEl.textContent = 'Encrier rechargé à 3/3 gouttes d\'encre.';
-            }
+            if (statusEl) statusEl.textContent = '';
         });
 
-        document.getElementById('btn-invoke-seal')?.addEventListener('click', runInvocationRitual);
+        document.getElementById('btn-add-coins')?.addEventListener('click', () => {
+            store.hud.coins = Number(store.hud.coins || 0) + 500;
+            saveStore();
+            renderHud();
+            renderEmergencyBar();
+            renderWorkshop();
+        });
 
-        document.getElementById('btn-seal-folio')?.addEventListener('click', () => {
-            if (!state.pendingFolio) return;
-            state.sessionFolios.unshift(state.pendingFolio);
-            const sealedName = state.pendingFolio.name;
-            state.pendingFolio = null;
-            state.mode = 'showcase';
-            state.rarityFilter = 'all';
-            document.querySelectorAll('[data-source-toggle]').forEach((b) => {
-                b.classList.toggle('is-active', b.getAttribute('data-source-toggle') === 'showcase');
+        document.querySelectorAll('[data-source-toggle]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                if (!DATA.isAuthenticated) return;
+                store.sourceMode = btn.getAttribute('data-source-toggle') === 'showcase' ? 'showcase' : 'connected';
+                state.arenaDemoMode = false;
+                saveStore();
+                renderHud();
+                renderGrimoire();
+                syncArenaView();
             });
+        });
+
+        document.getElementById('btn-sandbox-reset')?.addEventListener('click', () => {
+            clearSpinTimers();
+            clearDuelTimers();
+            state.spinning = false;
+            state.arenaDemoMode = false;
+            state.rarityFilter = 'all';
             document.querySelectorAll('[data-rarity-filter]').forEach((b) => {
                 b.classList.toggle('is-active', b.getAttribute('data-rarity-filter') === 'all');
             });
-            if (state.renderedLuckyRing !== isPityReady()) {
-                drawPowerRing(isPityReady());
-            }
-            renderGallery();
-            populateDuelSelectors();
-            const actionsEl = document.getElementById('ritual-actions');
-            const statusEl = document.getElementById('ritual-status');
-            if (actionsEl) actionsEl.hidden = true;
-            if (statusEl) {
-                statusEl.textContent = `« ${sealedName} » a été scellé dans la galerie du Chapitre III.`;
-            }
-        });
-
-        document.getElementById('btn-transmute-folio')?.addEventListener('click', () => {
-            if (!state.pendingFolio) return;
-            const gained = Number(state.pendingFolio.recycle_value || 0);
-            const name = state.pendingFolio.name;
-            state.hud.coins = Number(state.hud.coins || 0) + gained;
-            state.pendingFolio = null;
-            if (state.renderedLuckyRing !== isPityReady()) {
-                drawPowerRing(isPityReady());
-            }
+            clearStore();
+            setActiveRingGlow(null);
+            resetRingTransforms();
+            resetSequenceSteps();
+            renderIdleRitual();
+            drawAllVolvelleRings();
             renderHud();
-            const actionsEl = document.getElementById('ritual-actions');
+            renderEmergencyBar();
+            renderGrimoire();
+            syncArenaView();
+            renderWorkshop();
+            setSandboxOpen(false);
+        });
+
+        // Tirage / Volvelle
+        document.getElementById('btn-invoke-seal')?.addEventListener('click', runInvocationRitual);
+        document.getElementById('btn-seal-folio')?.addEventListener('click', () => resolvePendingFolio('seal'));
+        document.getElementById('btn-transmute-folio')?.addEventListener('click', () => resolvePendingFolio('transmute'));
+
+        document.getElementById('btn-emergency-spin')?.addEventListener('click', () => {
+            const costs = CONFIG.workshop?.emergency_spin?.costs || [120, 250];
+            const idx = Number(store.emergencyPurchases || 0);
+            if (idx >= costs.length) return;
+            const cost = Number(costs[idx]);
+            if (Number(store.hud.coins || 0) < cost) return;
+
+            store.hud.coins -= cost;
+            store.hud.spin_charges = Math.min(Number(store.hud.spin_max || 3), Number(store.hud.spin_charges || 0) + 1);
+            store.emergencyPurchases = idx + 1;
+            saveStore();
+            renderHud();
+            renderEmergencyBar();
             const statusEl = document.getElementById('ritual-status');
-            if (actionsEl) actionsEl.hidden = true;
-            if (statusEl) {
-                statusEl.textContent = `« ${name} » transmuté en +${gained} écus d'or (session bac à sable).`;
-            }
+            if (statusEl) statusEl.textContent = '';
         });
 
-        // Banc d'essai Paper Doll
-        ['bench-weapon', 'bench-power', 'bench-rarity'].forEach((id) => {
-            document.getElementById(id)?.addEventListener('change', updateBench);
-        });
-
-        document.getElementById('btn-bench-backdrop')?.addEventListener('click', (e) => {
-            state.benchCosmos = !state.benchCosmos;
-            e.currentTarget.textContent = state.benchCosmos
-                ? 'Fond : Sombre Cosmos (#0B1020)'
-                : 'Fond : Vélin Codex (#EBE0C8)';
-            e.currentTarget.classList.toggle('is-active', !state.benchCosmos);
-            updateBench();
-        });
-
-        document.getElementById('btn-bench-halo')?.addEventListener('click', (e) => {
-            state.benchHalo = !state.benchHalo;
-            e.currentTarget.textContent = state.benchHalo
-                ? 'Halo Contraste Auras Pâles : Actif'
-                : 'Halo Contraste Auras Pâles : Désactivé';
-            e.currentTarget.classList.toggle('is-active', state.benchHalo);
-            updateBench();
-        });
-
-        // Flip 3D (délégation d'événements)
-        document.getElementById('folios-grid')?.addEventListener('click', (e) => {
+        // Flip 3D (délégation globale : Grimoire + Reveal Tirage)
+        document.addEventListener('click', (e) => {
             const flipBtn = e.target.closest('[data-flip-folio]');
             if (!flipBtn) return;
             const card = flipBtn.closest('.folio-card');
             if (card) {
-                card.classList.toggle('is-flipped');
+                const flipped = card.classList.toggle('is-flipped');
+                const front = card.querySelector('.folio-face--front');
+                const back = card.querySelector('.folio-face--back');
+                if (front) front.setAttribute('aria-hidden', flipped ? 'true' : 'false');
+                if (back) back.setAttribute('aria-hidden', flipped ? 'false' : 'true');
+                const frontBtn = front?.querySelector('[data-flip-folio]');
+                const backBtn = back?.querySelector('[data-flip-folio]');
+                if (frontBtn) frontBtn.setAttribute('tabindex', flipped ? '-1' : '0');
+                if (backBtn) backBtn.setAttribute('tabindex', flipped ? '0' : '-1');
+                const nextBtn = flipped ? backBtn : frontBtn;
+                if (nextBtn) nextBtn.focus();
             }
         });
 
-        // Filtres de rareté
+        // Grimoire filtres
         document.querySelectorAll('[data-rarity-filter]').forEach((btn) => {
             btn.addEventListener('click', () => {
                 state.rarityFilter = btn.getAttribute('data-rarity-filter') || 'all';
                 document.querySelectorAll('[data-rarity-filter]').forEach((b) => {
                     b.classList.toggle('is-active', b === btn);
                 });
-                renderGallery();
+                renderGrimoire();
             });
         });
 
@@ -1154,69 +1793,82 @@
             document.querySelectorAll('[data-rarity-filter]').forEach((b) => {
                 b.classList.toggle('is-active', b.getAttribute('data-rarity-filter') === 'all');
             });
-            renderGallery();
+            renderGrimoire();
         });
 
-        // Mode connecté lecture seule (Mode Vitrine vs Mon Grimoire)
-        document.querySelectorAll('[data-source-toggle]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                state.mode = btn.getAttribute('data-source-toggle') || 'showcase';
-                document.querySelectorAll('[data-source-toggle]').forEach((b) => {
-                    b.classList.toggle('is-active', b === btn);
-                });
-                renderGallery();
-                populateDuelSelectors();
-            });
+        // Arène
+        document.getElementById('btn-arena-demo')?.addEventListener('click', () => {
+            state.arenaDemoMode = true;
+            syncArenaView();
         });
-
-        // Duel
-        document.getElementById('duel-left-select')?.addEventListener('change', renderDuelCards);
-        document.getElementById('duel-right-select')?.addEventListener('change', renderDuelCards);
+        document.getElementById('btn-arena-exit-demo')?.addEventListener('click', () => {
+            state.arenaDemoMode = false;
+            syncArenaView();
+        });
+        document.getElementById('duel-left-select')?.addEventListener('change', () => handleArenaSelectionChange('left'));
+        document.getElementById('duel-right-select')?.addEventListener('change', () => handleArenaSelectionChange('right'));
         document.getElementById('btn-run-duel')?.addEventListener('click', runDuelSimulation);
         document.getElementById('btn-reset-duel')?.addEventListener('click', renderDuelCards);
 
-        // Atelier Alchimique paliers interactifs
-        document.querySelectorAll('[data-magnet-tier]').forEach((chip) => {
-            chip.addEventListener('click', () => {
-                const tier = Number(chip.getAttribute('data-magnet-tier') || 1);
-                const cost = Number(chip.getAttribute('data-magnet-cost') || 200);
-                const bonusPerLevel = Number((CONFIG.workshop && CONFIG.workshop.rare_magnet && CONFIG.workshop.rare_magnet.bonus_per_level) || 3);
-                document.querySelectorAll('[data-magnet-tier]').forEach((c) => {
-                    c.classList.toggle('is-bought', Number(c.getAttribute('data-magnet-tier')) <= tier);
-                });
-                const readout = document.getElementById('workshop-magnet-readout');
-                if (readout) {
-                    readout.innerHTML = `Simulation palier ${tier} : <strong>+${tier * bonusPerLevel}%</strong> vers Gravité / Téléportation / Invisibilité (coût du palier : ${cost.toLocaleString('fr-FR')} écus).`;
+        // Rang
+        const leagueTabs = Array.from(document.querySelectorAll('[data-league-tab]'));
+        leagueTabs.forEach((tab, idx) => {
+            tab.addEventListener('click', () => {
+                const league = tab.getAttribute('data-league-tab');
+                if (league) renderLeaderboardLeague(league);
+            });
+            tab.addEventListener('keydown', (e) => {
+                let targetIdx = null;
+                if (e.key === 'ArrowRight') targetIdx = (idx + 1) % leagueTabs.length;
+                else if (e.key === 'ArrowLeft') targetIdx = (idx - 1 + leagueTabs.length) % leagueTabs.length;
+                else if (e.key === 'Home') targetIdx = 0;
+                else if (e.key === 'End') targetIdx = leagueTabs.length - 1;
+                if (targetIdx === null) return;
+                e.preventDefault();
+                const nextTab = leagueTabs[targetIdx];
+                const league = nextTab?.getAttribute('data-league-tab');
+                if (league) {
+                    renderLeaderboardLeague(league);
+                    nextTab.focus();
                 }
             });
         });
 
-        // Scrollspy pour les 5 signets de cuir
-        const chapters = document.querySelectorAll('.codex-chapter[id]');
-        const bookmarks = document.querySelectorAll('[data-chapter-link]');
-        if ('IntersectionObserver' in window && chapters.length > 0) {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        const activeId = entry.target.id;
-                        bookmarks.forEach((b) => {
-                            b.classList.toggle('is-active', b.getAttribute('data-chapter-link') === activeId);
-                        });
-                    }
-                });
-            }, { rootMargin: '-25% 0px -60% 0px' });
+        document.addEventListener('click', (e) => {
+            const inspectBtn = e.target.closest('[data-inspect-rival]');
+            if (inspectBtn) {
+                openRivalInspector(inspectBtn.getAttribute('data-inspect-rival'), inspectBtn);
+            }
+        });
 
-            chapters.forEach((chapter) => observer.observe(chapter));
-        }
+        document.getElementById('btn-inspector-close')?.addEventListener('click', () => closeRivalInspector(true));
+        document.getElementById('rang-inspector-modal')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeRivalInspector(true);
+            }
+        });
+
+        // Atelier
+        document.getElementById('workshop-cards-grid')?.addEventListener('click', (e) => {
+            const buyBtn = e.target.closest('[data-workshop-buy]');
+            if (!buyBtn || buyBtn.disabled) return;
+            purchaseWorkshopUpgrade(buyBtn.getAttribute('data-workshop-buy'));
+        });
     };
 
     /* ======================================================================
-       INITIALISATION
+       INITIALISATION PAR PAGE
        ====================================================================== */
 
     renderHud();
-    drawAllVolvelleRings();
-    updateBench();
-    populateDuelSelectors();
+    if (PAGE === 'invocation') {
+        hydrateInvocationPage();
+    } else if (PAGE === 'grimoire') {
+        renderGrimoire();
+    } else if (PAGE === 'arena') {
+        syncArenaView();
+    } else if (PAGE === 'workshop') {
+        renderWorkshop();
+    }
     bindEvents();
 })();

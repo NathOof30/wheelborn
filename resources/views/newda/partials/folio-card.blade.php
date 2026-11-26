@@ -8,7 +8,7 @@
 @endphp
 <article class="folio-card" data-folio-id="{{ $folio['id'] }}" data-rarity="{{ $folio['rarity'] }}">
     <div class="folio-card-inner">
-        <div class="folio-face folio-face--front">
+        <div class="folio-face folio-face--front" aria-hidden="false">
             <div class="folio-head">
                 <div class="folio-title-block">
                     <h3 class="folio-name">{{ $folio['name'] }}</h3>
@@ -79,7 +79,7 @@
             </div>
         </div>
 
-        <div class="folio-face folio-face--back">
+        <div class="folio-face folio-face--back" aria-hidden="true">
             <div class="folio-head">
                 <h3 class="folio-name">{{ $folio['name'] }}</h3>
                 <span class="power-medallion tabular-nums">{{ $folio['power_score'] }}</span>
@@ -138,7 +138,7 @@
                     <svg class="hud-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.9"/><polygon points="10,5.5 13,10 10,14.5 7,10" fill="currentColor"/></svg>
                     +{{ $folio['recycle_value'] }}
                 </span>
-                <button type="button" class="folio-flip-icon" data-flip-folio aria-label="Retourner au recto de {{ $folio['name'] }}" title="Recto">
+                <button type="button" class="folio-flip-icon" data-flip-folio tabindex="-1" aria-label="Retourner au recto de {{ $folio['name'] }}" title="Recto">
                     ↺
                 </button>
             </div>

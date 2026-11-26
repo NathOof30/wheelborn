@@ -24,20 +24,29 @@
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
+                        <clipPath id="volvelle-clip-25" clipPathUnits="userSpaceOnUse">
+                            <circle cx="0" cy="0" r="12.5"/>
+                        </clipPath>
+                        <clipPath id="volvelle-clip-30" clipPathUnits="userSpaceOnUse">
+                            <circle cx="0" cy="0" r="15"/>
+                        </clipPath>
+                        <clipPath id="volvelle-clip-34" clipPathUnits="userSpaceOnUse">
+                            <circle cx="0" cy="0" r="17"/>
+                        </clipPath>
                     </defs>
 
                     <circle cx="250" cy="250" r="245" fill="url(#volvelleRim)" stroke="#4A3618" stroke-width="3"/>
 
                     <g id="ring-powers" class="volvelle-ring volvelle-ring--powers"></g>
-                    <circle id="ring-glow-powers" class="volvelle-ring-glow" cx="250" cy="250" r="213" fill="none" stroke="#F0CC6B" stroke-width="58" opacity="0" pointer-events="none"/>
+                    <circle id="ring-glow-powers" class="volvelle-ring-glow" cx="250" cy="250" r="213" fill="none" stroke="#F0CC6B" stroke-width="58" filter="url(#ringGlowFilter)" opacity="0" pointer-events="none"/>
                     <circle cx="250" cy="250" r="184" fill="none" stroke="#4A3618" stroke-width="2.4"/>
 
                     <g id="ring-weapons" class="volvelle-ring volvelle-ring--weapons"></g>
-                    <circle id="ring-glow-weapons" class="volvelle-ring-glow" cx="250" cy="250" r="155" fill="none" stroke="#F0CC6B" stroke-width="58" opacity="0" pointer-events="none"/>
+                    <circle id="ring-glow-weapons" class="volvelle-ring-glow" cx="250" cy="250" r="155" fill="none" stroke="#F0CC6B" stroke-width="58" filter="url(#ringGlowFilter)" opacity="0" pointer-events="none"/>
                     <circle cx="250" cy="250" r="126" fill="none" stroke="#4A3618" stroke-width="2.4"/>
 
                     <g id="ring-races" class="volvelle-ring volvelle-ring--races"></g>
-                    <circle id="ring-glow-races" class="volvelle-ring-glow" cx="250" cy="250" r="96" fill="none" stroke="#F0CC6B" stroke-width="60" opacity="0" pointer-events="none"/>
+                    <circle id="ring-glow-races" class="volvelle-ring-glow" cx="250" cy="250" r="96" fill="none" stroke="#F0CC6B" stroke-width="60" filter="url(#ringGlowFilter)" opacity="0" pointer-events="none"/>
                     <circle cx="250" cy="250" r="66" fill="#D9CBA8" stroke="#4A3618" stroke-width="2.6"/>
                 </svg>
 
